@@ -106,6 +106,7 @@ private:
     void emit(GameEventType t, float magnitude = 0.0f, const std::string& text = "", int score = 0);
 
     PlayerState state_ = PlayerState::Riding;
+    int seenBanks_ = 0, seenFails_ = 0;
     Vec3 prevPos_, curPos_;
     Quat prevRot_, curRot_;
     float crouch_ = 0.0f;

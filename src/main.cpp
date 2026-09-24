@@ -4,7 +4,10 @@
 
 #include "core/engine.h"
 #include "core/log.h"
+#include "core/filesystem.h"
+#include "core/json.h"
 #include "game/game.h"
+#include "save/save_system.h"
 
 #include <cstring>
 #include <string>
@@ -14,6 +17,7 @@ using namespace sw;
 int main(int argc, char** argv) {
     EngineConfig cfg;
     GameOptions opts;
+    bool windowFromArgs = false;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
@@ -21,11 +25,16 @@ int main(int argc, char** argv) {
         else if (a == "--autotest") opts.autotest = next();
         else if (a == "--gpu") cfg.gpuDriver = next();
         else if (a == "--gpu-debug") cfg.gpuDebug = true;
-        else if (a == "--windowed") cfg.windowMode = WindowMode::Windowed;
-        else if (a == "--fullscreen") cfg.windowMode = WindowMode::Borderless;
-        else if (a == "--size") {
+        else if (a == "--windowed") {
+            cfg.windowMode = WindowMode::Windowed;
+            windowFromArgs = true;
+        } else if (a == "--fullscreen") {
+            cfg.windowMode = WindowMode::Borderless;
+            windowFromArgs = true;
+        } else if (a == "--size") {
             std::string s = next();
             sscanf(s.c_str(), "%dx%d", &cfg.width, &cfg.height);
+            windowFromArgs = true;
         } else if (a == "--frames") cfg.maxFrames = std::atoi(next().c_str());
         else if (a == "--novsync") cfg.vsync = false;
         else if (a == "--env") opts.environment = next();
@@ -43,6 +52,28 @@ int main(int argc, char** argv) {
         } else if (a == "--debugview") opts.debugView = std::atoi(next().c_str());
         else if (a == "--editor") opts.editor = true;
         else if (a == "--play") opts.skipMenu = true;
+        else if (a == "--spawn") opts.spawn = next();
+        else if (a == "--menu") opts.menuScreen = next();
+        else if (a == "--challenge") opts.challenge = next();
+        else if (a == "--help" || a == "-h") {
+            SDL_Log("scoot would [--map scene.json] [--spawn label] [--challenge id] [--play] [--menu screen] [--editor]\n"
+                    "            [--windowed|--fullscreen] [--size WxH] [--novsync] [--gpu direct3d12|vulkan] [--gpu-debug]\n"
+                    "            [--env preset] [--autotest test.json] [--screenshot file.png frame] [--camera x,y,z,tx,ty,tz]");
+            return 0;
+        }
+    }
+    // window + presentation from the saved settings (command line wins; scripted runs use defaults)
+    if (!windowFromArgs && opts.autotest.empty() && opts.screenshot.empty() && fs::init()) {
+        if (auto j = loadJsonFile(fs::userPath("settings.json"))) {
+            Settings s = SaveSystem::settingsFromJson(*j);
+            cfg.windowMode = WindowMode(s.graphics.windowMode);
+            cfg.width = s.graphics.width;
+            cfg.height = s.graphics.height;
+            cfg.vsync = s.graphics.vsync;
+            cfg.fpsLimit = s.graphics.fpsLimit;
+        } else {
+            cfg.windowMode = WindowMode::Borderless;  // first run: desktop resolution
+        }
     }
     if (!opts.autotest.empty()) {
         cfg.fixedFrameTime = 1.0f / 120.0f;

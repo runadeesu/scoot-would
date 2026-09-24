@@ -85,7 +85,7 @@ void CameraController::update(float dt, const CameraTarget& t, const Vec2& look,
     airPitch_ = dampf(airPitch_, t.grounded ? 0.0f : 0.12f, 3.0f, dt);
     float pitch = pitch_ + orbitPitch_ + airPitch_;
     float yaw = yaw_ + orbitYaw_;
-    float desiredDist = distBase + saturate(hs / 18.0f) * 0.8f + (t.grounded ? 0.0f : 0.6f);
+    float desiredDist = (distBase + saturate(hs / 18.0f) * 0.8f + (t.grounded ? 0.0f : 0.6f)) * distanceScale;
     dist_ = dampf(dist_, desiredDist, 3.0f, dt);
 
     Vec3 focus = smoothTarget_ + ahead + Vec3(0, heightBase * 0.4f + airLift * 0.5f, 0);

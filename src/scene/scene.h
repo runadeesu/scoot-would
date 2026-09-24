@@ -210,6 +210,8 @@ public:
     Json& metadata() { return metadata_; }
     bool enablePhysics = true;
     bool editorMode = false;  // show helper meshes (spawns, zones)
+    void setEditorMode(bool on);
+    size_t entityCount() const { return entities_.size(); }
     uint32_t revision = 0;    // bumped on structural change (rails / zones list rebuilt)
 
 private:

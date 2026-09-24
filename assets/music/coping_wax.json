@@ -1,0 +1,17 @@
+{
+  "bpm": 92, "swing": 0.12, "root": "G2", "scale": "dorian", "seed": 77,
+  "chords": [[0, "m7"], [5, "m7"], [0, "m7"], [7, "7"]],
+  "keys": "epiano", "keysRhythm": "x..x....x..x....",
+  "leadDensity": 0.34, "leadOctave": 5,
+  "drums": { "kick": "x..x......x..x..", "snare": "....x.o.....x...", "hat": "x.x.x.x.x.x.x.xx" },
+  "bassRhythm": "x..x......x..x..",
+  "vinyl": 0.015, "masterLowpass": 10000,
+  "structure": [
+    { "bars": 4, "parts": ["keys", "hats"] },
+    { "bars": 8, "parts": ["keys", "drums", "bass"] },
+    { "bars": 8, "parts": ["keys", "drums", "bass", "lead"] },
+    { "bars": 8, "parts": ["keys", "drums", "bass", "lead", "pad"] },
+    { "bars": 4, "parts": ["keys", "bass"] },
+    { "bars": 8, "parts": ["keys", "drums", "bass", "lead"] }
+  ]
+}

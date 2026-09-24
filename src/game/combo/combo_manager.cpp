@@ -62,6 +62,8 @@ int ComboManager::bank() {
     lastBanked_ = pts;
     lastFailed_ = false;
     bannerTime = 0.0f;
+    ++banks;
+    lastEntries = entries_;
     entries_.clear();
     comboScore_ = 0;
     multiplier_ = 1.0f;
@@ -74,6 +76,8 @@ void ComboManager::fail() {
         lastFailed_ = true;
         lastBanked_ = comboTotal();
         bannerTime = 0.0f;
+        ++fails;
+        lastEntries = entries_;
     }
     entries_.clear();
     comboScore_ = 0;

@@ -48,6 +48,7 @@ struct RenderSettings {
     bool sharpen = true;
     int debugView = 0;  // 0 lit, 1 albedo, 2 normals, 3 roughness, 4 AO, 5 shadow
     bool particles = true;
+    float brightness = 1.0f;  // exposure multiplier (settings)
 };
 
 struct RenderCallbacks {

@@ -4,5 +4,6 @@
   "uvScale": 0.25,
   "surface": "grass",
   "wear": 0.5,
-  "orm": "assets/textures/grass_arm.jpg"
+  "orm": "assets/textures/grass_arm.jpg",
+  "color": "#b5d08e"
 }

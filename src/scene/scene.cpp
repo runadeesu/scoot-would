@@ -550,4 +550,12 @@ void Scene::clearStaticBatches() {
     }
 }
 
+void Scene::setEditorMode(bool on) {
+    editorMode = on;
+    if (!render_) return;
+    for (auto& [id, e] : entities_)
+        if (e->editorOnly && e->meshRenderer && e->meshRenderer->handle != RenderScene::kInvalid)
+            render_->setVisible(e->meshRenderer->handle, on && e->visible);
+}
+
 }  // namespace sw

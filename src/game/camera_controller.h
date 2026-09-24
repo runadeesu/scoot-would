@@ -37,6 +37,7 @@ public:
     float baseFov = 72.0f;     // degrees (settings)
     int shakeSetting = 2;      // 0 off, 1 low, 2 normal
     float sensitivity = 1.0f;
+    float distanceScale = 1.0f;
     bool invertY = false;
 
 private:

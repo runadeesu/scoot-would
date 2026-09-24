@@ -38,6 +38,8 @@ public:
     bool lastFailed() const { return lastFailed_; }
     std::string lastComboName;
     float bannerTime = 0.0f;  // UI: time since the last bank / fail
+    int banks = 0, fails = 0; // counters (event detection)
+    std::vector<ComboEntry> lastEntries;  // tricks of the last banked / failed combo
 
 private:
     std::vector<ComboEntry> entries_;

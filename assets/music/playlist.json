@@ -1,0 +1,10 @@
+{
+  "_comment": "Tracks: 'source' is a song description (.json, rendered by the built in synth) or an audio file (.wav/.flac/.mp3). Audio files dropped into this folder are added automatically.",
+  "tracks": [
+    { "title": "Parking Lot Dawn", "artist": "scoot would OST", "source": "assets/music/menu_theme.json", "menu": true },
+    { "title": "Concrete Sunrise", "artist": "scoot would OST", "source": "assets/music/concrete_sunrise.json" },
+    { "title": "Night Lines", "artist": "scoot would OST", "source": "assets/music/night_lines.json" },
+    { "title": "Gap To Rail", "artist": "scoot would OST", "source": "assets/music/gap_to_rail.json" },
+    { "title": "Coping Wax", "artist": "scoot would OST", "source": "assets/music/coping_wax.json" }
+  ]
+}

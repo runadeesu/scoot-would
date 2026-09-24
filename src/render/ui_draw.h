@@ -16,7 +16,8 @@ struct UIVertex {
 
 struct UIDrawCmd {
     Texture* texture = nullptr;  // nullptr = font atlas / white
-    bool rgbaImage = false;      // false: texture red channel = coverage
+    bool rgbaImage = false;      // false: texture red channel = signed distance (font atlas)
+    float softness = 0.0f;       // SDF edge widening (soft shadows / glow)
     uint32_t firstIndex = 0;
     uint32_t indexCount = 0;
     int clipX = 0, clipY = 0, clipW = 0, clipH = 0;  // 0 size = no clip

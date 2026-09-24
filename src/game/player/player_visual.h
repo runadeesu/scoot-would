@@ -23,7 +23,7 @@ struct Customization {
     int pants = 0;   // 0 jeans, 1 shorts
     int shoes = 0;
     int helmet = 1;  // 0 none, 1 helmet, 2 cap
-    Vec3 skinColor{0.78f, 0.57f, 0.46f};
+    Vec3 skinColor{0.58f, 0.36f, 0.25f};
     Vec3 topColor{0.85f, 0.2f, 0.18f};
     Vec3 pantsColor{0.18f, 0.22f, 0.32f};
     Vec3 shoesColor{0.95f, 0.95f, 0.95f};

@@ -530,6 +530,15 @@ void Player::postPhysics(float dt) {
     // fell out of the world
     if (scooter.position().y < -30.0f) respawn(false);
     combo.update(dt, state_ == PlayerState::Riding && scooter.grounded() && landedTimer_ > 0.05f);
+    // combo results for audio / HUD / challenges
+    if (combo.banks != seenBanks_) {
+        seenBanks_ = combo.banks;
+        emit(GameEventType::ComboBanked, combo.multiplier(), "", combo.lastBanked());
+    }
+    if (combo.fails != seenFails_) {
+        seenFails_ = combo.fails;
+        emit(GameEventType::ComboFailed, 0.0f, "", combo.lastBanked());
+    }
 }
 
 }  // namespace sw

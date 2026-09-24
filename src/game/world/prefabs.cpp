@@ -100,7 +100,8 @@ void roadPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     float sidewalk = P(j, "sidewalk", 3.0f);
     MeshBuilder b("road");
     b.setMaterial(0);
-    b.grid(Vec3(0, 0, 0), length, width, std::max(1, int(length / 8)), 2);
+    // asphalt = false: markings only (roads painted onto a shared asphalt ground)
+    if (Pb(j, "asphalt", true)) b.grid(Vec3(0, 0, 0), length, width, std::max(1, int(length / 8)), 2);
     b.setMaterial(1);
     // lane markings: dashed centre line + solid edge lines
     float y = 0.004f;
@@ -931,7 +932,7 @@ void registerBuiltinPrefabs() {
     PrefabRegistry& r = prefabs();
     r.add("ground", "Ground", groundPrefab, {{"size", {40, 0.2, 40}}, {"divisions", 4}});
     r.add("slab", "Ground", slabPrefab, {{"size", {4, 0.4, 4}}, {"grindEdges", false}});
-    r.add("road", "Ground", roadPrefab, {{"length", 40}, {"width", 9}, {"sidewalk", 3.0}, {"curbHeight", 0.14}, {"centerLine", true}});
+    r.add("road", "Ground", roadPrefab, {{"length", 40}, {"width", 9}, {"sidewalk", 3.0}, {"curbHeight", 0.14}, {"centerLine", true}, {"asphalt", true}});
     r.add("wall", "Structure", wallPrefab, {{"size", {6, 2.5, 0.3}}, {"grindTop", false}});
     r.add("building", "Structure", buildingPrefab,
           {{"size", {16, 12, 12}}, {"floorHeight", 3.3}, {"windowSpacing", 3.0}, {"shops", true}, {"parapet", true}, {"litWindows", true}, {"roofMaterial", "roof_grey"}});

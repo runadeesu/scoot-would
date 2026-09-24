@@ -1,0 +1,17 @@
+{
+  "bpm": 96, "swing": 0.06, "root": "A2", "scale": "minor", "seed": 21,
+  "chords": [[0, "m7"], [8, "maj7"], [3, "maj7"], [10, "7"]],
+  "keys": "pluck", "keysRhythm": "x..x..x...x..x..",
+  "leadDensity": 0.26, "leadOctave": 5,
+  "drums": { "kick": "x.....x...x.....", "snare": "....x.......x..o", "hat": "..x...x...x...x.", "openhat": "......x.......x." },
+  "bassRhythm": "x..x..x...x..x..",
+  "padCutoff": 900, "masterLowpass": 11000,
+  "structure": [
+    { "bars": 4, "parts": ["pad"] },
+    { "bars": 8, "parts": ["pad", "keys", "hats", "bass"] },
+    { "bars": 8, "parts": ["pad", "keys", "drums", "bass", "lead"] },
+    { "bars": 8, "parts": ["pad", "drums", "bass", "lead"] },
+    { "bars": 8, "parts": ["pad", "keys", "drums", "bass", "lead"] },
+    { "bars": 4, "parts": ["pad", "keys"] }
+  ]
+}

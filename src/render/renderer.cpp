@@ -914,7 +914,7 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
     float sunI = env.sunIntensity * kPi * skyUpLum_ * env.iblIntensity;
     float whiteLum = skyUpLum_ * env.iblIntensity * (1.0f + env.sunIntensity * std::max(sunDir_.y, 0.15f));
     // key: a sunlit 18% grey surface ends up at ~0.23 before tone mapping (mid grey after ACES)
-    float exposure = clampf(1.25f / std::max(whiteLum, 1e-4f), 0.0005f, 5000.0f) * env.exposure;
+    float exposure = clampf(1.25f / std::max(whiteLum, 1e-4f), 0.0005f, 5000.0f) * env.exposure * settings_.brightness;
     frame_.sunDir = Vec4(sunDir_, sunI);
     frame_.sunColor = Vec4(env.sunColor, env.iblIntensity);
     frame_.viewport = Vec4(float(rw_), float(rh_), 1.0f / float(rw_), 1.0f / float(rh_));
@@ -1207,7 +1207,7 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
                 SDL_GPUTexture* th = t && t->gpuTex.handle ? t->gpuTex.handle : assets().white()->gpuTex.handle;
                 SDL_GPUTextureSamplerBinding sb{th, gpu().sampler(SamplerKind::LinearClamp)};
                 SDL_BindGPUFragmentSamplers(rp, 0, &sb, 1);
-                Vec4 mode(c.rgbaImage ? 1.0f : 0.0f, 0, 0, 0);
+                Vec4 mode(c.rgbaImage ? 1.0f : 0.0f, c.softness, 0, 0);
                 SDL_PushGPUFragmentUniformData(cmd, 0, &mode, sizeof(mode));
                 SDL_Rect sc;
                 if (c.clipW > 0 && c.clipH > 0)

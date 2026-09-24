@@ -1,0 +1,26 @@
+{
+  "_comment": "Map select entries. 'spawn' is the label of a spawn entity in the scene. Districts of one scene are connected, so riders can skate from one to the next.",
+  "maps": [
+    {
+      "id": "city", "name": "Scoot City", "scene": "assets/scenes/city.json",
+      "districts": [
+        { "id": "plaza",       "name": "Street Plaza",      "spawn": "Street Plaza",      "color": "#e8b33a", "desc": "Marble ledges, stair sets, handrails and manual pads in the middle of town." },
+        { "id": "skatepark",   "name": "Skatepark",         "spawn": "Skatepark",         "color": "#3aa0e8", "desc": "Concrete park with quarter pipes, a bowl, spine, funboxes and flat rails." },
+        { "id": "megapark",    "name": "Mega Park",         "spawn": "Mega Park",         "color": "#e8573a", "desc": "Mega ramp roll-in, huge gap and big air kickers for the biggest spins." },
+        { "id": "downtown",    "name": "Downtown",          "spawn": "Downtown",          "color": "#8a7ae8", "desc": "Tall buildings, long avenues, planter gaps and endless ledges." },
+        { "id": "school",      "name": "School",            "spawn": "School",            "color": "#5fd08a", "desc": "Courtyard stairs with handrails, benches, picnic tables and a basketball court." },
+        { "id": "industrial",  "name": "Industrial",        "spawn": "Industrial",        "color": "#c98a4a", "desc": "Loading docks, containers, pipes and banks between the warehouses." },
+        { "id": "rooftops",    "name": "Rooftops",          "spawn": "Rooftops",          "color": "#4ad0d0", "desc": "Gap across the roofs, ride the parapets and drop back down to the street." },
+        { "id": "ditch",       "name": "Ditch",             "spawn": "Ditch",             "color": "#9aa35a", "desc": "Long concrete drainage ditch with steep banks and hips." },
+        { "id": "residential", "name": "Residential",       "spawn": "Residential",       "color": "#e87aa8", "desc": "Quiet streets, driveways, curbs, low walls and a few hidden kickers." },
+        { "id": "comp",        "name": "Competition Park",  "spawn": "Competition Park",  "color": "#f0f0f0", "desc": "Contest course: box jump, hubba, rainbow rail and the big quarter." }
+      ]
+    },
+    {
+      "id": "testpark", "name": "Test Lot", "scene": "assets/scenes/testpark.json",
+      "districts": [
+        { "id": "testlot", "name": "Test Lot", "spawn": "Start", "color": "#7f8c99", "desc": "Small lot with one of each obstacle. Used by the automated tests." }
+      ]
+    }
+  ]
+}
