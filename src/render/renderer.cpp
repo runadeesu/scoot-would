@@ -318,6 +318,7 @@ void Renderer::createPipelines() {
     motionBlur_ = post("motion blur", "motion_blur.frag", kHdrFormat);
     tonemap_ = post("tonemap", "postprocess.frag", kLdrFormat);
     fxaa_ = post("fxaa", "fxaa.frag", gpu().swapchainFormat());
+    present_ = post("present", "present.frag", gpu().swapchainFormat());
     prefilter_ = post("ibl prefilter", "ibl_prefilter.frag", kHdrFormat);
     brdfPipe_ = post("brdf lut", "brdf_lut.frag", SDL_GPU_TEXTUREFORMAT_R16G16_FLOAT);
     // UI
@@ -478,10 +479,8 @@ void Renderer::loadEnvironment(RenderScene& scene) {
     {
         uint32_t levels = 1;
         for (int s = std::max(img.width, img.height); s > 1; s >>= 1) ++levels;
-        envEquirect_ = gpu().createTexture2D(uint32_t(img.width), uint32_t(img.height), kHdrFormat,
-                                             SDL_GPU_TEXTUREUSAGE_SAMPLER | SDL_GPU_TEXTUREUSAGE_COLOR_TARGET, levels, "sky equirect");
-        gpu().uploadTexture(envEquirect_, half.data(), uint32_t(half.size() * 2), 0, 0);
-        gpu().generateMips(envEquirect_);
+        envEquirect_ = gpu().createTexture2D(uint32_t(img.width), uint32_t(img.height), kHdrFormat, SDL_GPU_TEXTUREUSAGE_SAMPLER, levels, "sky equirect");
+        uploadMipChainRGBA16F(envEquirect_, half.data(), img.width, img.height);
         gpu().flushUploads();
     }
 
@@ -1234,16 +1233,10 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
     SDL_GPUTexture* swap = gpu().acquireSwapchain(cmd, &swW, &swH);
     Profiler::end(ProfileSection::GpuWait);
     if (swap) {
-        SDL_GPUBlitInfo bi{};
-        bi.source.texture = backbuffer_.handle;
-        bi.source.w = uint32_t(outW_);
-        bi.source.h = uint32_t(outH_);
-        bi.destination.texture = swap;
-        bi.destination.w = swW;
-        bi.destination.h = swH;
-        bi.load_op = SDL_GPU_LOADOP_DONT_CARE;
-        bi.filter = SDL_GPU_FILTER_LINEAR;
-        SDL_BlitGPUTexture(cmd, &bi);
+        // own copy pass instead of SDL's blit (its internal pipelines are not available on every D3D12 runtime)
+        (void)swW;
+        (void)swH;
+        fullscreen(cmd, swap, 0, present_, {{backbuffer_.handle, gpu().sampler(SamplerKind::LinearClamp)}}, nullptr, 0, false);
     }
     gpu().endFrame(cmd);
     prevViewProj_ = view.viewProj;

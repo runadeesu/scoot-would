@@ -63,7 +63,6 @@ public:
     // upload one mip/layer. rowPitch in texels (0 = tightly packed)
     void uploadTexture(const GpuTexture& tex, const void* data, uint32_t dataSize, uint32_t mip = 0, uint32_t layer = 0,
                        uint32_t w = 0, uint32_t h = 0);
-    void generateMips(const GpuTexture& tex);
     void release(GpuTexture& t);
 
     SDL_GPUSampler* sampler(SamplerKind k) const { return samplers_[int(k)]; }

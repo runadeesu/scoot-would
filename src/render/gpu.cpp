@@ -265,15 +265,6 @@ void Gpu::uploadTexture(const GpuTexture& tex, const void* data, uint32_t dataSi
     pendingTransfers_.push_back(tb);
 }
 
-void Gpu::generateMips(const GpuTexture& tex) {
-    if (!tex.handle || tex.mips <= 1) return;
-    // mip generation happens outside of a copy pass
-    SDL_GPUCommandBuffer* cmd = uploadCommandBuffer();
-    SDL_EndGPUCopyPass(uploadPass_);
-    SDL_GenerateMipmapsForGPUTexture(cmd, tex.handle);
-    uploadPass_ = SDL_BeginGPUCopyPass(cmd);
-}
-
 void Gpu::release(GpuTexture& t) {
     if (t.handle) SDL_ReleaseGPUTexture(device_, t.handle);
     t = GpuTexture{};

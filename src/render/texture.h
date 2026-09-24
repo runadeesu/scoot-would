@@ -40,5 +40,8 @@ struct ImageF {
 bool loadHdrImage(const std::string& absPath, ImageF& out, int maxWidth = 2048);
 
 uint16_t floatToHalf(float f);
+float halfToFloat(uint16_t h);
+// upload level 0 and a CPU generated mip chain (texture created with tex.mips levels)
+void uploadMipChainRGBA16F(const GpuTexture& tex, const uint16_t* rgba, int w, int h);
 
 }  // namespace sw

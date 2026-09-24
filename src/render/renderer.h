@@ -138,7 +138,7 @@ private:
     GfxPipeline* shadowPipe_[3] = {};  // static, skinned, masked
     GfxPipeline *sky_ = nullptr, *ssaoPipe_ = nullptr, *ssaoBlur_ = nullptr, *bloomDown_ = nullptr, *bloomUp_ = nullptr;
     GfxPipeline *tonemap_ = nullptr, *fxaa_ = nullptr, *motionBlur_ = nullptr, *debugLines_ = nullptr, *debugLinesNoDepth_ = nullptr;
-    GfxPipeline *particlesAlpha_ = nullptr, *particlesAdd_ = nullptr, *ui_ = nullptr, *prefilter_ = nullptr, *brdfPipe_ = nullptr;
+    GfxPipeline *particlesAlpha_ = nullptr, *particlesAdd_ = nullptr, *ui_ = nullptr, *present_ = nullptr, *prefilter_ = nullptr, *brdfPipe_ = nullptr;
 
     // buffers
     DynBuffer instanceBuf_, visibleBuf_, boneBuf_, lightBuf_, lineBuf_, particleBuf_, uiVertBuf_, uiIndexBuf_;

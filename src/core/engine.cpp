@@ -32,6 +32,15 @@ bool Engine::init(const EngineConfig& cfg) {
     Log::init(fs::userPath("logs/scoot_would.log"));
     Log::installCrashHandler();
     LOG_INFO("scoot would %s starting", SCOOT_VERSION);
+    // SDL's own warnings / errors (GPU backend, audio, input) go into our log
+    SDL_SetLogPriorities(SDL_LOG_PRIORITY_WARN);
+    SDL_SetLogOutputFunction(
+        [](void*, int category, SDL_LogPriority priority, const char* message) {
+            if (priority >= SDL_LOG_PRIORITY_ERROR) LOG_ERROR("SDL[%d]: %s", category, message);
+            else if (priority >= SDL_LOG_PRIORITY_WARN) LOG_WARN("SDL[%d]: %s (%s)", category, message, SDL_GetError());
+            else LOG_INFO("SDL[%d]: %s", category, message);
+        },
+        nullptr);
     LOG_INFO("data root: %s", fs::dataRoot().c_str());
     LOG_INFO("user dir : %s", fs::userDir().c_str());
     if (!dataOk) LOG_ERROR("data folder (assets/) not found next to the executable");

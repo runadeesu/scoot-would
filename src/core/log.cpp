@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <csignal>
+#include <cstring>
 #include <deque>
 #include <mutex>
 
@@ -106,11 +107,64 @@ void writeCrash(const char* reason) {
 }  // namespace
 
 #if defined(_WIN32)
+// walk the faulting thread's stack from the exception context (x64 unwind tables) and log
+// "module+offset" frames; map them to functions with addr2line / the linker map file
+static void writeStack(const CONTEXT* ctxIn) {
+#if defined(_M_X64) || defined(__x86_64__)
+    CONTEXT ctx = *ctxIn;
+    char line[512];
+    for (int frame = 0; frame < 48 && ctx.Rip; ++frame) {
+        HMODULE mod = nullptr;
+        char name[MAX_PATH] = "?";
+        if (GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                               reinterpret_cast<LPCSTR>(ctx.Rip), &mod)) {
+            GetModuleFileNameA(mod, name, sizeof(name));
+        }
+        const char* base = strrchr(name, '\\');
+        snprintf(line, sizeof(line), "  #%02d 0x%016llx  %s+0x%llx", frame, (unsigned long long)ctx.Rip, base ? base + 1 : name,
+                 (unsigned long long)(ctx.Rip - reinterpret_cast<DWORD64>(mod)));
+        if (g_file) fprintf(g_file, "%s\n", line);
+        fprintf(stderr, "%s\n", line);
+        DWORD64 imageBase = 0;
+        PRUNTIME_FUNCTION fe = RtlLookupFunctionEntry(ctx.Rip, &imageBase, nullptr);
+        if (!fe) {
+            // leaf function: return address on top of the stack
+            ctx.Rip = *reinterpret_cast<DWORD64*>(ctx.Rsp);
+            ctx.Rsp += 8;
+        } else {
+            void* handlerData = nullptr;
+            DWORD64 establisher = 0;
+            RtlVirtualUnwind(UNW_FLAG_NHANDLER, imageBase, ctx.Rip, fe, &ctx, &handlerData, &establisher, nullptr);
+        }
+    }
+    if (g_file) fflush(g_file);
+#else
+    (void)ctxIn;
+#endif
+}
+
 static LONG WINAPI swUnhandledException(EXCEPTION_POINTERS* info) {
     char buf[256];
     snprintf(buf, sizeof(buf), "unhandled exception 0x%08lX at %p",
              (unsigned long)info->ExceptionRecord->ExceptionCode, info->ExceptionRecord->ExceptionAddress);
     writeCrash(buf);
+    writeStack(info->ContextRecord);
+    return EXCEPTION_CONTINUE_SEARCH;
+}
+
+// first chance access violations / illegal instructions: logged with a stack trace before any
+// runtime (CRT signal emulation, drivers) gets to see them
+static LONG WINAPI swVectoredHandler(EXCEPTION_POINTERS* info) {
+    static volatile LONG reported = 0;
+    DWORD code = info->ExceptionRecord->ExceptionCode;
+    bool fatal = code == EXCEPTION_ACCESS_VIOLATION || code == EXCEPTION_ILLEGAL_INSTRUCTION || code == EXCEPTION_STACK_OVERFLOW ||
+                 code == EXCEPTION_INT_DIVIDE_BY_ZERO;
+    if (fatal && InterlockedIncrement(&reported) <= 2) {
+        char buf[256];
+        snprintf(buf, sizeof(buf), "exception 0x%08lX at %p (first chance)", (unsigned long)code, info->ExceptionRecord->ExceptionAddress);
+        writeCrash(buf);
+        writeStack(info->ContextRecord);
+    }
     return EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
@@ -126,6 +180,7 @@ static void swSignalHandler(int sig) {
 void Log::installCrashHandler() {
 #if defined(_WIN32)
     SetUnhandledExceptionFilter(swUnhandledException);
+    AddVectoredExceptionHandler(1, swVectoredHandler);
 #endif
     std::signal(SIGSEGV, swSignalHandler);
     std::signal(SIGABRT, swSignalHandler);
