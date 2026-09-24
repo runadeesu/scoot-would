@@ -53,6 +53,7 @@ public:
     // per frame, after the player simulation
     void update(float dt, float alpha, Player& player);
     void setVisible(bool v);
+    void setRiderVisible(bool v);  // scooter only (photo mode, showroom shots)
     bool usingModel() const { return model_ != nullptr; }
     const std::vector<Transform>& jointsModel() const { return jointsModel_; }
     Transform riderModelToWorld() const { return riderWorld_; }
@@ -60,7 +61,7 @@ public:
     RiderAnimator* animator() { return animator_.get(); }
 
 private:
-    enum Part { Deck = 0, Grip, Fork, Bars, Grips, Clamp, WheelF, WheelR, PartCount };
+    enum Part { Deck = 0, Grip, Brake, Fork, Bars, Grips, Clamp, TyreF, CoreF, TyreR, CoreR, PartCount };
     void buildScooterMeshes();
     void buildMannequin();
     void updateScooterParts(const Transform& body, const Player& player, bool bailed);
@@ -85,6 +86,7 @@ private:
     float wheelSpin_ = 0.0f;
     float barSteer_ = 0.0f;
     bool visible_ = true;
+    bool riderVisible_ = true;
 };
 
 }  // namespace sw

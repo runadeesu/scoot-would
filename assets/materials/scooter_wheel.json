@@ -1,6 +1,8 @@
 {
-  "color": "#e8e8e8",
-  "roughness": 0.65,
+  "_comment": "88A polyurethane (tint = wheel colour)",
+  "color": "#efefef",
+  "roughness": 0.5,
   "tintable": true,
+  "wear": 0.35,
   "surface": "concrete"
 }

@@ -501,17 +501,17 @@ void Menus::drawScooter(Context& ui) {
     header(ui, "SCOOTER", "Deck, bars, wheels and colors");
     Customization c = game_.visual().customization();
     float W = ui.width();
-    Rect panel(W - 820, 190, 760, 800);
+    Rect panel(W - 820, 170, 760, 860);
     ui.shadow(panel, 14, 20, 0.4f);
     ui.rect(panel, ui.theme().panel, 14);
-    float y = panel.y + 30, x = panel.x + 30, w = panel.w - 60, h = 66, gap = 10;
+    float y = panel.y + 26, x = panel.x + 30, w = panel.w - 60, h = 62, gap = 9;
     bool changed = false;
     auto row = [&](const std::string& label, const std::string& value) {
         int d = ui.choice(label, value, Rect(x, y, w, h));
         y += h + gap;
         return d;
     };
-    const char* decks[] = {"Street 20\"", "Wide 5.3\"", "Park 21\""};
+    const char* decks[] = {"Street 4.8\"", "Wide 5.3\"", "Park 4.5\""};
     const char* bars[] = {"Standard", "Tall", "Wide"};
     const char* wheels[] = {"6 Spoke", "12 Spoke", "Solid Core"};
     if (int d = row("Deck", decks[c.deck])) { c.deck = (c.deck + d + 3) % 3; changed = true; }
@@ -520,6 +520,7 @@ void Menus::drawScooter(Context& ui) {
     if (int d = row("Bars Color", colorName(metalPalette(), c.barsColor))) { cycleColor(metalPalette(), c.barsColor, d); changed = true; }
     if (int d = row("Wheels", wheels[c.wheels])) { c.wheels = (c.wheels + d + 3) % 3; changed = true; }
     if (int d = row("Wheel Color", colorName(metalPalette(), c.wheelColor))) { cycleColor(metalPalette(), c.wheelColor, d); changed = true; }
+    if (int d = row("Core Color", colorName(metalPalette(), c.coreColor))) { cycleColor(metalPalette(), c.coreColor, d); changed = true; }
     if (int d = row("Grips", colorName(clothPalette(), c.gripColor))) { cycleColor(clothPalette(), c.gripColor, d); changed = true; }
     if (int d = row("Clamp", colorName(metalPalette(), c.clampColor))) { cycleColor(metalPalette(), c.clampColor, d); changed = true; }
     if (ui.button("DONE", Rect(x, y + 16, w, 70), true)) {

@@ -1,7 +1,9 @@
 {
-  "color": "#d9dde2",
+  "_comment": "anodised 6061 aluminium deck (tint = deck colour)",
+  "color": "#e6e8eb",
   "metallic": 1.0,
-  "roughness": 0.32,
+  "roughness": 0.3,
   "tintable": true,
+  "wear": 0.3,
   "surface": "metal"
 }

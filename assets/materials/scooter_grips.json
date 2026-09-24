@@ -1,6 +1,8 @@
 {
-  "color": "#202020",
-  "roughness": 0.8,
+  "_comment": "soft rubber grips (tint = grip colour)",
+  "color": "#e0e0e0",
+  "roughness": 0.82,
   "tintable": true,
+  "wear": 0.25,
   "surface": "concrete"
 }

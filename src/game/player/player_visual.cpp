@@ -5,6 +5,7 @@
 #include "game/player/player.h"
 #include "game/player/ragdoll.h"
 #include "game/player/rider_animator.h"
+#include "game/player/scooter_model.h"
 #include "render/mesh_builder.h"
 
 #include <cstdlib>
@@ -43,112 +44,40 @@ PlayerVisual::PlayerVisual() {
 PlayerVisual::~PlayerVisual() = default;
 
 void PlayerVisual::buildScooterMeshes() {
-    const ScooterDims& d = kDims;
-    Vec3 steer = d.steerAxis();
-    Vec3 fa = d.frontAxle(), ra = d.rearAxle();
-    // deck (+ head tube, dropout)
-    {
-        MeshBuilder b("scooter_deck");
-        b.setMaterial(0);
-        float len = d.deckLength, w = d.deckWidth, h = 0.042f;
-        float deckY = d.deckTop - h * 0.5f;
-        float deckCz = 0.03f;
-        if (custom_.deck == 1) w = 0.135f;
-        if (custom_.deck == 2) len = 0.53f;
-        // main deck body with a bevel via two boxes
-        b.box(Vec3(0, deckY, deckCz), Vec3(w, h, len));
-        b.box(Vec3(0, deckY - h * 0.5f - 0.004f, deckCz), Vec3(w * 0.8f, 0.008f, len * 0.96f));
-        // neck up to the head tube
-        Vec3 neckA(0, deckY, deckCz - len * 0.5f + 0.02f);
-        Vec3 headBottom = fa + steer * 0.13f;
-        b.squareTube({neckA, headBottom + Vec3(0, -0.01f, 0.03f)}, w * 0.28f, 0.022f, true);
-        // head tube
-        b.tube({fa + steer * 0.11f, fa + steer * 0.25f}, 0.026f, 16, true);
-        // rear dropouts + brake fender
-        for (float s : {-1.0f, 1.0f}) b.box(Vec3(s * (0.045f), 0.01f, ra.z - 0.02f), Vec3(0.012f, 0.05f, 0.13f));
-        b.box(Vec3(0, ra.y + d.wheelRadius + 0.012f, ra.z + 0.01f), Vec3(0.06f, 0.006f, 0.12f));
-        parts_[Deck] = upload(b);
-    }
-    {
-        MeshBuilder b("scooter_grip");
-        float len = d.deckLength * 0.93f, w = d.deckWidth * 0.94f;
-        float y = d.deckTop + 0.0015f;
-        b.quad(Vec3(-w * 0.5f, y, 0.03f + len * 0.5f), Vec3(w * 0.5f, y, 0.03f + len * 0.5f), Vec3(w * 0.5f, y, 0.03f - len * 0.5f),
-               Vec3(-w * 0.5f, y, 0.03f - len * 0.5f));
-        parts_[Grip] = upload(b);
-    }
-    // fork (moves with the bars)
-    {
-        MeshBuilder b("scooter_fork");
-        Vec3 side(1, 0, 0);
-        Vec3 crown = fa + steer * 0.105f;
-        b.box(crown, Vec3(0.1f, 0.025f, 0.05f));
-        for (float s : {-1.0f, 1.0f}) b.squareTube({crown + side * (s * 0.042f), fa + side * (s * 0.042f)}, 0.008f, 0.016f, true);
-        b.tube({fa + steer * 0.25f, fa + steer * 0.31f}, 0.02f, 12, true);  // steerer / compression
-        parts_[Fork] = upload(b);
-    }
-    // bars
-    float barH = custom_.bars == 1 ? 0.92f : 0.86f;
-    float barW = custom_.bars == 2 ? 0.62f : 0.56f;
-    {
-        MeshBuilder b("scooter_bars");
-        Vec3 bottom = fa + steer * 0.27f;
-        Vec3 top = fa + steer * ((d.deckTop + barH) / steer.y);
-        b.tube({bottom, top}, 0.0175f, 14, true);
-        b.tube({top + Vec3(-barW * 0.5f, 0, 0), top + Vec3(barW * 0.5f, 0, 0)}, 0.0165f, 14, true);
-        // gussets
-        for (float s : {-1.0f, 1.0f}) b.tube({top + Vec3(s * 0.12f, 0, 0), top - steer * 0.12f}, 0.008f, 8, false);
-        parts_[Bars] = upload(b);
-        Vec3 gl = top + Vec3(-barW * 0.5f, 0, 0), gr = top + Vec3(barW * 0.5f, 0, 0);
-        MeshBuilder g("scooter_grips");
-        g.tube({gl + Vec3(0.005f, 0, 0), gl + Vec3(0.13f, 0, 0)}, 0.0205f, 14, true);
-        g.tube({gr - Vec3(0.13f, 0, 0), gr - Vec3(0.005f, 0, 0)}, 0.0205f, 14, true);
-        parts_[Grips] = upload(g);
-        MeshBuilder c("scooter_clamp");
-        c.tube({bottom - steer * 0.01f, bottom + steer * 0.06f}, 0.03f, 16, true);
-        for (float s : {-1.0f, 1.0f}) c.box(bottom + steer * 0.025f + Vec3(0, 0, 0.035f) + Vec3(s * 0.012f, 0, 0), Vec3(0.008f, 0.03f, 0.03f));
-        parts_[Clamp] = upload(c);
-    }
-    // wheels: tyre (slot 0) + core (slot 1), axis along X, centred at the origin
-    for (int wi = 0; wi < 2; ++wi) {
-        MeshBuilder b(wi == 0 ? "wheel_f" : "wheel_r");
-        float r = d.wheelRadius, width = 0.024f;
-        Mat4 rot = Mat4::rotation(Quat::angleAxis(-kHalfPi, Vec3(0, 0, 1)));  // lathe Y axis -> X
-        b.setTransform(rot);
-        b.setMaterial(0);
-        std::vector<Vec2> tyre;
-        int n = 10;
-        for (int i = 0; i <= n; ++i) {
-            float a = -kHalfPi + kPi * float(i) / float(n);
-            tyre.push_back(Vec2(r - 0.012f + std::cos(a) * 0.012f, std::sin(a) * width * 0.5f));
-        }
-        b.lathe(tyre, 24, true);
-        b.setMaterial(1);
-        float coreR = r - 0.013f;
-        int spokes = custom_.wheels == 1 ? 12 : custom_.wheels == 2 ? 0 : 6;
-        b.lathe({{0.015f, -0.013f}, {coreR, -0.011f}}, 24, false, true);
-        b.lathe({{coreR, 0.011f}, {0.015f, 0.013f}}, 24, false, true);
-        b.cylinder(Vec3(0, -0.02f, 0), 0.012f, 0.04f, 10, true);
-        if (spokes == 0) {
-            b.lathe({{coreR, -0.011f}, {coreR, 0.011f}}, 24, false, true);
-        }
-        b.resetTransform();
-        parts_[wi == 0 ? WheelF : WheelR] = upload(b);
-    }
+    ScooterModelOptions opt;
+    opt.deck = custom_.deck;
+    opt.bars = custom_.bars;
+    opt.wheels = custom_.wheels;
+    ScooterMeshSet m = buildScooterModel(kDims, opt);
+    parts_[Deck] = createGpuMesh(m.deck, false);
+    parts_[Grip] = createGpuMesh(m.grip, false);
+    parts_[Brake] = createGpuMesh(m.brake, false);
+    parts_[Fork] = createGpuMesh(m.fork, false);
+    parts_[Bars] = createGpuMesh(m.bars, false);
+    parts_[Grips] = createGpuMesh(m.grips, false);
+    parts_[Clamp] = createGpuMesh(m.clamp, false);
+    parts_[TyreF] = createGpuMesh(m.tyre, false);
+    parts_[TyreR] = parts_[TyreF];
+    parts_[CoreF] = createGpuMesh(m.core, false);
+    parts_[CoreR] = parts_[CoreF];
 }
 
 void PlayerVisual::create(RenderScene& rs) {
     destroy();
     rs_ = &rs;
     buildScooterMeshes();
-    partMats_[Deck] = {assets().material("scooter_deck")};
+    MaterialPtr hw = assets().material("scooter_hardware");
+    partMats_[Deck] = {assets().material("scooter_deck"), hw, assets().material("scooter_headset")};
     partMats_[Grip] = {assets().material("scooter_griptape")};
-    partMats_[Fork] = {assets().material("scooter_fork")};
-    partMats_[Bars] = {assets().material("scooter_bars")};
+    partMats_[Brake] = {assets().material("scooter_brake")};
+    partMats_[Fork] = {assets().material("scooter_fork"), hw};
+    partMats_[Bars] = {assets().material("scooter_bars"), assets().material("scooter_barend")};
     partMats_[Grips] = {assets().material("scooter_grips")};
-    partMats_[Clamp] = {assets().material("scooter_clamp")};
-    partMats_[WheelF] = {assets().material("scooter_wheel"), assets().material("scooter_core")};
-    partMats_[WheelR] = partMats_[WheelF];
+    partMats_[Clamp] = {assets().material("scooter_clamp"), hw};
+    partMats_[TyreF] = {assets().material("scooter_wheel")};
+    partMats_[TyreR] = partMats_[TyreF];
+    partMats_[CoreF] = {assets().material("scooter_core"), assets().material("scooter_bearing"), hw};
+    partMats_[CoreR] = partMats_[CoreF];
     for (int i = 0; i < PartCount; ++i) {
         RenderObject o;
         o.mesh = parts_[i];
@@ -276,21 +205,25 @@ void PlayerVisual::applyCustomization(const Customization& c) {
         buildScooterMeshes();
         for (int i = 0; i < PartCount; ++i) rs_->setMesh(partHandles_[i], parts_[i]);
     }
-    auto tint = [&](int part, const Vec3& col) { rs_->setTint(partHandles_[part], Vec4(col, 1.0f)); };
+    // alpha 0: only the tintable (painted / anodised) slot of a part takes the colour, hardware,
+    // bearings and headset keep their own finish
+    auto tint = [&](int part, const Vec3& col) { rs_->setTint(partHandles_[part], Vec4(col, 0.0f)); };
     tint(Deck, c.deckColor);
     tint(Grip, Vec3(1));
+    tint(Brake, Vec3(1));
     tint(Fork, c.barsColor);
     tint(Bars, c.barsColor);
     tint(Grips, c.gripColor);
     tint(Clamp, c.clampColor);
-    tint(WheelF, c.wheelColor);
-    tint(WheelR, c.wheelColor);
-    // the wheel core colour is carried in the tint alpha channel? No: cores use a second tintable slot -> same tint
+    tint(TyreF, c.wheelColor);
+    tint(TyreR, c.wheelColor);
+    tint(CoreF, c.coreColor);
+    tint(CoreR, c.coreColor);
     for (size_t i = 0; i < riderHandles_.size(); ++i) {
         RenderObject* o = rs_->get(riderHandles_[i]);
         if (!o) continue;
         bool vis = riderPartVisible(riderMeshVariant_[i], c);
-        o->visible = vis && visible_;
+        o->visible = vis && visible_ && riderVisible_;
     }
     // rider material tints: materials are tintable, the instance tint carries the colour
     if (model_) {
@@ -316,6 +249,13 @@ void PlayerVisual::applyCustomization(const Customization& c) {
         rs_->setTint(mannequin_[i], Vec4(col, 1.0f));
         if (n.find("helmet") != std::string::npos) o->visible = c.helmet != 0 && visible_;
     }
+}
+
+void PlayerVisual::setRiderVisible(bool v) {
+    riderVisible_ = v;
+    if (!rs_) return;
+    for (auto h : mannequin_) rs_->setVisible(h, v && visible_);
+    applyCustomization(custom_);
 }
 
 void PlayerVisual::setVisible(bool v) {
@@ -363,12 +303,16 @@ void PlayerVisual::updateScooterParts(const Transform& body, const Player& playe
     Mat4 wheelSpin = Mat4::rotation(Quat::angleAxis(-wheelSpin_, Vec3(1, 0, 0)));
     rs_->setTransform(partHandles_[Deck], deckM);
     rs_->setTransform(partHandles_[Grip], deckM);
+    rs_->setTransform(partHandles_[Brake], deckM);
     rs_->setTransform(partHandles_[Fork], barsM);
     rs_->setTransform(partHandles_[Bars], barsM);
     rs_->setTransform(partHandles_[Grips], barsM);
     rs_->setTransform(partHandles_[Clamp], barsM);
-    rs_->setTransform(partHandles_[WheelF], barsM * Mat4::translation(fa) * wheelSpin);
-    rs_->setTransform(partHandles_[WheelR], deckM * Mat4::translation(d.rearAxle()) * wheelSpin);
+    Mat4 wf = barsM * Mat4::translation(fa) * wheelSpin, wr = deckM * Mat4::translation(d.rearAxle()) * wheelSpin;
+    rs_->setTransform(partHandles_[TyreF], wf);
+    rs_->setTransform(partHandles_[CoreF], wf);
+    rs_->setTransform(partHandles_[TyreR], wr);
+    rs_->setTransform(partHandles_[CoreR], wr);
 }
 
 void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, bool bailed) {

@@ -78,8 +78,9 @@ struct ScooterDims {
         return Vec3(0, std::sin(a), std::cos(a)).normalized();
     }
     Vec3 barCenter() const { return frontAxle() + steerAxis() * ((deckTop + barHeight) / steerAxis().y); }
-    Vec3 gripL() const { return barCenter() + Vec3(-barWidth * 0.5f + 0.05f, 0, 0); }
-    Vec3 gripR() const { return barCenter() + Vec3(barWidth * 0.5f - 0.05f, 0, 0); }
+    // hand centres on the grips (the crossbar sweeps back ~1.6 cm and up ~0.6 cm towards the ends)
+    Vec3 gripL() const { return barCenter() + Vec3(-barWidth * 0.5f + 0.06f, 0.0055f, 0.016f); }
+    Vec3 gripR() const { return barCenter() + Vec3(barWidth * 0.5f - 0.06f, 0.0055f, 0.016f); }
     // feet on the deck: front foot forward, back foot behind (regular stance, left foot front)
     Vec3 frontFoot() const { return {-0.03f, deckTop, -0.1f}; }
     Vec3 backFoot() const { return {0.03f, deckTop, 0.13f}; }

@@ -606,6 +606,41 @@ bool generateTextures(const std::string& root) {
                           },
                           3.0f),
          "skin_detail_normal", true);
+    // scooter griptape: silicon carbide grit (dense sharp grains on a black backing), slightly
+    // worn / dusty in patches; tileable, ~5 cm per repeat
+    {
+        const int N = 512;
+        auto grain = [](int x, int y) {
+            // worley style grit: distance to the nearest grain centre on a 128 cell periodic grid
+            float fx = float(x) / 4.0f, fy = float(y) / 4.0f;
+            int cx = int(std::floor(fx)), cy = int(std::floor(fy));
+            float best = 9.0f, second = 9.0f;
+            for (int j = -1; j <= 1; ++j)
+                for (int i = -1; i <= 1; ++i) {
+                    int gx = ((cx + i) % 128 + 128) % 128, gy = ((cy + j) % 128 + 128) % 128;
+                    float px = float(cx + i) + hash2(gx, gy, 71), py = float(cy + j) + hash2(gx, gy, 73);
+                    float dd = sqr(px - fx) + sqr(py - fy);
+                    if (dd < best) {
+                        second = best;
+                        best = dd;
+                    } else if (dd < second) {
+                        second = dd;
+                    }
+                }
+            return std::sqrt(second) - std::sqrt(best);  // ridge between grains ~ 0
+        };
+        Img col(N, N);
+        for (int y = 0; y < N; ++y)
+            for (int x = 0; x < N; ++x) {
+                float g = saturate(grain(x, y) * 1.8f);
+                float wear = smoothstep(0.62f, 0.85f, fbm(float(x) / 64.0f, float(y) / 64.0f, 8, 91, 4));
+                float sparkle = hash2(x, y, 5) > 0.992f ? 0.06f : 0.0f;
+                float v = 0.018f + 0.03f * g + sparkle * g + wear * 0.05f;
+                col.at(x, y) = Vec4(v, v, v * 1.02f, 1.0f);
+            }
+        save(col, "griptape");
+        save(normalFromHeight(N, [&](int x, int y) { return saturate(grain(x, y) * 1.8f); }, 5.0f), "griptape_nrm", true);
+    }
     // foliage atlas for the leaf card trees (colour with alpha + normal map)
     {
         LeafAtlas at = foliageAtlas(1024, 77);

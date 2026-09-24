@@ -36,6 +36,7 @@ struct GameOptions {
     int debugView = 0;
     std::string menuScreen;   // open this menu screen (screenshots of the UI)
     std::string challenge;    // start this challenge directly
+    bool hideRider = false;   // render the scooter alone (screenshots / photo mode)
 };
 
 struct DistrictInfo {

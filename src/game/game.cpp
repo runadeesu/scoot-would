@@ -206,7 +206,10 @@ void Game::applySettings(bool video) {
     music().setEnabled(s.audio.musicEnabled && !scripted);
 }
 
-void Game::applyCustomization() { visual_.applyCustomization(saves().data().custom); }
+void Game::applyCustomization() {
+    visual_.setRiderVisible(!opts_.hideRider);
+    visual_.applyCustomization(saves().data().custom);
+}
 
 namespace {
 // reads every lighting key present in e (missing keys keep their current value)

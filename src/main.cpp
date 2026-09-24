@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
         else if (a == "--spawn") opts.spawn = next();
         else if (a == "--menu") opts.menuScreen = next();
         else if (a == "--challenge") opts.challenge = next();
+        else if (a == "--no-rider") opts.hideRider = true;
         else if (a == "--help" || a == "-h") {
             SDL_Log("scoot would [--map scene.json] [--spawn label] [--challenge id] [--play] [--menu screen] [--editor]\n"
                     "            [--windowed|--fullscreen] [--size WxH] [--novsync] [--gpu direct3d12|vulkan] [--gpu-debug]\n"
