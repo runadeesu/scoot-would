@@ -38,6 +38,7 @@ struct GraphicsSettings {
 };
 
 struct GameplaySettings {
+    int stance = 0;              // 0 regular (left foot forward), 1 goofy (right foot forward)
     int landingAssist = 1;       // 0 off, 1 low, 2 normal
     float cameraSensitivity = 1.0f;
     bool invertY = false;

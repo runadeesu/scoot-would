@@ -32,6 +32,7 @@ struct RiderAnimParams {
     float landImpact = 0.0f;
     float steer = 0.0f;
     float lookYaw = 0.0f;    // radians, head look relative to the body
+    bool goofy = false;      // right foot forward: clips (authored regular) are mirrored
 };
 
 class RiderAnimator {
@@ -48,7 +49,8 @@ public:
     const std::string& currentState() const { return sm_.current(); }
 
 private:
-    void applyIK(const RiderRig& rig, float dt);
+    void applyIK(const RiderRig& rig, float dt, bool goofy);
+    void mirrorPose(Pose& p) const;
     void setModelRotation(int j, const Quat& modelRot);
 
     SkeletonPtr skel_;
@@ -58,6 +60,7 @@ private:
     int armL_[3] = {-1, -1, -1}, armR_[3] = {-1, -1, -1}, legL_[3] = {-1, -1, -1}, legR_[3] = {-1, -1, -1};
     float feetW_ = 1.0f, handLW_ = 1.0f, handRW_ = 1.0f, backFootW_ = 1.0f;
     float crouchS_ = 0.0f, lookS_ = 0.0f, leanS_ = 0.0f;
+    std::vector<int> mirror_;  // left <-> right joint partner (self for centre joints)
     std::string lastTrickPose_;
     float trickW_ = 0.0f;
 };

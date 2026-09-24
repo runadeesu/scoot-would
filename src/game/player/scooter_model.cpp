@@ -369,11 +369,12 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
         b.setTransform(steerM);
         b.lathe({{0.0178f, 0.2505f}, {0.0262f, 0.2505f}, {0.0268f, 0.253f}, {0.0268f, 0.3025f}, {0.0262f, 0.305f}, {0.0178f, 0.305f}}, 32, false);
         b.resetTransform();
-        Vec3 fwd = (Vec3(0, 0, -1) - S * dot(Vec3(0, 0, -1), S)).normalized();
-        for (float s : {-1.0f, 1.0f}) b.box(at(0.2778f) + fwd * 0.029f + X * (s * 0.0068f), Vec3(0.0105f, 0.052f, 0.02f), Quat::fromTo(Vec3(0, 1, 0), S));
+        // slit + bolt bosses face the rider (towards the tail)
+        Vec3 back = (Vec3(0, 0, 1) - S * dot(Vec3(0, 0, 1), S)).normalized();
+        for (float s : {-1.0f, 1.0f}) b.box(at(0.2778f) + back * 0.029f + X * (s * 0.0068f), Vec3(0.0105f, 0.052f, 0.02f), Quat::fromTo(Vec3(0, 1, 0), S));
         b.setMaterial(1);
         for (float h : {0.2635f, 0.292f}) {
-            Vec3 c = at(h) + fwd * 0.031f;
+            Vec3 c = at(h) + back * 0.031f;
             hexX(b, c + X * 0.0142f, 0.0047f, 0.0045f);   // socket head
             hexX(b, c - X * 0.0138f, 0.0044f, 0.0036f);   // thread end
         }

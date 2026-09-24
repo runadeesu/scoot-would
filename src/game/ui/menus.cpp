@@ -632,6 +632,8 @@ void Menus::drawSettings(Context& ui) {
         if (ui.slider("Brightness", G.brightness, 0.5f, 1.8f, 0.05f, R())) video = true;
         if (ui.toggle("Particles", G.particles, R())) video = true;
     } else if (settingsTab_ == 1) {
+        const char* stance[] = {"Regular (left foot forward)", "Goofy (right foot forward)"};
+        if (int d = ui.choice("Stance", stance[P.stance], R())) { (void)d; P.stance = 1 - P.stance; other = true; }
         const char* assist[] = {"Off", "Low", "Normal"};
         if (int d = ui.choice("Landing Assist", assist[P.landingAssist], R())) { P.landingAssist = std::clamp(P.landingAssist + d, 0, 2); other = true; }
         const char* bal[] = {"Easy", "Normal", "Hard"};

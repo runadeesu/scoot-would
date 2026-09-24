@@ -27,7 +27,31 @@ void RiderAnimator::init(SkeletonPtr skel, const std::vector<AnimationClipPtr>& 
         legL_[i] = joint(ll[i]);
         legR_[i] = joint(lr[i]);
     }
+    // mirror partners by name: "*_l" <-> "*_r"
+    mirror_.resize(skel_->size());
+    for (size_t i = 0; i < skel_->size(); ++i) {
+        const std::string& n = skel_->joints[i].name;
+        mirror_[i] = int(i);
+        if (n.size() > 2 && n[n.size() - 2] == '_' && (n.back() == 'l' || n.back() == 'r')) {
+            std::string other = n.substr(0, n.size() - 1) + (n.back() == 'l' ? "r" : "l");
+            int j = joint(other);
+            if (j >= 0) mirror_[i] = j;
+        }
+    }
     sm_.play(sm_.has("ride") ? "ride" : "idle", 0.0f);
+}
+
+// mirror across the rider's sagittal plane (x -> -x): partners swap, rotations about x keep their
+// sign, rotations about y / z flip. Rest orientations are identity and the rest pose is symmetric.
+void RiderAnimator::mirrorPose(Pose& p) const {
+    std::vector<Transform> src = p.local;
+    for (size_t i = 0; i < src.size() && i < mirror_.size(); ++i) {
+        const Transform& o = src[size_t(mirror_[i])];
+        Transform t = o;
+        t.position = Vec3(-o.position.x, o.position.y, o.position.z);
+        t.rotation = Quat(o.rotation.x, -o.rotation.y, -o.rotation.z, o.rotation.w);
+        p.local[i] = t;
+    }
 }
 
 void RiderAnimator::skinMatrices(std::vector<Mat4>& out) const {
@@ -89,6 +113,9 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
         blendPoses(pose_, overlay_, trickW_);
     }
 
+    // goofy riders: the regular stance clips are mirrored (right foot forward, left foot pushes)
+    if (p.goofy) mirrorPose(pose_);
+
     // carving: upper body leans into the turn, spine twists slightly with steering
     leanS_ = dampf(leanS_, p.lean, 8.0f, dt);
     if (spine_ >= 0) {
@@ -111,29 +138,36 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     float pushLeg = 0.0f;
     if (p.pushing && sm_.current() == "push") pushLeg = std::sin(saturate(sm_.currentNormalizedTime()) * kPi);
     backFootW_ = dampf(backFootW_, 1.0f - pushLeg, 25.0f, dt);
-    applyIK(rig, dt);
+    applyIK(rig, dt, p.goofy);
 }
 
-void RiderAnimator::applyIK(const RiderRig& rig, float) {
+void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
     // legs: ankle joint sits ~8.5 cm above the sole
     Vec3 ankleOff(0, 0.085f, 0);
-    auto leg = [&](int* ch, const Vec3& sole, float w, float sideSign) {
+    // front knee points forward and a little out, the back knee drops in towards the front leg
+    auto leg = [&](int* ch, const Vec3& sole, float w, float sideSign, bool back) {
         if (ch[0] < 0 || ch[1] < 0 || ch[2] < 0 || w <= 0.001f) return;
         std::vector<Transform> ms;
         pose_.modelSpace(*skel_, ms);
         Vec3 hip = ms[size_t(ch[0])].position;
-        Vec3 pole = hip + Vec3(sideSign * 0.08f, -0.35f, -0.6f);
+        Vec3 pole = hip + Vec3(sideSign * (back ? -0.22f : 0.08f), -0.35f, -0.6f);
         solveTwoBoneIK(*skel_, pose_, ch[0], ch[1], ch[2], sole + ankleOff, pole, w);
-        // keep the sole flat on the deck
-        Quat footRot = Quat::angleAxis(sideSign * 0.2f, Vec3(0, 1, 0));
+        // keep the sole flat on the deck: front foot points forward, back foot turned out on the tail
+        Quat footRot = Quat::angleAxis(sideSign * (back ? 0.55f : 0.12f), Vec3(0, 1, 0));
         std::vector<Transform> ms2;
         pose_.modelSpace(*skel_, ms2);
         Quat cur = ms2[size_t(ch[2])].rotation;
         setModelRotation(ch[2], nlerp(cur, footRot, w));
     };
-    // regular stance: left foot front
-    leg(legL_, rig.footFront, feetW_, -1.0f);
-    leg(legR_, rig.footBack, feetW_ * backFootW_, 1.0f);
+    // regular stance: left foot front; goofy: mirrored targets, right foot front
+    if (!goofy) {
+        leg(legL_, rig.footFront, feetW_, -1.0f, false);
+        leg(legR_, rig.footBack, feetW_ * backFootW_, 1.0f, true);
+    } else {
+        auto m = [](Vec3 v) { return Vec3(-v.x, v.y, v.z); };
+        leg(legR_, m(rig.footFront), feetW_, 1.0f, false);
+        leg(legL_, m(rig.footBack), feetW_ * backFootW_, -1.0f, true);
+    }
     auto arm = [&](int* ch, const Vec3& grip, float w, float sideSign) {
         if (ch[0] < 0 || ch[1] < 0 || ch[2] < 0 || w <= 0.001f) return;
         std::vector<Transform> ms;

@@ -632,19 +632,24 @@ struct PoseDef {
 };
 
 PoseDef ridePose() {
-    // regular stance: left foot forward, hips open towards the back foot, shoulders square to the bars
+    // regular stance (reference: street riders): left foot forward by the headtube, right foot on the
+    // tail turned out; knees well bent with the back knee dropped in towards the front leg, hips open
+    // towards the back foot, shoulders turned back square to the bars, slight forward lean
     PoseDef p;
-    p.hips(0, -0.11f, 0.03f)
-        .set(RJ_Pelvis, -8, -18, 0)
-        .set(RJ_Spine, -14, 8, 0)
-        .set(RJ_Chest, -8, 6, 0)
-        .set(RJ_Neck, 12, 4, 0)
-        .set(RJ_Head, 8)
-        .pair(RJ_UpperArmL, RJ_UpperArmR, 34, 0, 10)
-        .pair(RJ_LowerArmL, RJ_LowerArmR, 30)
-        .pair(RJ_ThighL, RJ_ThighR, 32)
-        .pair(RJ_ShinL, RJ_ShinR, -55)
-        .pair(RJ_FootL, RJ_FootR, 22);
+    p.hips(0.012f, -0.16f, 0.04f)
+        .set(RJ_Pelvis, -6, -30, 2)
+        .set(RJ_Spine, -12, 14, -2)
+        .set(RJ_Chest, -8, 10, 0)
+        .set(RJ_Neck, 10, 4, 0)
+        .set(RJ_Head, 6, 2, 0)
+        .pair(RJ_UpperArmL, RJ_UpperArmR, 36, 0, 14)
+        .pair(RJ_LowerArmL, RJ_LowerArmR, 38)
+        .set(RJ_ThighL, 40, -6, -4)
+        .set(RJ_ShinL, -66)
+        .set(RJ_FootL, 24)
+        .set(RJ_ThighR, 46, 10, -12)
+        .set(RJ_ShinR, -78)
+        .set(RJ_FootR, 26, 18, 0);
     return p;
 }
 PoseDef tuckPose() {
@@ -667,7 +672,8 @@ std::vector<ClipDef> clipDefs() {
     // idle: upright, breathing
     {
         PoseDef a = B;
-        a.hips(0, -0.06f, 0.02f).set(RJ_Pelvis, -4, -16, 0).set(RJ_Spine, -8, 6, 0).set(RJ_Chest, -4, 6, 0).set(RJ_Neck, 6, 4, 0).set(RJ_Head, 3);
+        // standing on the scooter: the riding stance, a little taller and more relaxed
+        a.hips(0.008f, -0.105f, 0.03f).set(RJ_Pelvis, -4, -26, 2).set(RJ_Spine, -8, 12, -2).set(RJ_Chest, -4, 8, 0).set(RJ_Neck, 6, 4, 0).set(RJ_Head, 3);
         PoseDef b = a;
         b.add(RJ_Chest, -2).add(RJ_Neck, 1).add(RJ_Head, 1, 4, 0);
         b.pelvis.y -= 0.006f;

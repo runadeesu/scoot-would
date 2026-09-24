@@ -195,6 +195,7 @@ void Game::applySettings(bool video) {
     camera_.invertY = s.gameplay.invertY;
     camera_.shakeSetting = s.gameplay.cameraShake;
     camera_.distanceScale = s.gameplay.cameraDistance;
+    visual_.setGoofy(opts_.stance >= 0 ? opts_.stance == 1 : s.gameplay.stance == 1);
     input().vibrationEnabled = s.gameplay.vibration;
     input().invertCameraY = s.gameplay.invertY;
     // audio

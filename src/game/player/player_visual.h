@@ -54,6 +54,8 @@ public:
     void update(float dt, float alpha, Player& player);
     void setVisible(bool v);
     void setRiderVisible(bool v);  // scooter only (photo mode, showroom shots)
+    void setGoofy(bool g) { goofy_ = g; }
+    bool goofy() const { return goofy_; }
     bool usingModel() const { return model_ != nullptr; }
     const std::vector<Transform>& jointsModel() const { return jointsModel_; }
     Transform riderModelToWorld() const { return riderWorld_; }
@@ -87,6 +89,7 @@ private:
     float barSteer_ = 0.0f;
     bool visible_ = true;
     bool riderVisible_ = true;
+    bool goofy_ = false;
 };
 
 }  // namespace sw
