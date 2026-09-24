@@ -40,6 +40,8 @@ struct Customization {
     Vec3 clampColor{0.75f, 0.1f, 0.12f};
 };
 
+bool riderPartVisible(const std::string& meshName, const Customization& c);
+
 class PlayerVisual {
 public:
     PlayerVisual();
@@ -72,7 +74,7 @@ private:
     // rider model
     std::shared_ptr<Model> model_;
     std::vector<RenderScene::Handle> riderHandles_;
-    std::vector<int> riderMeshVariant_;  // variant group per mesh (for customization visibility)
+    std::vector<std::string> riderMeshVariant_;  // mesh names (customization visibility)
     int boneOffset_ = -1;
     std::unique_ptr<RiderAnimator> animator_;
     std::vector<Transform> jointsModel_;

@@ -61,6 +61,8 @@ TexturePtr loadImage(Ctx& ctx, const cgltf_texture_view& view, bool srgb) {
 }
 
 MaterialPtr convertMaterial(Ctx& ctx, const cgltf_material* gm, size_t index) {
+    // a material JSON with the same name overrides the embedded definition (shared, hot reloadable)
+    if (gm->name && fs::exists(fs::resolve(std::string("assets/materials/") + gm->name + ".json"))) return ctx.am->material(gm->name);
     std::string name = ctx.path + ":" + (gm->name ? gm->name : "material" + std::to_string(index));
     MaterialPtr m = ctx.am->createMaterial(name);
     if (gm->has_pbr_metallic_roughness) {

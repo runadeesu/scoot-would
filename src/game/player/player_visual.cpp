@@ -7,6 +7,7 @@
 #include "game/player/rider_animator.h"
 #include "render/mesh_builder.h"
 
+#include <cstdlib>
 #include <cstring>
 
 namespace sw {
@@ -173,20 +174,7 @@ void PlayerVisual::create(RenderScene& rs) {
             o.boneOffset = boneOffset_;
             o.lodBias = 3.0f;
             riderHandles_.push_back(rs.add(o));
-            // variant groups by node name prefix: "top_0", "pants_1", "helmet_2" ...
-            int variant = -1;
-            const std::string& n = mm.name;
-            auto num = [&](const char* prefix, int base) {
-                size_t l = std::strlen(prefix);
-                if (n.compare(0, l, prefix) == 0 && n.size() > l) variant = base + (n[l] - '0');
-            };
-            num("top_", 100);
-            num("forearm_", 200);
-            num("pants_", 300);
-            num("shin_", 400);
-            num("helmet_", 500);
-            num("shoes_", 600);
-            riderMeshVariant_.push_back(variant);
+            riderMeshVariant_.push_back(mm.name);
         }
         LOG_INFO("player: rider model with %zu joints, %zu clips", model_->skeleton->size(), model_->clips.size());
     } else {
@@ -195,6 +183,24 @@ void PlayerVisual::create(RenderScene& rs) {
         buildMannequin();
     }
     applyCustomization(custom_);
+}
+
+// clothing variants by mesh name (see tools/assetgen/rider_gen.cpp):
+//   top_N / pants_N / shoes_N / helmet_N select a variant; bare skin under garments is only
+//   present where the garment leaves it visible
+bool riderPartVisible(const std::string& n, const Customization& c) {
+    auto variant = [&](const char* prefix, int value, bool& match) {
+        size_t l = std::strlen(prefix);
+        if (n.compare(0, l, prefix) != 0 || n.size() <= l) return false;
+        match = std::atoi(n.c_str() + l) == value;
+        return true;
+    };
+    bool m = true;
+    if (variant("top_", c.top, m) || variant("pants_", c.pants, m) || variant("shoes_", c.shoes, m) || variant("helmet_", c.helmet, m)) return m;
+    if (n == "arms_skin") return c.top != 1;
+    if (n == "legs_skin") return c.pants == 1;
+    if (n == "hair") return c.helmet != 1;
+    return true;
 }
 
 void PlayerVisual::buildMannequin() {
@@ -283,14 +289,7 @@ void PlayerVisual::applyCustomization(const Customization& c) {
     for (size_t i = 0; i < riderHandles_.size(); ++i) {
         RenderObject* o = rs_->get(riderHandles_[i]);
         if (!o) continue;
-        int v = riderMeshVariant_[i];
-        bool vis = true;
-        if (v >= 100 && v < 200) vis = (v - 100) == c.top;
-        else if (v >= 200 && v < 300) vis = (v - 200) == (c.top == 1 ? 1 : 0);  // long sleeves only on the hoodie
-        else if (v >= 300 && v < 400) vis = (v - 300) == c.pants;
-        else if (v >= 400 && v < 500) vis = (v - 400) == (c.pants == 1 ? 1 : 0);
-        else if (v >= 500 && v < 600) vis = (v - 500) == c.helmet;
-        else if (v >= 600 && v < 700) vis = (v - 600) == c.shoes;
+        bool vis = riderPartVisible(riderMeshVariant_[i], c);
         o->visible = vis && visible_;
     }
     // rider material tints: materials are tintable, the instance tint carries the colour
@@ -304,7 +303,8 @@ void PlayerVisual::applyCustomization(const Customization& c) {
             else if (mat.find("pants") != std::string::npos) col = c.pantsColor;
             else if (mat.find("shoe") != std::string::npos) col = c.shoesColor;
             else if (mat.find("helmet") != std::string::npos) col = c.helmetColor;
-            rs_->setTint(riderHandles_[i], Vec4(col, 1.0f));
+            // alpha 0: only tintable materials take the colour (eyes, soles, straps keep theirs)
+            rs_->setTint(riderHandles_[i], Vec4(col, 0.0f));
         }
     }
     for (size_t i = 0; i < mannequin_.size(); ++i) {
