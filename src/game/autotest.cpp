@@ -15,7 +15,13 @@ bool Autotest::load(const std::string& absPath) {
     spawnVel_ = jvec3(*j, "velocity", Vec3(0));
     duration_ = jget<float>(*j, "duration", 5.0f);
     cameraMode = jget<std::string>(*j, "camera", "");
-    for (auto& s : (*j)["steps"]) steps_.push_back({s.value("t", 0.0f), s});
+    for (auto& s : (*j)["steps"]) {
+        if (s.contains("when"))
+            conditional_.push_back({s.value("t", 0.0f), s});
+        else
+            steps_.push_back({s.value("t", 0.0f), s});
+    }
+    conditionalFired_.assign(conditional_.size(), false);
     std::sort(steps_.begin(), steps_.end(), [](const Step& a, const Step& b) { return a.t < b.t; });
     for (auto& e : j->value("expect", Json::array())) {
         Expect ex;
@@ -27,40 +33,67 @@ bool Autotest::load(const std::string& absPath) {
     return true;
 }
 
-PlayerInput Autotest::input(double t, std::deque<FlickEvent>& flicks, double gameTime) {
+void Autotest::apply(const Json& c, std::deque<FlickEvent>& flicks, double gameTime) {
+    if (c.contains("move")) move_ = jvec2(c, "move");
+    if (c.contains("look")) look_ = jvec2(c, "look");
+    if (c.contains("brake")) brake_ = c["brake"].get<float>();
+    if (c.contains("grab")) grab_ = c["grab"].get<float>();
+    if (c.contains("spin")) {
+        float s = c["spin"].get<float>();
+        spinL_ = s < 0;
+        spinR_ = s > 0;
+    }
+    if (c.value("push", false)) pushPulse_ = true;
+    if (c.value("revert", false)) revertPulse_ = true;
+    if (c.value("respawn", false)) respawnPulse_ = true;
+    if (c.contains("jump")) {
+        std::string js = c["jump"].get<std::string>();
+        if (js == "press") {
+            jumpHeld_ = true;
+            jumpPressPulse_ = true;
+        } else if (js == "release") {
+            jumpHeld_ = false;
+            jumpReleasePulse_ = true;
+        }
+    }
+    if (c.contains("flick")) {
+        FlickEvent f;
+        f.dir = stickDirFromName(c["flick"].get<std::string>());
+        f.time = gameTime;
+        f.modifierGrab = grab_ > 0.3f;
+        flicks.push_back(f);
+    }
+}
+
+static bool conditionMet(const Json& w, const Player& p, double t) {
+    Vec3 pos = p.position();
+    if (w.contains("t") && t < w["t"].get<float>()) return false;
+    if (w.contains("zBelow") && !(pos.z < w["zBelow"].get<float>())) return false;
+    if (w.contains("zAbove") && !(pos.z > w["zAbove"].get<float>())) return false;
+    if (w.contains("xBelow") && !(pos.x < w["xBelow"].get<float>())) return false;
+    if (w.contains("xAbove") && !(pos.x > w["xAbove"].get<float>())) return false;
+    if (w.contains("yAbove") && !(pos.y > w["yAbove"].get<float>())) return false;
+    if (w.contains("yBelow") && !(pos.y < w["yBelow"].get<float>())) return false;
+    if (w.contains("vyBelow") && !(p.velocity().y < w["vyBelow"].get<float>())) return false;
+    if (w.contains("state") && playerStateName(p.state()) != w["state"].get<std::string>()) return false;
+    if (w.contains("airAbove") && !(p.airTime() > w["airAbove"].get<float>())) return false;
+    if (w.contains("spinAbove") && !(std::fabs(p.tricks.spinDegrees()) > w["spinAbove"].get<float>())) return false;
+    if (w.contains("flipAbove") && !(std::fabs(p.tricks.flipDegrees()) > w["flipAbove"].get<float>())) return false;
+    return true;
+}
+
+PlayerInput Autotest::input(double t, std::deque<FlickEvent>& flicks, double gameTime, const Player& p) {
     pushPulse_ = jumpPressPulse_ = jumpReleasePulse_ = revertPulse_ = respawnPulse_ = false;
     while (nextStep_ < steps_.size() && steps_[nextStep_].t <= t) {
-        const Json& c = steps_[nextStep_].cmd;
-        if (c.contains("move")) move_ = jvec2(c, "move");
-        if (c.contains("look")) look_ = jvec2(c, "look");
-        if (c.contains("brake")) brake_ = c["brake"].get<float>();
-        if (c.contains("grab")) grab_ = c["grab"].get<float>();
-        if (c.contains("spin")) {
-            float s = c["spin"].get<float>();
-            spinL_ = s < 0;
-            spinR_ = s > 0;
-        }
-        if (c.value("push", false)) pushPulse_ = true;
-        if (c.value("revert", false)) revertPulse_ = true;
-        if (c.value("respawn", false)) respawnPulse_ = true;
-        if (c.contains("jump")) {
-            std::string js = c["jump"].get<std::string>();
-            if (js == "press") {
-                jumpHeld_ = true;
-                jumpPressPulse_ = true;
-            } else if (js == "release") {
-                jumpHeld_ = false;
-                jumpReleasePulse_ = true;
-            }
-        }
-        if (c.contains("flick")) {
-            FlickEvent f;
-            f.dir = stickDirFromName(c["flick"].get<std::string>());
-            f.time = gameTime;
-            f.modifierGrab = grab_ > 0.3f;
-            flicks.push_back(f);
-        }
+        apply(steps_[nextStep_].cmd, flicks, gameTime);
         ++nextStep_;
+    }
+    for (size_t i = 0; i < conditional_.size(); ++i) {
+        if (conditionalFired_[i]) continue;
+        if (conditionMet(conditional_[i].cmd["when"], p, t)) {
+            conditionalFired_[i] = true;
+            apply(conditional_[i].cmd, flicks, gameTime);
+        }
     }
     PlayerInput in;
     in.move = move_;
@@ -90,12 +123,13 @@ void Autotest::observe(double t, float dt, Player& p) {
     maxSpeed_ = std::max(maxSpeed_, p.speed());
     maxAir_ = std::max(maxAir_, p.airTime());
     maxHeight_ = std::max(maxHeight_, p.position().y);
-    if (t - lastLog_ >= 0.25) {
+    if (t - lastLog_ >= (p.state() == PlayerState::Air ? 0.083 : 0.25)) {
         lastLog_ = t;
         char buf[512];
         Vec3 pos = p.position(), v = p.velocity();
-        snprintf(buf, sizeof(buf), "t=%5.2f %-8s pos(%6.2f %5.2f %6.2f) v(%5.2f %5.2f %5.2f) spd=%5.2f air=%4.2f crouch=%.2f trick='%s' %s",
-                 t, playerStateName(p.state()), pos.x, pos.y, pos.z, v.x, v.y, v.z, p.speed(), p.airTime(), p.crouch(),
+        Vec3 fw = p.scooter.valid() ? p.scooter.forward() : Vec3(0);
+        snprintf(buf, sizeof(buf), "t=%5.2f %-8s pos(%6.2f %5.2f %6.2f) v(%5.2f %5.2f %5.2f) spd=%5.2f air=%4.2f fwd(%5.2f %5.2f %5.2f) spin=%4.0f flip=%4.0f crouch=%.2f trick='%s' %s",
+                 t, playerStateName(p.state()), pos.x, pos.y, pos.z, v.x, v.y, v.z, p.speed(), p.airTime(), fw.x, fw.y, fw.z, p.tricks.spinDegrees(), p.tricks.flipDegrees(), p.crouch(),
                  p.tricks.inAir() ? p.tricks.currentLabel().c_str() : "", p.state() == PlayerState::Grinding ? grindInfo(p.grind.type).name : "");
         log_.push_back(buf);
         LOG_INFO("autotest %s", buf);

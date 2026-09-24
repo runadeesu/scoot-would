@@ -1,0 +1,3 @@
+{ "name": "manual", "spawn": [70, 0, 60], "yaw": 0, "duration": 6.0,
+  "steps": [ {"t": 0.2, "push": true}, {"t": 0.75, "push": true}, {"t": 1.3, "push": true}, {"t": 1.85, "push": true}, {"t": 2.4, "push": true}, {"t": 3.0, "move": [0, -0.62]}, {"t": 4.6, "move": [0, 0]} ],
+  "expect": [ {"manual": "Manual", "noBail": true, "state": "Riding"} ] }

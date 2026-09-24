@@ -180,7 +180,7 @@ PlayerInput Game::gatherInput() {
 void Game::fixedUpdate(float dt) {
     PlayerInput pi;
     if (autotest_) {
-        pi = autotest_->input(testTime_, input().flicks(), engine().time());
+        pi = autotest_->input(testTime_, input().flicks(), engine().time(), player_);
     } else {
         pi = gatherInput();
     }

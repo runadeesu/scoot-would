@@ -216,28 +216,68 @@ void ScooterPhysics::airControl(float dt, const Controls& c) {
         w += axis * (next - cur);
     };
     channel(Vec3(0, 1, 0), c.spin, -c.spin * tuning.spinMax, tuning.spinAccel);
-    channel(right(), c.flip, -c.flip * tuning.flipMax, tuning.flipAccel);
+    if (std::fabs(c.flip) < 0.12f) {
+        // no flip input: the rider lets the nose follow the trajectory (like pulling the bars
+        // through the arc of a jump). Only for forward travel with real horizontal speed, so
+        // vert airs (straight up / down) and fakie airs are not rotated.
+        Vec3 v = vel_;
+        Vec3 R = right();
+        Vec3 f = forward();
+        Vec3 vp = projectOnPlane(v, R);
+        float hs = Vec2(v.x, v.z).length();
+        // moving forwards (not fakie) judged on the horizontal heading, rider right side up
+        Vec3 fh(f.x, 0, f.z);
+        bool forwardTravel = fh.length() > 0.15f && dot(fh.normalized(), Vec3(v.x, 0, v.z).normalized()) > 0.3f && up().y > 0.0f;
+        if (hs > 2.0f && vp.length() > 1.0f && forwardTravel) {
+            // desired nose pitch: half of the trajectory angle, limited so landings stay rideable
+            Vec3 hdir = Vec3(v.x, 0, v.z).normalized();
+            float traj = std::atan2(v.y, hs);
+            float pitch = clampf(traj * 0.5f, -35.0f * kDeg2Rad, 35.0f * kDeg2Rad);
+            Vec3 desired = (hdir * std::cos(pitch) + Vec3(0, std::sin(pitch), 0)).normalized();
+            Vec3 dp = projectOnPlane(desired, R);
+            float ang = dp.lengthSq() > 1e-4f ? signedAngle(f, dp.normalized(), R) : 0.0f;
+            float target = clampf(ang * 2.2f, -2.5f, 2.5f);
+            float cur = dot(w, R);
+            float next = target + (cur - target) * std::exp(-tuning.airAngularDrag * dt);
+            w += R * (next - cur);
+        } else {
+            channel(R, 0.0f, 0.0f, tuning.flipAccel);
+        }
+    } else {
+        channel(right(), c.flip, -c.flip * tuning.flipMax, tuning.flipAccel);
+    }
     channel(forward(), c.roll, c.roll * tuning.rollMax, tuning.rollAccel);
     physics().setAngularVelocity(body_, w);
 }
 
 Vec3 ScooterPhysics::pop(float crouch01, float timingBonus) {
     readBody();
-    Vec3 n = grounded() ? groundNormal_ : groundNormal_;
+    // pop perpendicular to the riding surface (ramps, banks, transitions) blended with world up
+    Vec3 n = groundNormal_;
     Vec3 dir = (n * 0.82f + Vec3(0, 1, 0) * 0.18f).normalized();
+    float slope = std::acos(clampf(n.y, -1.0f, 1.0f));
     float surf = surfaces().get(groundSurface_).popFactor;
     float v = (tuning.popBase + tuning.popCrouch * saturate(crouch01)) * surf * (1.0f + timingBonus * 0.12f) + 0.03f * speed();
+    v *= lerpf(1.0f, 0.72f, saturate(slope / (60.0f * kDeg2Rad)));
+    Vec3 popVec = dir * v;
     Vec3 vel = physics().linearVelocity(body_);
+    // a rider never pushes himself backwards off a steep ramp: keep the momentum of travel
+    Vec3 hv(vel.x, 0, vel.z);
+    if (hv.length() > 0.5f) {
+        Vec3 h = hv.normalized();
+        float back = dot(popVec, h);
+        if (back < 0.0f) popVec -= h * (back * 0.85f);
+    }
     float vn = dot(vel, dir);
     if (vn < 0.0f) vel -= dir * vn;
-    vel += dir * v;
+    vel += popVec;
     physics().setLinearVelocity(body_, vel);
     vel_ = vel;
     launchVel_ = vel;
     // the wheels leave the ground this step
     front_.contact = rear_.contact = false;
     airTime_ = 0.001f;
-    return dir * v;
+    return popVec;
 }
 
 void ScooterPhysics::step(float dt, const Controls& c) {

@@ -1,0 +1,3 @@
+{ "name": "high_speed", "spawn": [60, 0, 70], "yaw": 0, "velocity": [0, 0, -14], "duration": 5.0,
+  "steps": [ {"t": 0.8, "move": [0.7, 0]}, {"t": 2.0, "move": [-0.7, 0]}, {"t": 3.0, "move": [0, 0]} ],
+  "expect": [ {"noBail": true, "state": "Riding", "speedMin": 6.0} ] }

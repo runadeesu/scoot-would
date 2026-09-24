@@ -1,0 +1,3 @@
+{ "name": "quarter_pipe", "spawn": [-20, 0, 12], "yaw": 0, "duration": 9.0,
+  "steps": [ {"t": 0.2, "push": true}, {"t": 0.75, "push": true}, {"t": 1.3, "push": true}, {"t": 1.85, "push": true}, {"t": 2.4, "push": true}, {"t": 2.95, "push": true}, {"t": 3.5, "push": true} ],
+  "expect": [ {"heightMin": 1.0, "noBail": true} ], "screenshots": [5.2] }

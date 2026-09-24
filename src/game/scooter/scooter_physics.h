@@ -37,8 +37,8 @@ struct ScooterTuning {
     float snapRange = 0.14f;
     float maxCompression = 0.08f;
     // riding
-    float pushImpulse = 1.55f;      // m/s gained per push at low speed
-    float maxPushSpeed = 8.5f;      // pushing stops helping around here
+    float pushImpulse = 1.8f;       // m/s gained per push at low speed
+    float maxPushSpeed = 9.5f;      // pushing stops helping around here
     float pushDuration = 0.14f;
     float pushCooldown = 0.42f;
     float brakeDecel = 4.5f;        // m/s^2 at full brake
@@ -55,7 +55,7 @@ struct ScooterTuning {
     float flipMax = 7.2f;
     float rollAccel = 18.0f;
     float rollMax = 4.5f;
-    float airAngularDrag = 1.6f;    // when no input
+    float airAngularDrag = 7.0f;    // when no input (lets the rider stop a rotation)
     // jump
     float popBase = 3.15f;          // m/s
     float popCrouch = 1.75f;        // extra at full crouch

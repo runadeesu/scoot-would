@@ -1,0 +1,6 @@
+{ "name": "kicker_360", "spawn": [0, 0, 20], "yaw": 0, "duration": 8.0,
+  "steps": [ {"t": 0.2, "push": true}, {"t": 0.75, "push": true}, {"t": 1.3, "push": true}, {"t": 1.85, "push": true}, {"t": 2.4, "push": true}, {"t": 2.9, "jump": "press"},
+    {"when": {"zBelow": -1.9}, "jump": "release"},
+    {"when": {"state": "Air"}, "move": [1, 0]},
+    {"when": {"state": "Air", "spinAbove": 285}, "move": [0, 0]} ],
+  "expect": [ {"trick": "360", "noBail": true} ], "screenshots": [] }

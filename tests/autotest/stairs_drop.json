@@ -1,0 +1,3 @@
+{ "name": "stairs_drop", "spawn": [-8, 0.92, 25.8], "yaw": 0, "velocity": [0, 0, -4.5], "duration": 5.0,
+  "steps": [ {"t": 0.05, "jump": "press"}, {"when": {"zBelow": 24.2}, "jump": "release"} ],
+  "expect": [ {"noBail": true, "state": "Riding", "posMax": [0, 5, 22]} ] }

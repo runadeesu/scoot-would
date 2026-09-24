@@ -1,0 +1,4 @@
+{ "name": "rail_grind", "spawn": [12, 0, 24], "yaw": 0, "duration": 8.0,
+  "steps": [ {"t": 0.2, "push": true}, {"t": 0.75, "push": true}, {"t": 1.3, "push": true}, {"t": 1.85, "push": true}, {"t": 2.4, "push": true}, {"t": 2.6, "jump": "press"},
+    {"when": {"zBelow": 9.6}, "jump": "release"} ],
+  "expect": [ {"grind": "50-50", "noBail": true} ] }

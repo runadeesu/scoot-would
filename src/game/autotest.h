@@ -22,7 +22,7 @@ public:
     float spawnYaw() const { return yaw_; }
     Vec3 spawnVelocity() const { return spawnVel_; }
     // input for the given test time
-    PlayerInput input(double t, std::deque<FlickEvent>& flicks, double gameTime);
+    PlayerInput input(double t, std::deque<FlickEvent>& flicks, double gameTime, const Player& p);
     void observe(double t, float dt, Player& p);
     bool finished(double t) const { return t >= duration_; }
     bool report(Player& p);  // prints results, returns pass
@@ -52,6 +52,9 @@ private:
     std::vector<Step> steps_;
     std::vector<Expect> expects_;
     size_t nextStep_ = 0;
+    std::vector<Step> conditional_;
+    std::vector<bool> conditionalFired_;
+    void apply(const Json& c, std::deque<FlickEvent>& flicks, double gameTime);
     // held state
     Vec2 move_, look_;
     bool jumpHeld_ = false;
