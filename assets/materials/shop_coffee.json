@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/gen/shop_coffee.png",
+  "emissive": "assets/textures/gen/shop_coffee.png",
+  "emissiveStrength": 0.35,
+  "roughness": 0.4,
+  "surface": "metal",
+  "wear": 0.1
+}

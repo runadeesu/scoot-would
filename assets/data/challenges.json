@@ -500,6 +500,103 @@
    ],
    "desc": "Out of the suburb, up the avenue and back through the school corner.",
    "map": "assets/scenes/city.json"
+  },
+  {
+   "id": "spot_line",
+   "name": "The Street Spot Line",
+   "mode": "line",
+   "map": "assets/scenes/street_spot.json",
+   "spawn": "Street Spot",
+   "targets": [
+    45,
+    32,
+    24
+   ],
+   "gates": [
+    {
+     "pos": [
+      -33.5,
+      1.17,
+      0
+     ],
+     "radius": 3.2,
+     "yaw": 90
+    },
+    {
+     "pos": [
+      -26,
+      1.17,
+      0
+     ],
+     "radius": 2.4,
+     "yaw": 90,
+     "require": "grind"
+    },
+    {
+     "pos": [
+      -11,
+      1.17,
+      0
+     ],
+     "radius": 2.4,
+     "yaw": 90,
+     "require": "manual"
+    },
+    {
+     "pos": [
+      3.2,
+      0.15,
+      0
+     ],
+     "radius": 4.0,
+     "yaw": 90,
+     "require": "air"
+    },
+    {
+     "pos": [
+      15.5,
+      0.15,
+      1.1
+     ],
+     "radius": 2.4,
+     "yaw": 90,
+     "require": "grind"
+    },
+    {
+     "pos": [
+      35.6,
+      0.95,
+      0
+     ],
+     "radius": 3.8,
+     "yaw": 90,
+     "require": "air"
+    },
+    {
+     "pos": [
+      24,
+      0.15,
+      0
+     ],
+     "radius": 4.0,
+     "yaw": 90
+    }
+   ],
+   "desc": "Bank up to the plaza, grind the rail, manual the pad, send the six stair, grind the ledge and air the wall quarter."
+  },
+  {
+   "id": "spot_session",
+   "name": "Street Spot Session",
+   "mode": "trick",
+   "map": "assets/scenes/street_spot.json",
+   "spawn": "Street Spot",
+   "time": 120,
+   "targets": [
+    8000,
+    20000,
+    40000
+   ],
+   "desc": "Two minutes at the spot. Every obstacle counts, link them into long combos."
   }
  ]
 }

@@ -91,7 +91,7 @@ private:
         int pipe = 0;
         float distance = 0.0f;
     };
-    enum Pipe { PipeOpaque = 0, PipeDoubleSided, PipeSkinned, PipeBlend, PipeCount };
+    enum Pipe { PipeOpaque = 0, PipeDoubleSided, PipeSkinned, PipeBlend, PipeDecal, PipeCount };
 
     void createTargets(int w, int h);
     void releaseTargets();
@@ -134,6 +134,7 @@ private:
 
     // pipelines
     GfxPipeline* pbr_[PipeCount] = {};
+    TexturePtr detailNormal_;
     GfxPipeline* depthPipe_[PipeCount] = {};
     GfxPipeline* shadowPipe_[3] = {};  // static, skinned, masked
     GfxPipeline *sky_ = nullptr, *ssaoPipe_ = nullptr, *ssaoBlur_ = nullptr, *bloomDown_ = nullptr, *bloomUp_ = nullptr;
@@ -151,6 +152,7 @@ private:
         Vec4 cameraPos, sunDir, sunColor, viewport, cascadeSplits, shadowParams, fogParams, fogColor, misc, envParams,
             cascadeTexel;
         Vec4 sh[9];
+        Vec4 extra;  // x = night, y = contact shadows, z = GI volume, w = urban reflection
     } frame_{};
     Mat4 prevViewProj_;
     bool hasPrev_ = false;

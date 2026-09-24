@@ -1,0 +1,7 @@
+{
+  "baseColor": "assets/textures/gen/decal_graffiti_2.png",
+  "roughness": 0.7,
+  "metallic": 0.0,
+  "decal": true,
+  "surface": "concrete"
+}

@@ -1,0 +1,12 @@
+{
+  "baseColor": "assets/textures/concrete_smooth_diff.jpg",
+  "normal": "assets/textures/concrete_smooth_nrm.jpg",
+  "orm": "assets/textures/concrete_smooth_arm.jpg",
+  "color": "#b8b6b0",
+  "uvScale": 0.8,
+  "surface": "concrete",
+  "wear": 0.5,
+  "antiTile": false,
+  "detailScale": 0.25,
+  "detailStrength": 0.4
+}

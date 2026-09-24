@@ -122,6 +122,18 @@ MaterialPtr AssetManager::material(const std::string& name) {
         m->wear = jget<float>(d, "wear", 0.0f);
         m->surface = jget<std::string>(d, "surface", "concrete");
         m->tintable = jget<bool>(d, "tintable", false);
+        m->decal = jget<bool>(d, "decal", false);
+        std::string shading = jget<std::string>(d, "shading", "standard");
+        m->shading = shading == "skin" ? 1 : shading == "cloth" ? 2 : shading == "interior" ? 3 : shading == "foliage" ? 4 : 0;
+        m->roomDepth = jget<float>(d, "roomDepth", 3.2f);
+        m->interiorLight = jget<float>(d, "interiorLight", 0.6f);
+        m->shop = jget<bool>(d, "shop", false);
+        m->antiTile = jget<bool>(d, "antiTile", false);
+        m->detailScale = jget<float>(d, "detailScale", 0.0f);
+        m->detailStrength = jget<float>(d, "detailStrength", 0.5f);
+        std::string det = jget<std::string>(d, "detail", "");
+        if (!det.empty()) m->detail = texture(det, false);
+        if (m->decal && m->alphaMode == AlphaMode::Opaque) m->alphaMode = AlphaMode::Blend;
     }
     std::lock_guard<std::mutex> lock(mutex_);
     m->id = nextMaterialId_++;

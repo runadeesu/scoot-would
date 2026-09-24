@@ -1,0 +1,14 @@
+{
+  "baseColor": "assets/textures/facade_tiles_diff.jpg",
+  "normal": "assets/textures/facade_tiles_nrm.jpg",
+  "orm": "assets/textures/facade_tiles_arm.jpg",
+  "uvScale": 0.45,
+  "surface": "concrete",
+  "wear": 0.2,
+  "baseColorFactor": [
+    1.35,
+    1.35,
+    1.35,
+    1.0
+  ]
+}

@@ -161,6 +161,10 @@ GpuBuffer Gpu::createBufferWithData(SDL_GPUBufferUsageFlags usage, const void* d
     return b;
 }
 
+// large map loads stage hundreds of MB of texture data; submitting it in chunks keeps the staging
+// memory bounded (one huge copy pass lost uploads on some drivers)
+static constexpr uint64_t kUploadChunk = 96ull << 20;
+
 SDL_GPUCommandBuffer* Gpu::uploadCommandBuffer() {
     if (!uploadCmd_) {
         uploadCmd_ = SDL_AcquireGPUCommandBuffer(device_);
@@ -187,6 +191,8 @@ void Gpu::uploadBuffer(const GpuBuffer& buf, const void* data, uint32_t size, ui
     SDL_GPUBufferRegion dst{buf.handle, offset, size};
     SDL_UploadToGPUBuffer(uploadPass_, &src, &dst, cycle);
     pendingTransfers_.push_back(tb);
+    pendingBytes_ += size;
+    if (pendingBytes_ > kUploadChunk) flushUploads();
 }
 
 void Gpu::release(GpuBuffer& b) {
@@ -263,6 +269,8 @@ void Gpu::uploadTexture(const GpuTexture& tex, const void* data, uint32_t dataSi
     dst.d = 1;
     SDL_UploadToGPUTexture(uploadPass_, &src, &dst, false);
     pendingTransfers_.push_back(tb);
+    pendingBytes_ += dataSize;
+    if (pendingBytes_ > kUploadChunk) flushUploads();
 }
 
 void Gpu::release(GpuTexture& t) {
@@ -279,6 +287,7 @@ void Gpu::flushUploads() {
     // transfer buffers can be released right away; SDL keeps them alive until the GPU is done
     for (auto* tb : pendingTransfers_) SDL_ReleaseGPUTransferBuffer(device_, tb);
     pendingTransfers_.clear();
+    pendingBytes_ = 0;
 }
 
 SDL_GPUCommandBuffer* Gpu::beginFrame() {

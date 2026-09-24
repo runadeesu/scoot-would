@@ -1,7 +1,7 @@
 {
   "version": 1,
   "name": "Scoot City",
-  "environment": { "preset": "day" },
+  "environment": { "preset": "day", "adjust": { "urbanReflection": 0.6 } },
   "entities": [
     {"id": 1, "name": "city asphalt", "prefab": "ground", "params": {"size": [760, 0.4, 600], "divisions": 4}, "position": [82, 0, 0], "material": "asphalt"},
     {"id": 2, "name": "countryside", "prefab": "ground", "params": {"size": [2400, 0.4, 2400], "divisions": 1}, "position": [82, -0.03, 0], "material": "grass"},

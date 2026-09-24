@@ -1,0 +1,11 @@
+{
+  "baseColor": "assets/textures/concrete_cracked_diff.jpg",
+  "normal": "assets/textures/concrete_cracked_nrm.jpg",
+  "orm": "assets/textures/concrete_cracked_arm.jpg",
+  "uvScale": 0.3,
+  "surface": "concrete",
+  "wear": 0.35,
+  "antiTile": true,
+  "detailScale": 0.4,
+  "detailStrength": 0.45
+}

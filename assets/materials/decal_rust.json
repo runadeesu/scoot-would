@@ -1,0 +1,7 @@
+{
+  "baseColor": "assets/textures/gen/decal_rust.png",
+  "roughness": 0.75,
+  "metallic": 0.0,
+  "decal": true,
+  "surface": "concrete"
+}

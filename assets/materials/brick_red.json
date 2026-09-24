@@ -4,5 +4,8 @@
   "uvScale": 0.4,
   "surface": "concrete",
   "wear": 0.35,
-  "orm": "assets/textures/brick_red_arm.jpg"
+  "orm": "assets/textures/brick_red_arm.jpg",
+  "antiTile": false,
+  "detailScale": 0.5,
+  "detailStrength": 0.25
 }

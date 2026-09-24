@@ -1,0 +1,7 @@
+{
+  "baseColor": "assets/textures/gen/decal_water_1.png",
+  "roughness": 0.55,
+  "metallic": 0.0,
+  "decal": true,
+  "surface": "concrete"
+}

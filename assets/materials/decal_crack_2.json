@@ -1,0 +1,7 @@
+{
+  "baseColor": "assets/textures/gen/decal_crack_2.png",
+  "roughness": 0.9,
+  "metallic": 0.0,
+  "decal": true,
+  "surface": "concrete"
+}

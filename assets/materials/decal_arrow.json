@@ -1,0 +1,7 @@
+{
+  "baseColor": "assets/textures/gen/decal_arrow.png",
+  "roughness": 0.6,
+  "metallic": 0.0,
+  "decal": true,
+  "surface": "concrete"
+}

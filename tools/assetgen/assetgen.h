@@ -9,5 +9,7 @@ namespace sw::tools {
 bool generateRider(const std::string& outPath);
 // sound effects (WAV files) into a directory
 bool generateAudio(const std::string& dir);
+// decals, signs, shop fronts, detail normals (PNG) into <root>/assets/textures/gen
+bool generateTextures(const std::string& root);
 
 }  // namespace sw::tools

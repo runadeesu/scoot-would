@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/brick_patch_diff.jpg",
+  "normal": "assets/textures/brick_patch_nrm.jpg",
+  "orm": "assets/textures/brick_patch_arm.jpg",
+  "uvScale": 0.35,
+  "surface": "concrete",
+  "wear": 0.3
+}

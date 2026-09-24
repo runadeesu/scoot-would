@@ -1,0 +1,7 @@
+{
+  "baseColor": "assets/textures/gen/decal_patch.png",
+  "roughness": 0.9,
+  "metallic": 0.0,
+  "decal": true,
+  "surface": "concrete"
+}

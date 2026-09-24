@@ -2,6 +2,13 @@
   "_comment": "Map select entries. 'spawn' is the label of a spawn entity in the scene. Districts of one scene are connected, so riders can skate from one to the next.",
   "maps": [
     {
+      "id": "streetspot", "name": "Street Spot", "scene": "assets/scenes/street_spot.json",
+      "districts": [
+        { "id": "spot",        "name": "Street Spot",       "spawn": "Street Spot",       "color": "#e8b33a", "desc": "One dense city corner built around one line: bank, rail, manual pad, six stair, ledge and the wall quarter." },
+        { "id": "lowerplaza",  "name": "Lower Plaza",       "spawn": "Lower Plaza",       "color": "#d0a060", "desc": "Start at the bottom of the stairs, next to the ledge and the square rail." }
+      ]
+    },
+    {
       "id": "city", "name": "Scoot City", "scene": "assets/scenes/city.json",
       "districts": [
         { "id": "plaza",       "name": "Street Plaza",      "spawn": "Street Plaza",      "color": "#e8b33a", "desc": "Marble ledges, stair sets, handrails and manual pads in the middle of town." },

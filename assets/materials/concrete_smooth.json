@@ -4,5 +4,8 @@
   "uvScale": 0.3,
   "surface": "concrete",
   "wear": 0.35,
-  "orm": "assets/textures/concrete_smooth_arm.jpg"
+  "orm": "assets/textures/concrete_smooth_arm.jpg",
+  "antiTile": true,
+  "detailScale": 0.4,
+  "detailStrength": 0.35
 }

@@ -1,68 +1,22 @@
 // scoot would - level kit: parametric prefab generators used by scene JSON files and the editor.
 // Conventions: Y up, local origin at the centre of the footprint on the ground (y = 0).
 // Ramps rise towards +X. Widths run along Z.
+#include "assets/asset_manager.h"
+#include "core/log.h"
+#include "game/world/prefab_kit.h"
 #include "render/mesh_builder.h"
 #include "scene/scene.h"
 
 #include <cmath>
+#include <mutex>
+#include <sstream>
+#include <unordered_map>
 
 namespace sw {
 
+using namespace kit;
+
 namespace {
-
-float P(const Json& j, const char* k, float def) { return jget<float>(j, k, def); }
-int Pi(const Json& j, const char* k, int def) { return jget<int>(j, k, def); }
-bool Pb(const Json& j, const char* k, bool def) { return jget<bool>(j, k, def); }
-std::string Ps(const Json& j, const char* k, const std::string& def) { return jget<std::string>(j, k, def); }
-std::string M(const std::string& mat, const std::string& def) { return mat.empty() ? def : mat; }
-
-std::string keyOf(const std::string& prefab, const Json& params, const std::string& material) {
-    return prefab + "|" + params.dump() + "|" + material;
-}
-
-std::vector<Vec2> shifted(std::vector<Vec2> p, float dx) {
-    for (auto& v : p) v.x += dx;
-    return p;
-}
-
-float profileLength(const std::vector<Vec2>& p) {
-    float mn = 1e9f, mx = -1e9f;
-    for (auto& v : p) {
-        mn = std::min(mn, v.x);
-        mx = std::max(mx, v.x);
-    }
-    return mx - mn;
-}
-
-void addRail(PrefabBuild& out, std::vector<Vec3> pts, RailType type, float radius = 0.025f) {
-    RailComponent r;
-    r.points = std::move(pts);
-    r.type = type;
-    r.radius = radius;
-    out.rails.push_back(r);
-}
-
-// round rail tube with posts
-void railGeometry(MeshBuilder& b, const std::vector<Vec3>& path, float radius, int postsEvery, bool square) {
-    if (square)
-        b.squareTube(path, radius, radius, true);
-    else
-        b.tube(path, radius, 12, true);
-    // posts down to the ground from every Nth point (and the ends)
-    for (size_t i = 0; i < path.size(); ++i) {
-        bool end = i == 0 || i + 1 == path.size();
-        if (!end && (postsEvery <= 0 || i % size_t(postsEvery) != 0)) continue;
-        Vec3 p = path[i];
-        float h = p.y;
-        if (h < 0.08f) continue;
-        Vec3 inward = end ? (i == 0 ? (path[1] - path[0]) : (path[i - 1] - path[i])).normalized() * 0.08f : Vec3(0);
-        inward.y = 0;
-        Vec3 base = Vec3(p.x + inward.x, 0.0f, p.z + inward.z);
-        b.cylinder(base, radius * 0.9f, h - radius * 0.5f, 10, false);
-        // base plate
-        b.cylinder(base, radius * 2.6f, 0.012f, 12, true);
-    }
-}
 
 // ---------------------------------------------------------------------------
 void groundPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
@@ -629,6 +583,101 @@ void pipePrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     addRail(out, {{-l * 0.5f, h + r, 0}, {l * 0.5f, h + r, 0}}, RailType::Round, r);
 }
 
+
+// --- imported models ----------------------------------------------------------------
+// glTF prop (scanned / modelled assets in assets/models). Poly Haven style files often lay out
+// several variants side by side, so nodes can be picked by name: "include" / "exclude" are comma
+// separated substrings. The selection is merged into one static mesh, moved so its footprint is
+// centred on the origin with the lowest point at y = 0, and shared between instances.
+bool nameMatches(const std::string& name, const std::string& list) {
+    if (list.empty()) return false;
+    std::stringstream ss(list);
+    std::string tok;
+    while (std::getline(ss, tok, ','))
+        if (!tok.empty() && name.find(tok) != std::string::npos) return true;
+    return false;
+}
+
+void modelPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
+    std::string path = Ps(j, "model", "");
+    std::string include = Ps(j, "include", ""), exclude = Ps(j, "exclude", "");
+    float scale = P(j, "scale", 1.0f);
+    std::string collider = Ps(j, "collider", "box");
+    std::string key = keyOf("model", j, mat);
+    static std::mutex cacheMutex;
+    static std::unordered_map<std::string, std::pair<MeshData, std::vector<std::string>>> cache;
+    {
+        std::lock_guard<std::mutex> lock(cacheMutex);
+        auto it = cache.find(key);
+        if (it != cache.end()) {
+            out.mesh = it->second.first;
+            out.materials = it->second.second;
+        }
+    }
+    if (out.mesh.vertices.empty()) {
+        ModelPtr m = path.empty() ? nullptr : assets().model(path);
+        if (!m || m->meshes.empty()) {
+            LOG_WARN("prefab: model '%s' not available", path.c_str());
+            MeshBuilder b("missing model");
+            b.box(Vec3(0, 0.25f, 0), Vec3(0.5f));
+            out.mesh = b.build();
+            out.materials = {"editor_helper"};
+            return;
+        }
+        auto nodeWorld = [&](int n) {
+            Mat4 w = Mat4::identity();
+            while (n >= 0) {
+                w = m->nodes[size_t(n)].local.matrix() * w;
+                n = m->nodes[size_t(n)].parent;
+            }
+            return w;
+        };
+        MeshData merged;
+        merged.name = path;
+        std::vector<std::string> mats;
+        for (const ModelMesh& mm : m->meshes) {
+            if (!mm.data.skin.empty()) continue;
+            std::string nodeName = mm.node >= 0 ? m->nodes[size_t(mm.node)].name : mm.name;
+            if (!include.empty() && !nameMatches(nodeName, include)) continue;
+            if (nameMatches(nodeName, exclude)) continue;
+            int offset = int(mats.size());
+            for (auto& mp : mm.materials) mats.push_back(mp ? mp->name : std::string("default"));
+            if (mm.materials.empty()) mats.push_back("default");
+            Mat4 w = mm.node >= 0 ? nodeWorld(mm.node) : Mat4::identity();
+            merged.append(mm.data, Mat4::scale(Vec3(scale)) * w, offset);
+        }
+        merged.computeBounds();
+        if (Pb(j, "recenter", true) && merged.bounds.valid()) {
+            Vec3 c = merged.bounds.center();
+            Mat4 shift = Mat4::translation(Vec3(-c.x, -merged.bounds.min.y, -c.z));
+            MeshData moved;
+            moved.name = merged.name;
+            moved.append(merged, shift, 0);
+            merged = std::move(moved);
+            merged.computeBounds();
+        }
+        out.mesh = merged;
+        out.materials = mats;
+        std::lock_guard<std::mutex> lock(cacheMutex);
+        cache[key] = {merged, mats};
+    }
+    if (!mat.empty())
+        for (auto& mname : out.materials) mname = mat;
+    out.meshKey = key;
+    out.cullDistance = P(j, "cullDistance", 0.0f);
+    AABB b = out.mesh.bounds;
+    if (collider == "none") {
+        out.collider = ColliderComponent::Kind::None;
+    } else if (collider == "mesh") {
+        out.collider = ColliderComponent::Kind::Mesh;
+    } else {
+        out.collider = ColliderComponent::Kind::Box;
+        out.boxHalfExtents = (b.max - b.min) * 0.5f;
+        out.boxCenter = (b.max + b.min) * 0.5f;
+    }
+    out.surface = Ps(j, "surface", "metal");
+}
+
 // --- props ----------------------------------------------------------------------
 void benchPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     float l = P(j, "length", 2.0f);
@@ -676,48 +725,6 @@ void streetLampPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     out.boxHalfExtents = Vec3(0.12f, h * 0.5f, 0.12f);
     out.boxCenter = Vec3(0, h * 0.5f, 0);
     out.cullDistance = 350.0f;
-}
-
-void treePrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
-    float h = P(j, "height", 7.0f), crown = P(j, "crown", 2.6f);
-    int seed = Pi(j, "seed", 1);
-    Rng rng(uint64_t(seed) * 7919u + 13u);
-    MeshBuilder b("tree");
-    b.setMaterial(0);
-    float trunkH = h * 0.55f;
-    b.lathe({{0.22f, 0.0f}, {0.16f, 0.4f}, {0.13f, trunkH}, {0.05f, trunkH + 0.6f}}, 10, true);
-    // a few branches
-    for (int i = 0; i < 4; ++i) {
-        float a = float(i) / 4.0f * kTwoPi + rng.range(-0.3f, 0.3f);
-        Vec3 dir(std::cos(a), rng.range(0.6f, 1.0f), std::sin(a));
-        Vec3 s(0, trunkH * rng.range(0.7f, 0.95f), 0);
-        b.tube({s, s + dir.normalized() * crown * 0.7f}, 0.05f, 6, false);
-    }
-    // foliage: displaced spheres
-    b.setMaterial(1);
-    int blobs = 5 + seed % 3;
-    for (int i = 0; i < blobs; ++i) {
-        Vec3 c(rng.range(-crown * 0.5f, crown * 0.5f), trunkH + crown * rng.range(0.3f, 0.9f), rng.range(-crown * 0.5f, crown * 0.5f));
-        float r = crown * rng.range(0.45f, 0.7f);
-        size_t v0 = b.data().vertices.size();
-        b.sphere(c, r, 8, 12);
-        for (size_t v = v0; v < b.data().vertices.size(); ++v) {
-            Vertex& vx = b.data().vertices[v];
-            Vec3 n = vx.normal;
-            float noise = std::sin(n.x * 7.1f + float(seed)) * std::cos(n.y * 5.3f) * std::sin(n.z * 6.7f + float(i));
-            vx.position += n * (noise * r * 0.18f);
-        }
-    }
-    MeshData md = b.build();
-    md.computeNormals();
-    md.computeTangents();
-    out.mesh = md;
-    out.materials = {"bark", M(mat, (seed % 2) ? "foliage" : "foliage_dark")};
-    out.meshKey = keyOf("tree", j, out.materials[1]);
-    out.collider = ColliderComponent::Kind::Box;
-    out.boxHalfExtents = Vec3(0.2f, trunkH * 0.5f, 0.2f);
-    out.boxCenter = Vec3(0, trunkH * 0.5f, 0);
-    out.cullDistance = 450.0f;
 }
 
 void fencePrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
@@ -852,12 +859,38 @@ void picnicTablePrefab(const Json& j, const std::string& mat, PrefabBuild& out) 
 
 void bikeRackPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     float l = P(j, "length", 2.4f);
+    int stands = Pi(j, "stands", 0);
     MeshBuilder b("bikerack");
-    b.tube({{-l * 0.5f, 0.02f, 0}, {-l * 0.5f, 0.8f, 0}, {l * 0.5f, 0.8f, 0}, {l * 0.5f, 0.02f, 0}}, 0.03f, 10, true);
+    if (stands <= 0) {
+        // one long hoop: a grindable bar
+        b.tube({{-l * 0.5f, 0.02f, 0}, {-l * 0.5f, 0.8f, 0}, {l * 0.5f, 0.8f, 0}, {l * 0.5f, 0.02f, 0}}, 0.03f, 10, true);
+        addRail(out, {{-l * 0.5f, 0.83f, 0}, {l * 0.5f, 0.83f, 0}}, RailType::Round, 0.03f);
+    } else {
+        // row of "Sheffield" stands along X: inverted U hoops across Z with bent corners + base plates
+        float hw = 0.36f, h = 0.8f, bend = 0.16f;
+        for (int i = 0; i < stands; ++i) {
+            float x = stands == 1 ? 0.0f : -l * 0.5f + l * float(i) / float(stands - 1);
+            std::vector<Vec3> path = {{x, 0.0f, -hw}, {x, h - bend, -hw}};
+            for (int k = 1; k < 6; ++k) {
+                float a = float(k) / 6.0f * kHalfPi;
+                path.push_back({x, h - bend + std::sin(a) * bend, -hw + bend - std::cos(a) * bend});
+            }
+            path.push_back({x, h, -hw + bend});
+            path.push_back({x, h, hw - bend});
+            for (int k = 1; k < 6; ++k) {
+                float a = float(k) / 6.0f * kHalfPi;
+                path.push_back({x, h - bend + std::cos(a) * bend, hw - bend + std::sin(a) * bend});
+            }
+            path.push_back({x, h - bend, hw});
+            path.push_back({x, 0.0f, hw});
+            b.tube(path, 0.024f, 10, false);
+            for (float z : {-hw, hw}) b.cylinder(Vec3(x, 0, z), 0.05f, 0.01f, 12, true);
+        }
+    }
     out.mesh = b.build();
     out.materials = {M(mat, "rail_steel")};
     out.meshKey = keyOf("bike_rack", j, out.materials[0]);
-    addRail(out, {{-l * 0.5f, 0.83f, 0}, {l * 0.5f, 0.83f, 0}}, RailType::Round, 0.03f);
+    out.surface = "metal";
 }
 
 // --- helpers (editor only) --------------------------------------------------------
@@ -957,7 +990,6 @@ void registerBuiltinPrefabs() {
     r.add("pipe", "Industrial", pipePrefab, {{"radius", 0.5}, {"length", 10.0}, {"height", 0.8}});
     r.add("bench", "Props", benchPrefab, {{"length", 2.0}});
     r.add("street_lamp", "Props", streetLampPrefab, {{"height", 6.5}});
-    r.add("tree", "Props", treePrefab, {{"height", 7.0}, {"crown", 2.6}, {"seed", 1}});
     r.add("fence", "Props", fencePrefab, {{"length", 6.0}, {"height", 1.2}});
     r.add("barrier", "Props", barrierPrefab, {{"length", 3.0}});
     r.add("cone", "Props", conePrefab, Json::object());
@@ -966,7 +998,11 @@ void registerBuiltinPrefabs() {
     r.add("sign", "Props", signPrefab, {{"height", 2.6}});
     r.add("trash_can", "Props", trashCanPrefab, Json::object());
     r.add("picnic_table", "Props", picnicTablePrefab, Json::object());
-    r.add("bike_rack", "Props", bikeRackPrefab, {{"length", 2.4}});
+    r.add("bike_rack", "Props", bikeRackPrefab, {{"length", 2.4}, {"stands", 0}});
+    r.add("model", "Props", modelPrefab, {{"model", "assets/models/props/fire_hydrant/fire_hydrant.gltf"}, {"include", ""}, {"exclude", "_aged"},
+                                          {"scale", 1.0}, {"collider", "box"}, {"recenter", true}});
+    registerStreetPrefabs(r);
+    registerNaturePrefabs(r);
     r.add("spawn", "Gameplay", spawnPrefab, {{"label", "Spawn"}, {"default", false}});
     r.add("zone", "Gameplay", zonePrefab, {{"halfExtents", {10, 5, 10}}, {"area", "Area"}, {"kind", "area"}, {"score", 0}});
     r.add("light", "Gameplay", lightPrefab, {{"type", "point"}, {"intensity", 40.0}, {"radius", 12.0}, {"nightOnly", true}});

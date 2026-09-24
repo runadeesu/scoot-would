@@ -1,0 +1,11 @@
+{
+  "baseColor": "assets/textures/brick_painted_diff.jpg",
+  "normal": "assets/textures/brick_painted_nrm.jpg",
+  "orm": "assets/textures/brick_painted_arm.jpg",
+  "uvScale": 0.5,
+  "surface": "concrete",
+  "wear": 0.3,
+  "antiTile": false,
+  "detailScale": 0.5,
+  "detailStrength": 0.25
+}

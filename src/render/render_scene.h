@@ -68,6 +68,7 @@ struct Environment {
     float temperature = 0.0f;
     float vignette = 0.25f;
     bool lampsOn = false;
+    float urbanReflection = 0.0f;  // 0..1: buildings hide the low sky in reflections (city maps)
 };
 
 // uniform 2D grid over the XZ plane for static objects

@@ -4,5 +4,8 @@
   "uvScale": 0.3,
   "surface": "concrete",
   "wear": 0.3,
-  "orm": "assets/textures/plaza_tiles_arm.jpg"
+  "orm": "assets/textures/plaza_tiles_arm.jpg",
+  "antiTile": false,
+  "detailScale": 0.35,
+  "detailStrength": 0.3
 }

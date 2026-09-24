@@ -4,5 +4,8 @@
   "uvScale": 0.3,
   "surface": "dirt",
   "wear": 0.4,
-  "orm": "assets/textures/dirt_arm.jpg"
+  "orm": "assets/textures/dirt_arm.jpg",
+  "antiTile": true,
+  "detailScale": 0.3,
+  "detailStrength": 0.5
 }

@@ -5,5 +5,8 @@
   "surface": "metal",
   "wear": 0.3,
   "orm": "assets/textures/factory_wall_arm.jpg",
-  "metallic": 1.0
+  "metallic": 1.0,
+  "antiTile": true,
+  "detailScale": 0.5,
+  "detailStrength": 0.3
 }

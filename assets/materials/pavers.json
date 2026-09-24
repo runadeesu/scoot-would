@@ -1,0 +1,17 @@
+{
+  "baseColor": "assets/textures/pavers_diff.jpg",
+  "normal": "assets/textures/pavers_nrm.jpg",
+  "orm": "assets/textures/pavers_arm.jpg",
+  "uvScale": 0.45,
+  "surface": "concrete",
+  "wear": 0.3,
+  "antiTile": false,
+  "detailScale": 0.35,
+  "detailStrength": 0.35,
+  "baseColorFactor": [
+    1.7,
+    1.65,
+    1.6,
+    1.0
+  ]
+}

@@ -94,6 +94,7 @@ bool Renderer::init(Window& window) {
 
 void Renderer::shutdown() {
     gpu().waitIdle();
+    detailNormal_.reset();
     releaseTargets();
     auto rel = [](DynBuffer& d) {
         gpu().release(d.buffer);
@@ -216,13 +217,14 @@ void Renderer::createPipelines() {
         d.layout = meshLayout(p == PipeSkinned);
         if (p == PipeSkinned) d.defines = "SKINNED";
         if (p == PipeDoubleSided) d.cull = SDL_GPU_CULLMODE_NONE;
-        if (p == PipeBlend) {
+        if (p == PipeBlend || p == PipeDecal) {
             d.blend = PipelineDesc::Blend::Alpha;
             d.cull = SDL_GPU_CULLMODE_NONE;
         }
+        if (p == PipeDecal) d.defines = "DECAL";
         d.name = std::string("pbr") + std::to_string(p);
         pbr_[p] = lib.createPipeline(d);
-        if (p == PipeBlend) continue;
+        if (p == PipeBlend || p == PipeDecal) continue;
         PipelineDesc z = d;
         z.name = std::string("prepass") + std::to_string(p);
         z.fragment = "depth.frag";
@@ -742,7 +744,8 @@ void Renderer::buildBatches(RenderScene& scene, const std::vector<uint32_t>& obj
                 if (mat->alphaMode == AlphaMode::Blend) continue;
                 pipe = skinned ? 1 : (mat->alphaMode == AlphaMode::Mask ? 2 : 0);
             } else if (mat->alphaMode == AlphaMode::Blend) {
-                pipe = PipeBlend;
+                // decals are drawn right after the opaque geometry, batched like it
+                pipe = mat->decal ? PipeDecal : PipeBlend;
             } else if (skinned) {
                 pipe = PipeSkinned;
             } else if (mat->doubleSided || mat->alphaMode == AlphaMode::Mask) {
@@ -819,7 +822,9 @@ void Renderer::bindMaterial(SDL_GPURenderPass* rp, SDL_GPUCommandBuffer* cmd, Ma
     SDL_GPUSampler* aniso = gpu().sampler(SamplerKind::AnisoRepeat);
     MaterialUniforms mu = materialUniforms(*m);
     if (mode == 0) {
-        SDL_GPUTextureSamplerBinding b[8] = {
+        if (!detailNormal_) detailNormal_ = am.texture("assets/textures/gen/detail_normal.png", false);
+        const TexturePtr& det = m->detail ? m->detail : (detailNormal_ ? detailNormal_ : am.flatNormal());
+        SDL_GPUTextureSamplerBinding b[9] = {
             {tex(m->baseColor, am.white()), aniso},
             {tex(m->normal, am.flatNormal()), aniso},
             {tex(m->orm, am.white()), aniso},
@@ -828,8 +833,9 @@ void Renderer::bindMaterial(SDL_GPURenderPass* rp, SDL_GPUCommandBuffer* cmd, Ma
             {ssao_.handle, gpu().sampler(SamplerKind::LinearClamp)},
             {envCube_.handle, gpu().sampler(SamplerKind::LinearClamp)},
             {brdfLut_.handle, gpu().sampler(SamplerKind::LinearClamp)},
+            {tex(det, am.flatNormal()), aniso},
         };
-        SDL_BindGPUFragmentSamplers(rp, 0, b, 8);
+        SDL_BindGPUFragmentSamplers(rp, 0, b, 9);
     } else {
         SDL_GPUTextureSamplerBinding b[1] = {{tex(m->baseColor, am.white()), aniso}};
         SDL_BindGPUFragmentSamplers(rp, 0, b, 1);
@@ -958,6 +964,7 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
         Profiler::renderStats().lights = lightCount_;
     }
     frame_.misc = Vec4(exposure, float(lightCount_), settings_.ssao ? 1.0f : 0.0f, float(settings_.debugView));
+    frame_.extra = Vec4(env.lampsOn ? 1.0f : 0.0f, 0.0f, 0.0f, env.urbanReflection);
 
     cullAndBatch(scene, view);
 

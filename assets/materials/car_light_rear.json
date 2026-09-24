@@ -1,0 +1,7 @@
+{
+  "color": "#5a0303",
+  "roughness": 0.1,
+  "emissiveColor": "#ff1a0a",
+  "emissiveStrength": 0.15,
+  "surface": "metal"
+}

@@ -1,0 +1,10 @@
+{
+  "color": "#9c8a6c",
+  "metallic": 0.0,
+  "roughness": 0.28,
+  "surface": "metal",
+  "wear": 0.08,
+  "normal": "assets/textures/gen/detail_normal.png",
+  "normalScale": 0.05,
+  "uvScale": 2.0
+}

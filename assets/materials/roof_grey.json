@@ -4,5 +4,11 @@
   "uvScale": 0.35,
   "surface": "concrete",
   "wear": 0.3,
-  "orm": "assets/textures/roof_grey_arm.jpg"
+  "orm": "assets/textures/roof_grey_arm.jpg",
+  "baseColorFactor": [
+    1.2,
+    1.2,
+    1.2,
+    1.0
+  ]
 }

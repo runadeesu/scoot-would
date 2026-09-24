@@ -4,5 +4,8 @@
   "uvScale": 0.2,
   "surface": "asphalt",
   "wear": 0.4,
-  "orm": "assets/textures/asphalt_arm.jpg"
+  "orm": "assets/textures/asphalt_arm.jpg",
+  "antiTile": true,
+  "detailScale": 0.35,
+  "detailStrength": 0.5
 }

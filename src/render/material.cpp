@@ -8,6 +8,8 @@ MaterialUniforms materialUniforms(const Material& m) {
     u.emissive = Vec4(m.emissiveFactor * m.emissiveStrength, 0.0f);
     u.params = Vec4(m.metallic, m.roughness, m.normalScale, m.aoStrength);
     u.params2 = Vec4(m.uvScale, m.alphaMode == AlphaMode::Mask ? m.alphaCutoff : -1.0f, m.wear, m.tintable ? 1.0f : 0.0f);
+    u.params3 = Vec4(float(m.shading), m.roomDepth, m.interiorLight, m.shop ? 1.0f : 0.0f);
+    u.params4 = Vec4(m.detailScale > 0.0f ? 1.0f / m.detailScale : 0.0f, m.detailStrength, m.antiTile ? 1.0f : 0.0f, 0.0f);
     return u;
 }
 

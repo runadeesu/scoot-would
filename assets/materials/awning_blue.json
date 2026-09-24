@@ -1,0 +1,10 @@
+{
+  "baseColor": "assets/textures/fabric_jersey_diff.jpg",
+  "normal": "assets/textures/fabric_jersey_nrm.jpg",
+  "color": "#123a70",
+  "roughness": 0.9,
+  "uvScale": 3.0,
+  "doubleSided": true,
+  "surface": "concrete",
+  "wear": 0.4
+}

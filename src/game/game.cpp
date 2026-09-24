@@ -208,32 +208,46 @@ void Game::applySettings(bool video) {
 
 void Game::applyCustomization() { visual_.applyCustomization(saves().data().custom); }
 
+namespace {
+// reads every lighting key present in e (missing keys keep their current value)
+void readEnvironment(const Json& e, Environment& env) {
+    env.hdri = jget<std::string>(e, "hdri", env.hdri);
+    env.rotation = jget<float>(e, "rotation", env.rotation);
+    env.rotation += jget<float>(e, "rotationOffset", 0.0f);
+    env.sunIntensity = jget<float>(e, "sunIntensity", env.sunIntensity);
+    env.sunColor = jvec3(e, "sunColor", env.sunColor);
+    env.exposure = jget<float>(e, "exposure", env.exposure);
+    env.skyIntensity = jget<float>(e, "skyIntensity", env.skyIntensity);
+    env.iblIntensity = jget<float>(e, "iblIntensity", env.iblIntensity);
+    env.fogDensity = jget<float>(e, "fogDensity", env.fogDensity);
+    env.fogFalloff = jget<float>(e, "fogFalloff", env.fogFalloff);
+    env.fogStart = jget<float>(e, "fogStart", env.fogStart);
+    env.fogTint = jvec3(e, "fogTint", env.fogTint);
+    env.bloomStrength = jget<float>(e, "bloomStrength", env.bloomStrength);
+    env.contrast = jget<float>(e, "contrast", env.contrast);
+    env.saturation = jget<float>(e, "saturation", env.saturation);
+    env.temperature = jget<float>(e, "temperature", env.temperature);
+    env.vignette = jget<float>(e, "vignette", env.vignette);
+    env.lampsOn = jget<bool>(e, "lamps", env.lampsOn);
+    env.autoSun = jget<bool>(e, "autoSun", env.autoSun);
+    env.sunDirection = jvec3(e, "sunDirection", env.sunDirection);
+    env.urbanReflection = jget<float>(e, "urbanReflection", env.urbanReflection);
+}
+}  // namespace
+
 void Game::applyEnvironment(const std::string& preset) {
     auto j = loadJsonFile(fs::resolve("assets/data/environments.json"));
     Environment env;
     if (j && j->contains(preset)) {
-        const Json& e = (*j)[preset];
         env.name = preset;
-        env.hdri = jget<std::string>(e, "hdri", "");
-        env.rotation = jget<float>(e, "rotation", 0.0f);
-        env.sunIntensity = jget<float>(e, "sunIntensity", 3.0f);
-        env.sunColor = jvec3(e, "sunColor", Vec3(1, 0.95f, 0.88f));
-        env.exposure = jget<float>(e, "exposure", 1.0f);
-        env.skyIntensity = jget<float>(e, "skyIntensity", 1.6f);
-        env.iblIntensity = jget<float>(e, "iblIntensity", 1.25f);
-        env.fogDensity = jget<float>(e, "fogDensity", 0.004f);
-        env.fogFalloff = jget<float>(e, "fogFalloff", 0.02f);
-        env.bloomStrength = jget<float>(e, "bloomStrength", 0.06f);
-        env.contrast = jget<float>(e, "contrast", 1.05f);
-        env.saturation = jget<float>(e, "saturation", 1.05f);
-        env.temperature = jget<float>(e, "temperature", 0.0f);
-        env.vignette = jget<float>(e, "vignette", 0.25f);
-        env.lampsOn = jget<bool>(e, "lamps", false);
-        env.autoSun = jget<bool>(e, "autoSun", true);
-        env.sunDirection = jvec3(e, "sunDirection", env.sunDirection);
+        readEnvironment((*j)[preset], env);
     } else {
         LOG_WARN("game: unknown environment preset '%s'", preset.c_str());
     }
+    // per map adjustments on top of every preset (e.g. "rotationOffset" to put the sun where the
+    // map's main line is lit)
+    const Json& mapEnv = scene_.environmentJson();
+    if (mapEnv.is_object() && mapEnv.contains("adjust")) readEnvironment(mapEnv["adjust"], env);
     renderScene_.environment = env;
     renderScene_.environmentVersion++;
     envPreset_ = preset;

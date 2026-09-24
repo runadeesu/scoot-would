@@ -4,5 +4,14 @@
   "uvScale": 0.33,
   "surface": "concrete",
   "wear": 0.25,
-  "orm": "assets/textures/concrete_park_arm.jpg"
+  "orm": "assets/textures/concrete_park_arm.jpg",
+  "antiTile": true,
+  "detailScale": 0.4,
+  "detailStrength": 0.4,
+  "baseColorFactor": [
+    1.2,
+    1.2,
+    1.2,
+    1.0
+  ]
 }

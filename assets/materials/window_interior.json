@@ -1,0 +1,8 @@
+{
+  "color": "#0f1418",
+  "roughness": 0.05,
+  "shading": "interior",
+  "roomDepth": 3.2,
+  "interiorLight": 0.55,
+  "surface": "metal"
+}

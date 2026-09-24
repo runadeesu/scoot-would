@@ -17,7 +17,10 @@ layout(set = 3, binding = 1) uniform MaterialUBO { vec4 baseColorFactor; vec4 em
 
 void main() {
     if (mat.params2.y >= 0.0) {
-        float a = texture(texBaseColor, vUV * mat.params2.x).a * mat.baseColorFactor.a;
+        vec2 uv = vUV * mat.params2.x;
+        float a = texture(texBaseColor, uv).a * mat.baseColorFactor.a;
+        // same mip compensated alpha test as pbr.frag (surface.glsl alphaTestValue)
+        a *= 1.0 + max(textureQueryLod(texBaseColor, uv).x, 0.0) * 0.25;
         if (a < mat.params2.y) discard;
     }
     vec3 n = normalize(vNormal);

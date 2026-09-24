@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/metal_painted_rusty_diff.jpg",
+  "normal": "assets/textures/metal_painted_rusty_nrm.jpg",
+  "orm": "assets/textures/metal_painted_rusty_arm.jpg",
+  "uvScale": 0.5,
+  "surface": "metal",
+  "wear": 0.2
+}

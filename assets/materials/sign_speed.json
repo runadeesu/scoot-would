@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/gen/sign_speed.png",
+  "alpha": "mask",
+  "alphaCutoff": 0.5,
+  "roughness": 0.35,
+  "surface": "metal",
+  "wear": 0.15
+}

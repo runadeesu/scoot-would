@@ -4,5 +4,14 @@
   "uvScale": 0.3,
   "surface": "concrete",
   "wear": 0.45,
-  "orm": "assets/textures/concrete_worn_arm.jpg"
+  "orm": "assets/textures/concrete_worn_arm.jpg",
+  "antiTile": true,
+  "detailScale": 0.4,
+  "detailStrength": 0.45,
+  "baseColorFactor": [
+    1.75,
+    1.7,
+    1.65,
+    1.0
+  ]
 }

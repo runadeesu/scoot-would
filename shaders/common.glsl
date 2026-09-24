@@ -26,6 +26,7 @@ struct FrameData {
     vec4 envParams;      // x = env rotation (radians), y = spec mip count, z = sky intensity, w = wetness
     vec4 cascadeTexel;   // world size of one shadow texel per cascade
     vec4 sh[9];          // irradiance SH coefficients (rgb)
+    vec4 extra;          // x = night (lamps on), y = contact shadows, z = GI volume, w = urban reflection amount
 };
 
 struct InstanceData {

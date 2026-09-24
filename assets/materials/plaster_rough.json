@@ -1,0 +1,11 @@
+{
+  "baseColor": "assets/textures/plaster_rough_diff.jpg",
+  "normal": "assets/textures/plaster_rough_nrm.jpg",
+  "orm": "assets/textures/plaster_rough_arm.jpg",
+  "uvScale": 0.4,
+  "surface": "concrete",
+  "wear": 0.25,
+  "antiTile": true,
+  "detailScale": 0.5,
+  "detailStrength": 0.3
+}

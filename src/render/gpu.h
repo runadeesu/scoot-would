@@ -95,6 +95,7 @@ private:
     SDL_GPUCommandBuffer* uploadCmd_ = nullptr;
     SDL_GPUCopyPass* uploadPass_ = nullptr;
     std::vector<SDL_GPUTransferBuffer*> pendingTransfers_;
+    uint64_t pendingBytes_ = 0;  // staged upload bytes; flushed in chunks while loading
 };
 
 Gpu& gpu();

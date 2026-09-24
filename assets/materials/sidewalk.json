@@ -1,0 +1,11 @@
+{
+  "baseColor": "assets/textures/sidewalk_diff.jpg",
+  "normal": "assets/textures/sidewalk_nrm.jpg",
+  "orm": "assets/textures/sidewalk_arm.jpg",
+  "uvScale": 0.28,
+  "surface": "concrete",
+  "wear": 0.3,
+  "antiTile": true,
+  "detailScale": 0.4,
+  "detailStrength": 0.4
+}

@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/rubber_diff.jpg",
+  "normal": "assets/textures/rubber_nrm.jpg",
+  "color": "#3a3a3a",
+  "roughness": 0.85,
+  "uvScale": 4.0,
+  "surface": "concrete"
+}

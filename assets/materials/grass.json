@@ -5,5 +5,8 @@
   "surface": "grass",
   "wear": 0.5,
   "orm": "assets/textures/grass_arm.jpg",
-  "color": "#b5d08e"
+  "color": "#b5d08e",
+  "antiTile": true,
+  "detailScale": 0.3,
+  "detailStrength": 0.4
 }

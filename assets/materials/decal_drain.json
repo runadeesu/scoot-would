@@ -1,0 +1,7 @@
+{
+  "baseColor": "assets/textures/gen/decal_drain.png",
+  "roughness": 0.55,
+  "metallic": 0.4,
+  "decal": true,
+  "surface": "concrete"
+}
