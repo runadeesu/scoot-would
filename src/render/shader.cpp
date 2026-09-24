@@ -12,6 +12,8 @@
 #include <cstring>
 #include <sstream>
 #include <set>
+#include <unordered_map>
+#include <algorithm>
 
 namespace sw {
 
@@ -71,6 +73,42 @@ SDL_ShaderCross_ShaderStage toCrossStage(ShaderStage s) {
     }
 }
 
+// Highest uniform buffer binding declared in a descriptor set (+1). Reflection only reports
+// *active* resources; SDL builds the pipeline layout from counts, so a shader that declares
+// binding 1 but never reads binding 0 would otherwise get an invalid layout.
+uint32_t uniformBufferSlots(const std::vector<uint32_t>& spv, uint32_t wantSet) {
+    if (spv.size() < 5) return 0;
+    std::unordered_map<uint32_t, uint32_t> setOf, bindingOf, pointee;
+    std::unordered_map<uint32_t, bool> isBlock;
+    std::vector<std::pair<uint32_t, uint32_t>> uniformVars;  // (var id, pointer type)
+    for (size_t i = 5; i < spv.size();) {
+        uint32_t w = spv[i];
+        uint32_t op = w & 0xffff, count = w >> 16;
+        if (count == 0) break;
+        if (op == 71 && count >= 3) {  // OpDecorate
+            uint32_t target = spv[i + 1], deco = spv[i + 2];
+            if (deco == 34 && count >= 4) setOf[target] = spv[i + 3];
+            if (deco == 33 && count >= 4) bindingOf[target] = spv[i + 3];
+            if (deco == 2) isBlock[target] = true;
+        } else if (op == 32 && count >= 4) {  // OpTypePointer
+            pointee[spv[i + 1]] = spv[i + 3];
+        } else if (op == 59 && count >= 4) {  // OpVariable
+            if (spv[i + 3] == 2) uniformVars.push_back({spv[i + 2], spv[i + 1]});
+        }
+        i += count;
+    }
+    uint32_t slots = 0;
+    for (auto& [var, ptr] : uniformVars) {
+        auto pt = pointee.find(ptr);
+        if (pt == pointee.end() || !isBlock.count(pt->second)) continue;
+        auto st = setOf.find(var);
+        auto bd = bindingOf.find(var);
+        if (st == setOf.end() || bd == bindingOf.end() || st->second != wantSet) continue;
+        slots = std::max(slots, bd->second + 1);
+    }
+    return slots;
+}
+
 }  // namespace
 
 bool ShaderLibrary::init() {
@@ -109,7 +147,7 @@ bool ShaderLibrary::compileSpirv(const std::string& path, ShaderStage stage, con
     const char* src = text->c_str();
     const char* names = path.c_str();
     sh.setStringsWithLengthsAndNames(&src, nullptr, &names, 1);
-    std::string preamble = definesToPreamble(defines);
+    std::string preamble = "#extension GL_GOOGLE_include_directive : require\n" + definesToPreamble(defines);
     if (stage == ShaderStage::Vertex) preamble += "#define VERTEX_SHADER 1\n";
     if (stage == ShaderStage::Fragment) preamble += "#define FRAGMENT_SHADER 1\n";
     if (stage == ShaderStage::Compute) preamble += "#define COMPUTE_SHADER 1\n";
@@ -165,7 +203,8 @@ SDL_GPUShader* ShaderLibrary::buildShader(const std::string& path, ShaderStage s
     ci.num_samplers = meta->resource_info.num_samplers;
     ci.num_storage_textures = meta->resource_info.num_storage_textures;
     ci.num_storage_buffers = meta->resource_info.num_storage_buffers;
-    ci.num_uniform_buffers = meta->resource_info.num_uniform_buffers;
+    ci.num_uniform_buffers = std::max(meta->resource_info.num_uniform_buffers,
+                                      uniformBufferSlots(spirv, stage == ShaderStage::Vertex ? 1u : 3u));
     SDL_free(meta);
 
     SDL_GPUDevice* dev = gpu().device();

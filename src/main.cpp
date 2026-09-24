@@ -1,97 +1,61 @@
-// temporary smoke test for toolchain validation
+// scoot would - entry point
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+
+#include "core/engine.h"
 #include "core/log.h"
-#include "core/filesystem.h"
-#include "render/gpu.h"
-#include "render/shader.h"
-#include "platform/window.h"
-#include <imgui.h>
-#include <imgui_impl_sdl3.h>
-#include <imgui_impl_sdlgpu3.h>
-#include <stb_image_write.h>
-#include <vector>
+#include "game/game.h"
+
 #include <cstring>
+#include <string>
 
 using namespace sw;
 
 int main(int argc, char** argv) {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD);
-    fs::init();
-    Log::init(fs::userPath("logs/smoke.log"));
-    LOG_INFO("data root %s", fs::dataRoot().c_str());
-    Window win;
-    if (!win.create("scoot would", 1280, 720, WindowMode::Windowed)) return 1;
-    shaders().init();
-    std::string drv = argc > 1 ? argv[1] : "";
-    if (!gpu().init(win.handle(), drv, true, false)) return 2;
-    PipelineDesc d;
-    d.name = "test";
-    d.vertex = "test.vert";
-    d.fragment = "test.frag";
-    d.cull = SDL_GPU_CULLMODE_NONE;
-    d.depthTest = false; d.depthWrite = false;
-    d.colorFormats = {gpu().swapchainFormat()};
-    GfxPipeline* p = shaders().createPipeline(d);
-    LOG_INFO("pipeline valid: %d", p->valid());
-
-    ImGui::CreateContext();
-    ImGui_ImplSDL3_InitForSDLGPU(win.handle());
-    ImGui_ImplSDLGPU3_InitInfo ii{};
-    ii.Device = gpu().device();
-    ii.ColorTargetFormat = gpu().swapchainFormat();
-    ii.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
-    ImGui_ImplSDLGPU3_Init(&ii);
-
-    GpuTexture off = gpu().createTexture2D(1280, 720, gpu().swapchainFormat(), SDL_GPU_TEXTUREUSAGE_COLOR_TARGET, 1, "off");
-    for (int frame = 0; frame < 30; ++frame) {
-        SDL_Event e; while (SDL_PollEvent(&e)) ImGui_ImplSDL3_ProcessEvent(&e);
-        ImGui_ImplSDLGPU3_NewFrame(); ImGui_ImplSDL3_NewFrame(); ImGui::NewFrame();
-        ImGui::Begin("scoot would"); ImGui::Text("backend: %s", gpu().driverName().c_str()); ImGui::End();
-        ImGui::Render();
-        SDL_GPUCommandBuffer* cmd = gpu().beginFrame();
-        uint32_t w, h;
-        SDL_GPUTexture* sc = gpu().acquireSwapchain(cmd, &w, &h);
-        SDL_GPUTexture* target = frame == 29 ? off.handle : sc;
-        if (target) {
-            ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), cmd);
-            SDL_GPUColorTargetInfo ct{}; ct.texture = target; ct.clear_color = {0.1f, 0.12f, 0.15f, 1}; ct.load_op = SDL_GPU_LOADOP_CLEAR; ct.store_op = SDL_GPU_STOREOP_STORE;
-            SDL_GPURenderPass* rp = SDL_BeginGPURenderPass(cmd, &ct, 1, nullptr);
-            if (p->valid()) {
-                SDL_BindGPUGraphicsPipeline(rp, p->handle);
-                float off4[4] = {0.1f, 0.0f, 0, 0};
-                SDL_PushGPUVertexUniformData(cmd, 0, off4, 16);
-                SDL_DrawGPUPrimitives(rp, 3, 1, 0, 0);
+    EngineConfig cfg;
+    GameOptions opts;
+    for (int i = 1; i < argc; ++i) {
+        std::string a = argv[i];
+        auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
+        if (a == "--map") opts.map = next();
+        else if (a == "--autotest") opts.autotest = next();
+        else if (a == "--gpu") cfg.gpuDriver = next();
+        else if (a == "--gpu-debug") cfg.gpuDebug = true;
+        else if (a == "--windowed") cfg.windowMode = WindowMode::Windowed;
+        else if (a == "--fullscreen") cfg.windowMode = WindowMode::Borderless;
+        else if (a == "--size") {
+            std::string s = next();
+            sscanf(s.c_str(), "%dx%d", &cfg.width, &cfg.height);
+        } else if (a == "--frames") cfg.maxFrames = std::atoi(next().c_str());
+        else if (a == "--novsync") cfg.vsync = false;
+        else if (a == "--env") opts.environment = next();
+        else if (a == "--screenshot") {
+            opts.screenshot = next();
+            opts.screenshotFrame = std::atoi(next().c_str());
+        } else if (a == "--camera") {
+            std::string s = next();
+            float v[6];
+            if (sscanf(s.c_str(), "%f,%f,%f,%f,%f,%f", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5]) == 6) {
+                opts.cameraPos = Vec3(v[0], v[1], v[2]);
+                opts.cameraTarget = Vec3(v[3], v[4], v[5]);
+                opts.fixedCamera = true;
             }
-            ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), cmd, rp);
-            SDL_EndGPURenderPass(rp);
-        }
-        if (frame == 29) {
-            SDL_GPUTransferBufferCreateInfo ti{SDL_GPU_TRANSFERBUFFERUSAGE_DOWNLOAD, 1280*720*4, 0};
-            SDL_GPUTransferBuffer* tb = SDL_CreateGPUTransferBuffer(gpu().device(), &ti);
-            SDL_GPUCopyPass* cp = SDL_BeginGPUCopyPass(cmd);
-            SDL_GPUTextureRegion src{}; src.texture = off.handle; src.w = 1280; src.h = 720; src.d = 1;
-            SDL_GPUTextureTransferInfo dst{}; dst.transfer_buffer = tb;
-            SDL_DownloadFromGPUTexture(cp, &src, &dst);
-            SDL_EndGPUCopyPass(cp);
-            SDL_GPUFence* f = SDL_SubmitGPUCommandBufferAndAcquireFence(cmd);
-            SDL_WaitForGPUFences(gpu().device(), true, &f, 1);
-            SDL_ReleaseGPUFence(gpu().device(), f);
-            uint8_t* px = (uint8_t*)SDL_MapGPUTransferBuffer(gpu().device(), tb, false);
-            std::vector<uint8_t> img(px, px + 1280*720*4);
-            SDL_UnmapGPUTransferBuffer(gpu().device(), tb);
-            if (gpu().swapchainFormat() == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM) for (size_t i = 0; i < img.size(); i += 4) std::swap(img[i], img[i+2]);
-            stbi_write_png(fs::userPath("smoke.png").c_str(), 1280, 720, 4, img.data(), 1280*4);
-            LOG_INFO("wrote %s", fs::userPath("smoke.png").c_str());
-        } else gpu().endFrame(cmd);
+        } else if (a == "--debugview") opts.debugView = std::atoi(next().c_str());
+        else if (a == "--editor") opts.editor = true;
+        else if (a == "--play") opts.skipMenu = true;
     }
-    gpu().waitIdle();
-    ImGui_ImplSDLGPU3_Shutdown(); ImGui_ImplSDL3_Shutdown(); ImGui::DestroyContext();
-    shaders().shutdown();
-    gpu().release(off);
-    gpu().shutdown();
-    win.destroy();
-    Log::shutdown();
-    SDL_Quit();
-    return 0;
+    if (!opts.autotest.empty()) {
+        cfg.fixedFrameTime = 1.0f / 120.0f;
+        cfg.vsync = false;
+    }
+    if (!opts.screenshot.empty()) cfg.fixedFrameTime = 1.0f / 60.0f;
+    if (!engine().init(cfg)) {
+        engine().shutdown();
+        return 1;
+    }
+    Game game(opts);
+    int rc = engine().run(game);
+    int testRc = game.testExitCode();
+    engine().shutdown();
+    return rc != 0 ? rc : testRc;
 }

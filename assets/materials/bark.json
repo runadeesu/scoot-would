@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/bark_diff.jpg",
+  "normal": "assets/textures/bark_nrm.jpg",
+  "uvScale": 0.8,
+  "surface": "wood",
+  "wear": 0.1,
+  "orm": "assets/textures/bark_arm.jpg"
+}

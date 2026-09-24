@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/roof_grey_diff.jpg",
+  "normal": "assets/textures/roof_grey_nrm.jpg",
+  "uvScale": 0.35,
+  "surface": "concrete",
+  "wear": 0.3,
+  "orm": "assets/textures/roof_grey_arm.jpg"
+}

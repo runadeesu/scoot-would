@@ -1,0 +1,9 @@
+{
+  "_comment": "Surface database: friction (lateral grip), rollingResistance (Crr), grindFriction, popFactor (jump strength multiplier), sounds and dust particles.",
+  "concrete": { "friction": 0.95, "rollingResistance": 0.013, "grindFriction": 0.11, "popFactor": 1.0,  "dustColor": "#8c877e", "dustAmount": 0.15, "rollSound": "roll_concrete", "grindSound": "grind_concrete", "landSound": "land_concrete" },
+  "asphalt":  { "friction": 1.0,  "rollingResistance": 0.022, "grindFriction": 0.14, "popFactor": 0.98, "dustColor": "#5a5752", "dustAmount": 0.2,  "rollSound": "roll_asphalt",  "grindSound": "grind_concrete", "landSound": "land_concrete" },
+  "wood":     { "friction": 0.9,  "rollingResistance": 0.011, "grindFriction": 0.1,  "popFactor": 1.02, "dustColor": "#a38b67", "dustAmount": 0.08, "rollSound": "roll_wood",     "grindSound": "grind_wood",     "landSound": "land_wood" },
+  "metal":    { "friction": 0.8,  "rollingResistance": 0.009, "grindFriction": 0.06, "popFactor": 1.0,  "dustColor": "#9aa0a6", "dustAmount": 0.0,  "rollSound": "roll_metal",    "grindSound": "grind_metal",    "landSound": "land_metal" },
+  "grass":    { "friction": 0.7,  "rollingResistance": 0.24,  "grindFriction": 0.4,  "popFactor": 0.7,  "dustColor": "#4f6b33", "dustAmount": 0.6,  "rollSound": "roll_grass",    "grindSound": "grind_concrete", "landSound": "land_grass" },
+  "dirt":     { "friction": 0.75, "rollingResistance": 0.12,  "grindFriction": 0.3,  "popFactor": 0.82, "dustColor": "#7d6a52", "dustAmount": 0.8,  "rollSound": "roll_dirt",     "grindSound": "grind_concrete", "landSound": "land_grass" }
+}

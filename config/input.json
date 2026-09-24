@@ -1,0 +1,27 @@
+{
+  "_comment": "scoot would default controls. Copy to the user folder (input.json) or rebind in SETTINGS > CONTROLS. Gamepad names: A B X Y LB RB LT RT Start Back LS RS DpadUp DpadDown DpadLeft DpadRight. Keyboard names are SDL key names.",
+  "deadzones": { "leftStick": 0.15, "rightStick": 0.2, "trigger": 0.1 },
+  "actions": {
+    "Jump":        { "gamepad": ["A"],        "keyboard": ["Space"] },
+    "Push":        { "gamepad": ["X"],        "keyboard": ["Left Shift"] },
+    "Brake":       { "gamepad": ["B", "LT"],  "keyboard": ["Left Ctrl"] },
+    "Revert":      { "gamepad": ["Y"],        "keyboard": ["V"] },
+    "SpinLeft":    { "gamepad": ["LB"],       "keyboard": ["Q"] },
+    "SpinRight":   { "gamepad": ["RB"],       "keyboard": ["E"] },
+    "Grab":        { "gamepad": ["RT"],       "keyboard": ["F"] },
+    "Respawn":     { "gamepad": ["Back", "DpadDown"], "keyboard": ["R"] },
+    "Checkpoint":  { "gamepad": ["DpadUp"],   "keyboard": ["C"] },
+    "Pause":       { "gamepad": ["Start"],    "keyboard": ["Escape"] },
+    "Debug":       { "gamepad": [],           "keyboard": ["F1"] },
+    "CameraReset": { "gamepad": ["RS"],       "keyboard": ["Mouse3"] },
+    "CameraMode":  { "gamepad": ["DpadRight"],"keyboard": ["Tab"] },
+    "Confirm":     { "gamepad": ["A"],        "keyboard": ["Return", "Space"] },
+    "Back":        { "gamepad": ["B"],        "keyboard": ["Escape", "Backspace"] },
+    "NavUp":       { "gamepad": ["DpadUp"],   "keyboard": ["Up", "W"] },
+    "NavDown":     { "gamepad": ["DpadDown"], "keyboard": ["Down", "S"] },
+    "NavLeft":     { "gamepad": ["DpadLeft"], "keyboard": ["Left", "A"] },
+    "NavRight":    { "gamepad": ["DpadRight"],"keyboard": ["Right", "D"] },
+    "TabLeft":     { "gamepad": ["LB"],       "keyboard": ["Q"] },
+    "TabRight":    { "gamepad": ["RB"],       "keyboard": ["E"] }
+  }
+}

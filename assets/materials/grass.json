@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/grass_diff.jpg",
+  "normal": "assets/textures/grass_nrm.jpg",
+  "uvScale": 0.25,
+  "surface": "grass",
+  "wear": 0.5,
+  "orm": "assets/textures/grass_arm.jpg"
+}

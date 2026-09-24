@@ -1,0 +1,9 @@
+{
+  "baseColor": "assets/textures/shutter_diff.jpg",
+  "normal": "assets/textures/shutter_nrm.jpg",
+  "uvScale": 0.35,
+  "surface": "metal",
+  "wear": 0.2,
+  "orm": "assets/textures/shutter_arm.jpg",
+  "metallic": 1.0
+}

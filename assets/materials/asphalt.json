@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/asphalt_diff.jpg",
+  "normal": "assets/textures/asphalt_nrm.jpg",
+  "uvScale": 0.2,
+  "surface": "asphalt",
+  "wear": 0.4,
+  "orm": "assets/textures/asphalt_arm.jpg"
+}

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "name": "Test Park",
+  "environment": { "preset": "day" },
+  "entities": [
+    { "id": 1, "name": "ground", "prefab": "ground", "params": { "size": [160, 0.2, 160], "divisions": 8 }, "material": "concrete_park", "position": [0, 0, 0] },
+    { "id": 2, "name": "spawn", "prefab": "spawn", "params": { "label": "Start", "default": true }, "position": [0, 0, 20], "rotation": [0, 0, 0] },
+    { "id": 3, "name": "kicker", "prefab": "kicker", "params": { "length": 2.4, "height": 0.9, "width": 2.2 }, "position": [0, 0, -2], "rotation": [0, 90, 0] },
+    { "id": 4, "name": "quarter", "prefab": "quarter_pipe", "params": { "height": 2.0, "radius": 2.6, "width": 8, "deck": 1.5 }, "position": [-20, 0, -10], "rotation": [0, 90, 0] },
+    { "id": 5, "name": "rail flat", "prefab": "rail", "params": { "length": 8, "height": 0.42 }, "position": [12, 0, 4], "rotation": [0, 90, 0] },
+    { "id": 6, "name": "manual pad", "prefab": "manual_pad", "params": { "length": 6, "width": 2, "height": 0.22 }, "position": [20, 0, 4], "rotation": [0, 90, 0] },
+    { "id": 7, "name": "stairs", "prefab": "stairs", "params": { "steps": 5, "handrail": true, "hubba": false }, "position": [-8, 0, 24], "rotation": [0, 90, 0] },
+    { "id": 8, "name": "bank", "prefab": "bank", "params": { "length": 3.5, "height": 1.3, "width": 5, "deck": 1.2 }, "position": [30, 0, -14], "rotation": [0, 90, 0] },
+    { "id": 9, "name": "funbox", "prefab": "funbox", "params": {}, "position": [8, 0, -22], "rotation": [0, 90, 0] },
+    { "id": 10, "name": "ledge", "prefab": "ledge", "params": { "length": 8 }, "position": [-4, 0, 6], "rotation": [0, 90, 0] },
+    { "id": 11, "name": "big kicker", "prefab": "kicker", "params": { "length": 3.6, "height": 1.5, "width": 3 }, "position": [40, 0, 30], "rotation": [0, 90, 0] },
+    { "id": 12, "name": "tree a", "prefab": "tree", "params": { "seed": 3 }, "position": [-30, 0, 30] },
+    { "id": 13, "name": "lamp a", "prefab": "street_lamp", "params": {}, "position": [-12, 0, 12], "rotation": [0, 90, 0] },
+    { "id": 14, "name": "bench a", "prefab": "bench", "params": {}, "position": [6, 0, 14], "rotation": [0, 0, 0] }
+  ]
+}

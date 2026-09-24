@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/rubber_diff.jpg",
+  "normal": "assets/textures/rubber_nrm.jpg",
+  "uvScale": 0.4,
+  "surface": "concrete",
+  "wear": 0.2,
+  "orm": "assets/textures/rubber_arm.jpg"
+}

@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/pavement_diff.jpg",
+  "normal": "assets/textures/pavement_nrm.jpg",
+  "uvScale": 0.35,
+  "surface": "concrete",
+  "wear": 0.35,
+  "orm": "assets/textures/pavement_arm.jpg"
+}

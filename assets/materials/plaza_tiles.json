@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/plaza_tiles_diff.jpg",
+  "normal": "assets/textures/plaza_tiles_nrm.jpg",
+  "uvScale": 0.3,
+  "surface": "concrete",
+  "wear": 0.3,
+  "orm": "assets/textures/plaza_tiles_arm.jpg"
+}

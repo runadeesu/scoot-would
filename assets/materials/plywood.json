@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/plywood_diff.jpg",
+  "normal": "assets/textures/plywood_nrm.jpg",
+  "uvScale": 0.4,
+  "surface": "wood",
+  "wear": 0.25,
+  "orm": "assets/textures/plywood_arm.jpg"
+}

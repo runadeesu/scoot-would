@@ -1,0 +1,9 @@
+{
+  "baseColor": "assets/textures/metal_plate_diff.jpg",
+  "normal": "assets/textures/metal_plate_nrm.jpg",
+  "uvScale": 0.5,
+  "surface": "metal",
+  "wear": 0.1,
+  "orm": "assets/textures/metal_plate_arm.jpg",
+  "metallic": 1.0
+}

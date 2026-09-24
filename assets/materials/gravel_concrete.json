@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/gravel_concrete_diff.jpg",
+  "normal": "assets/textures/gravel_concrete_nrm.jpg",
+  "uvScale": 0.3,
+  "surface": "concrete",
+  "wear": 0.4,
+  "roughness": 0.85
+}

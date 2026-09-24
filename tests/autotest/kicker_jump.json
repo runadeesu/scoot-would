@@ -1,0 +1,11 @@
+{
+  "name": "kicker_jump", "map": "assets/scenes/testpark.json", "spawn": [0, 0, 20], "yaw": 0, "duration": 7.0,
+  "steps": [
+    {"t": 0.2, "push": true}, {"t": 0.8, "push": true}, {"t": 1.4, "push": true}, {"t": 2.0, "push": true}, {"t": 2.6, "push": true},
+    {"t": 3.0, "jump": "press"}
+  ],
+  "expect": [
+    {"maxAirMin": 0.35, "noBail": true, "state": "Riding"}
+  ],
+  "screenshots": [4.2]
+}

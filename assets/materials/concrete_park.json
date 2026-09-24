@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/concrete_park_diff.jpg",
+  "normal": "assets/textures/concrete_park_nrm.jpg",
+  "uvScale": 0.33,
+  "surface": "concrete",
+  "wear": 0.25,
+  "orm": "assets/textures/concrete_park_arm.jpg"
+}

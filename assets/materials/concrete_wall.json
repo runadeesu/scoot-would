@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/concrete_wall_diff.jpg",
+  "normal": "assets/textures/concrete_wall_nrm.jpg",
+  "uvScale": 0.3,
+  "surface": "concrete",
+  "wear": 0.4,
+  "orm": "assets/textures/concrete_wall_arm.jpg"
+}

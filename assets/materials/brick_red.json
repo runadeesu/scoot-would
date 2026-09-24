@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/brick_red_diff.jpg",
+  "normal": "assets/textures/brick_red_nrm.jpg",
+  "uvScale": 0.4,
+  "surface": "concrete",
+  "wear": 0.35,
+  "orm": "assets/textures/brick_red_arm.jpg"
+}

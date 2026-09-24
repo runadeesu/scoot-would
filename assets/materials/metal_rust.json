@@ -1,0 +1,8 @@
+{
+  "baseColor": "assets/textures/metal_rust_diff.jpg",
+  "normal": "assets/textures/metal_rust_nrm.jpg",
+  "uvScale": 0.35,
+  "surface": "metal",
+  "wear": 0.2,
+  "orm": "assets/textures/metal_rust_arm.jpg"
+}

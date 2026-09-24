@@ -1,0 +1,9 @@
+{
+  "baseColor": "assets/textures/factory_wall_diff.jpg",
+  "normal": "assets/textures/factory_wall_nrm.jpg",
+  "uvScale": 0.25,
+  "surface": "metal",
+  "wear": 0.3,
+  "orm": "assets/textures/factory_wall_arm.jpg",
+  "metallic": 1.0
+}

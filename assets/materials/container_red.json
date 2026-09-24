@@ -1,0 +1,10 @@
+{
+  "baseColor": "assets/textures/metal_rust_diff.jpg",
+  "normal": "assets/textures/corrugated_nrm.jpg",
+  "orm": "assets/textures/corrugated_arm.jpg",
+  "color": "#c0503c",
+  "uvScale": 0.4,
+  "metallic": 0.4,
+  "surface": "metal",
+  "wear": 0.4
+}
