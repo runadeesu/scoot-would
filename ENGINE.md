@@ -57,15 +57,19 @@ dynamic objects (player, props, the shop) are culled individually.
 
 - `scooter/`: scooter on a Jolt rigid body with ray cast wheel contacts: steering, carving lean, pushing,
   braking, rolling resistance, pop with timing bonus, pumping, air control.
-- `tricks/`: data driven tricks (`assets/data/tricks.json`): input (flick / sequence / chain / grab per control
-  layout), rotation axis and amount, air time needed, landing window, scores; body tricks (spins, flips,
-  flairs, corks) are named from the measured rotation.
+- `tricks/`: data driven tricks (`assets/data/tricks.json`): input layer and directions per control layout,
+  scooter rotations (several axes at once), a timeline (rotation window with a kick / catch speed profile, when
+  each hand / foot is off, where the scooter is held), air time, landing window, scores; body tricks (spins,
+  flips, flairs, corks, barrel rolls) come from the measured rotation; combinations are named the way riders
+  say them.
 - `grind/`, `manual/`, `combo/`, `landing`: rails from the scene, 7 grind types, manual balance, combo
   multiplier, landing quality (clean / sketchy / bail), ragdoll bails.
 - `player_visual`: scooter parts with separate transforms for tricks, the skinned rider (MakeHuman based glTF)
   driven by `rider_animator`: clips + procedural layers (crouch, lean, push cycle with the foot planted on the
   ground, look), two bone IK for hands and feet, finger grips, stance mirroring (goofy), face (blinks,
-  saccades, breathing). First person: the camera's copy of the rider folds the head and upper body away
+  saccades, breathing). Trick clips are keyed along the trick and sampled at its progress. While a hand holds
+  the bars the scooter hangs from it (what the arm cannot reach moves the scooter); legs that are off the deck
+  are tested as capsules against the deck box, stem and wheels and moved out by IK. First person: the camera's copy of the rider folds the head and upper body away
   (skinning matrices), a shadow-only copy (`LayerShadowOnly`) keeps the full body in the shadow maps.
 
 ## UI and localisation

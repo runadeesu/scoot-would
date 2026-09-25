@@ -11,6 +11,20 @@
   rebinding; move list in SETTINGS > CONTROLS; control hints during the first ride.
 - Pumping: staying compressed through transitions adds speed.
 
+### Tricks
+- Tricks are rebuilt from how riders actually do them (how-to guides, trick dictionaries, photos of real
+  tailwhips): each one is a timeline - pop, kick / throw, tuck, the scooter going round (fast after the kick,
+  slowed by the catch), the front foot catching first, landing. Hands and feet let go and catch again at their
+  moments. Tailwhip: the back foot kicks the tail out, the rider hunches over the bars pulled in to the hips,
+  the deck goes round just under the feet. Barspin: front hand pushes, back hand pulls, the feet stay on.
+  Bri flip / inward: bars turned 90 degrees, the scooter rolls round the grips over the head beside the body.
+- The scooter hangs from the rider's hands: it can no longer float away from them. Legs that are off the deck
+  are kept out of the deck, stem and wheels (they go over the deck and around the stem).
+- The trick set of Scooter Flow on four input layers (RT, LT, RB + RT, RB + LT); holding the stick keeps a
+  whip or barspin going; tricks link into each other; names the way riders say them (540 Flair, 360 Whip,
+  Flair Quad Whip Bar, Buttercup, Truck Driver). SETTINGS > TRICKS lists every trick.
+- The head leads spins and goes back into backflips; the body tucks into flips. Goofy riders whip the other way.
+
 ### Camera
 - First person view (Y / Tab cycles: third person, close, far, first person; also SETTINGS > GAMEPLAY >
   Camera, remembered): a wide POV lens at the rider's eyes, forearms and hands on the grips at the bottom of

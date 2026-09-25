@@ -224,7 +224,7 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     crouchS_ = dampf(crouchS_, p.crouch, 18.0f, dt);
     float landComp = p.landAge < 0.35f ? std::sin(p.landAge / 0.35f * kPi) * saturate(p.landImpact / 8.0f) * 0.8f : 0.0f;
     float crouchW = std::max(crouchS_, landComp);
-    if (st == PlayerState::Air) crouchW = std::max(crouchW, 0.35f);
+    if (st == PlayerState::Air) crouchW = std::max(crouchW, 0.35f + 0.5f * saturate(std::fabs(p.flipRate) / 6.0f));  // tuck into flips
     if (crouchW > 0.01f && sm_.has("crouch")) {
         sm_.sampleState("crouch", 0.0f, overlay_);
         blendPoses(pose_, overlay_, crouchW);
@@ -236,12 +236,25 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     if (!p.trickPose.empty()) lastTrickPose_ = p.trickPose;
     trickW_ = dampf(trickW_, p.trickWeight, 16.0f, dt);
     if (trickW_ > 0.01f && sm_.has(lastTrickPose_)) {
-        sm_.sampleState(lastTrickPose_, 0.0f, overlay_);
+        sm_.sampleState(lastTrickPose_, saturate(p.trickTime), overlay_);
         blendPoses(pose_, overlay_, trickW_);
     }
 
     // goofy riders: the regular stance clips are mirrored (right foot forward, left foot pushes)
     if (p.goofy) mirrorPose(pose_);
+
+    // body tricks: the head and shoulders lead a spin (riders spot the landing over the shoulder), the head
+    // goes back into a backflip and down into a front flip
+    bool air = st == PlayerState::Air;
+    spinLead_ = dampf(spinLead_, air ? clampf(p.spinRate * 0.09f, -0.7f, 0.7f) : 0.0f, 8.0f, dt);
+    flipLead_ = dampf(flipLead_, air ? clampf(p.flipRate * 0.06f, -0.4f, 0.4f) : 0.0f, 8.0f, dt);
+    if (std::fabs(spinLead_) > 1e-3f || std::fabs(flipLead_) > 1e-3f) {
+        if (chest_ >= 0) pose_.local[size_t(chest_)].rotation = (Quat::angleAxis(spinLead_ * 0.35f, Vec3(0, 1, 0)) * pose_.local[size_t(chest_)].rotation).normalized();
+        if (neck_ >= 0)
+            pose_.local[size_t(neck_)].rotation =
+                (Quat::angleAxis(spinLead_ * 0.5f, Vec3(0, 1, 0)) * Quat::angleAxis(flipLead_, Vec3(1, 0, 0)) * pose_.local[size_t(neck_)].rotation).normalized();
+        if (head_ >= 0) pose_.local[size_t(head_)].rotation = (Quat::angleAxis(spinLead_ * 0.4f, Vec3(0, 1, 0)) * pose_.local[size_t(head_)].rotation).normalized();
+    }
 
     // carving: upper body leans into the turn, spine twists slightly with steering
     leanS_ = dampf(leanS_, p.lean, 8.0f, dt);
@@ -356,6 +369,84 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     applyIK(r, dt, p.goofy);
 }
 
+// A leg that is off the deck (whips, flips of the scooter) must never pass through it: its thigh, shin and foot
+// are tested as capsules against the deck (box), the stem and the wheels; where one would go in, the foot is
+// moved out along the shortest way (mostly up, or to the side of the stem) and the leg re-solved with the knee
+// leading the same way.
+void RiderAnimator::keepLegsClear(const RiderRig& rig, int* ch, float sideSign, float plantedW) {
+    if (ch[0] < 0 || ch[1] < 0 || ch[2] < 0 || plantedW > 0.95f) return;
+    Quat inv = rig.deckRot.conjugate();
+    // push out of everything for one point with a radius: returns the correction vector
+    auto pushOut = [&](const Vec3& p, float r) {
+        Vec3 best(0.0f);
+        float bestLen = 0.0f;
+        auto consider = [&](const Vec3& v) {
+            float l = v.length();
+            if (l > bestLen) {
+                bestLen = l;
+                best = v;
+            }
+        };
+        // deck: box in its own frame
+        Vec3 q = inv * (p - rig.deckCenter);
+        Vec3 h = rig.deckHalf + Vec3(r);
+        Vec3 a(std::fabs(q.x), std::fabs(q.y), std::fabs(q.z));
+        if (a.x < h.x && a.y < h.y && a.z < h.z) {
+            // inside: leave through the nearest face, preferring up over the deck (feet go over it)
+            float dx = h.x - a.x, dy = h.y - a.y, dz = h.z - a.z;
+            Vec3 local;
+            if (q.y > -0.01f && dy < dx + 0.08f && dy < dz + 0.08f) local = Vec3(0, dy, 0);
+            else if (dx <= dy && dx <= dz) local = Vec3(q.x < 0 ? -dx : dx, 0, 0);
+            else if (dy <= dz) local = Vec3(0, q.y < 0 ? -dy : dy, 0);
+            else local = Vec3(0, 0, q.z < 0 ? -dz : dz);
+            consider(rig.deckRot * local);
+        }
+        // stem (and the fork) as a capsule
+        {
+            Vec3 ab = rig.stemB - rig.stemA;
+            float t = clampf(dot(p - rig.stemA, ab) / std::max(dot(ab, ab), 1e-6f), 0.0f, 1.0f);
+            Vec3 c = rig.stemA + ab * t, d = p - c;
+            float l = d.length(), need = r + 0.024f;
+            if (l < need) consider((l > 1e-4f ? d / l : Vec3(sideSign, 0, 0)) * (need - l));
+        }
+        // wheels as spheres
+        for (const Vec3& w : {rig.wheelF, rig.wheelB}) {
+            Vec3 d = p - w;
+            float l = d.length(), need = r + 0.058f;
+            if (l < need) consider((l > 1e-4f ? d / l : Vec3(0, 1, 0)) * (need - l));
+        }
+        return best;
+    };
+    for (int iter = 0; iter < 3; ++iter) {
+        std::vector<Transform> ms;
+        pose_.modelSpace(*skel_, ms);
+        Vec3 hip = ms[size_t(ch[0])].position, knee = ms[size_t(ch[1])].position, ankle = ms[size_t(ch[2])].position;
+        Vec3 toe = ankle + ms[size_t(ch[2])].rotation * Vec3(0.0f, -0.06f, -0.14f);
+        Vec3 push(0.0f), kneePush(0.0f);
+        float worst = 0.0f;
+        auto segment = [&](const Vec3& a, const Vec3& b, float r, bool lower) {
+            for (int i = 0; i <= 4; ++i) {
+                Vec3 v = pushOut(lerp(a, b, float(i) / 4.0f), r);
+                float l = v.length();
+                if (l > worst) worst = l;
+                if (lower) {
+                    if (l > push.length()) push = v;
+                } else if (l > kneePush.length()) {
+                    kneePush = v;
+                }
+            }
+        };
+        segment(hip, knee, 0.075f, false);
+        segment(knee, ankle, 0.055f, true);
+        segment(ankle, toe, 0.045f, true);
+        if (worst < 0.004f) break;
+        // lift / move the foot out, the knee follows the thigh's correction
+        Vec3 target = ankle + (push + kneePush) * 1.15f + Vec3(0, 0.004f, 0);
+        Vec3 pole = knee + kneePush * 2.0f + (knee - hip) * 0.5f + Vec3(sideSign * 0.1f, 0, -0.2f);
+        solveTwoBoneIK(*skel_, pose_, ch[0], ch[1], ch[2], target, pole, 1.0f);
+    }
+}
+
 void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
     // legs: ankle joint sits ~8.5 cm above the sole
     Vec3 ankleOff(0, 0.085f, 0);
@@ -394,6 +485,12 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
         leg(legR_, m(rig.footFront), frontW, 1.0f, false);
         leg(legL_, m(back), backW, -1.0f, true, toe);
     }
+    if (rig.collide) {
+        keepLegsClear(rig, goofy ? legR_ : legL_, goofy ? 1.0f : -1.0f, frontW);
+        keepLegsClear(rig, goofy ? legL_ : legR_, goofy ? -1.0f : 1.0f, backW);
+    }
+    Vec3 shortSum(0.0f);
+    float shortW = 0.0f;
     auto arm = [&](int* ch, const Vec3& grip, float w, float sideSign) {
         if (ch[0] < 0 || ch[1] < 0 || ch[2] < 0 || w <= 0.001f) return;
         std::vector<Transform> ms;
@@ -414,9 +511,15 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
         pose_.modelSpace(*skel_, ms2);
         Quat cur = ms2[size_t(ch[2])].rotation;
         setModelRotation(ch[2], nlerp(cur, gripRot, w));
+        // what the arm could not reach (the bars are further than the arm is long)
+        if (w > 0.9f) {
+            shortSum += (wrist - ms2[size_t(ch[2])].position) * w;
+            shortW += w;
+        }
     };
     arm(armL_, rig.gripL, handLW_, -1.0f);
     arm(armR_, rig.gripR, handRW_, 1.0f);
+    gripShort_ = shortW > 0.0f ? shortSum / shortW * -1.0f : Vec3(0.0f);
 }
 
 }  // namespace sw

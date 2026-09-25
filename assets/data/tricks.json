@@ -1,5 +1,5 @@
 {
- "_comment": "scoot would trick definitions (trick set of Scooter Flow). input.type: flick | sequence | chain | grab. input.layer: trick (RT + right stick; classic: bare flick) | grab (LT + right stick; classic: RT + flick) | trick_alt (RB + RT + right stick; classic: bumper + flick) | grab_alt (RB + LT + right stick; classic: bumper + RT + flick). flow_dirs = right stick directions in the Scooter Flow layout, dirs = classic layout. scooter_rotation (one or a list): axis steer (whips), bars, deck_roll, deck_pitch, bar_pitch (whole scooter round the grips: bri, inward), whole_pitch, whole_yaw, whole_roll; on grabs the rotation is held while the grab is. airtime = air time needed, duration = rotation time (s), cancel_window = landing tolerance (s), chain = repeating or holding the input during the trick upgrades it. short = name inside a combination, family = named combinations (whip + bri + whip = Buttercup).",
+ "_comment": "scoot would trick definitions (trick set of Scooter Flow). input.type: flick | sequence | chain | grab. input.layer: trick (RT + right stick; classic: bare flick) | grab (LT + right stick; classic: RT + flick) | trick_alt (RB + RT + right stick; classic: bumper + flick) | grab_alt (RB + LT + right stick; classic: bumper + RT + flick). flow_dirs = right stick directions in the Scooter Flow layout, dirs = classic layout. scooter_rotation (one or a list): axis steer (whips), bars, deck_roll, deck_pitch, bar_pitch (whole scooter forward / back round the bar: front scooter flip), bar_roll (rolls round the bar with the bars turned: bri, inward), whole_pitch, whole_yaw, whole_roll; on grabs the rotation is held while the grab is. timeline (fractions of the trick): rotate = when the scooter turns, accel / decel = share of that spent speeding up after the kick / slowing into the catch, front_foot / back_foot / hands / back_hand = when they are off, lift / raise / side / forward = where the scooter is held meanwhile (m), bars_turn = bars turned against the deck (bri flips). Directions are for the regular stance; goofy is mirrored. airtime = air time needed, duration = rotation time (s), cancel_window = landing tolerance (s), chain = repeating or holding the input during the trick upgrades it. short = name inside a combination, family = named combinations (whip + bri + whip = Buttercup).",
  "tricks": [
   {
    "id": "tailwhip",
@@ -30,7 +30,25 @@
    "score": 400,
    "difficulty": 2,
    "cancel_window": 0.07,
-   "chain": "double_tailwhip"
+   "chain": "double_tailwhip",
+   "timeline": {
+    "rotate": [
+     0.08,
+     0.9
+    ],
+    "accel": 0.08,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.07,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "double_tailwhip",
@@ -61,7 +79,25 @@
    "score": 1100,
    "difficulty": 4,
    "cancel_window": 0.07,
-   "chain": "triple_tailwhip"
+   "chain": "triple_tailwhip",
+   "timeline": {
+    "rotate": [
+     0.08,
+     0.9
+    ],
+    "accel": 0.08,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.07,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "triple_tailwhip",
@@ -92,7 +128,25 @@
    "score": 2200,
    "difficulty": 6,
    "cancel_window": 0.07,
-   "chain": "quad_tailwhip"
+   "chain": "quad_tailwhip",
+   "timeline": {
+    "rotate": [
+     0.08,
+     0.9
+    ],
+    "accel": 0.08,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.07,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "quad_tailwhip",
@@ -122,7 +176,25 @@
    "score": 3800,
    "difficulty": 8,
    "cancel_window": 0.07,
-   "chain": "quint_tailwhip"
+   "chain": "quint_tailwhip",
+   "timeline": {
+    "rotate": [
+     0.08,
+     0.9
+    ],
+    "accel": 0.08,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.07,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "quint_tailwhip",
@@ -151,7 +223,25 @@
    "feet_off": true,
    "score": 5600,
    "difficulty": 10,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.08,
+     0.9
+    ],
+    "accel": 0.08,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.07,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "heelwhip",
@@ -181,7 +271,25 @@
    "score": 500,
    "difficulty": 3,
    "cancel_window": 0.07,
-   "chain": "double_heelwhip"
+   "chain": "double_heelwhip",
+   "timeline": {
+    "rotate": [
+     0.09,
+     0.9
+    ],
+    "accel": 0.1,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.07,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "double_heelwhip",
@@ -211,7 +319,25 @@
    "score": 1300,
    "difficulty": 5,
    "cancel_window": 0.07,
-   "chain": "triple_heelwhip"
+   "chain": "triple_heelwhip",
+   "timeline": {
+    "rotate": [
+     0.09,
+     0.9
+    ],
+    "accel": 0.1,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.07,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "triple_heelwhip",
@@ -240,7 +366,25 @@
    "feet_off": true,
    "score": 2600,
    "difficulty": 7,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.09,
+     0.9
+    ],
+    "accel": 0.1,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.07,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "rewind",
@@ -272,7 +416,25 @@
    "feet_off": true,
    "score": 650,
    "difficulty": 3,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.06,
+     0.92
+    ],
+    "accel": 0.1,
+    "decel": 0.1,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.92
+    ],
+    "front_foot": [
+     0.06,
+     0.86
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "rewind_r",
@@ -303,7 +465,25 @@
    "feet_off": true,
    "score": 700,
    "difficulty": 3,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.06,
+     0.92
+    ],
+    "accel": 0.1,
+    "decel": 0.1,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.92
+    ],
+    "front_foot": [
+     0.06,
+     0.86
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "barspin",
@@ -326,14 +506,27 @@
    "scooter_rotation": {
     "axis": "bars",
     "degrees": 360,
-    "direction": 1
+    "direction": -1
    },
    "animation": "barspin",
    "hands_off": true,
    "score": 350,
    "difficulty": 2,
    "cancel_window": 0.07,
-   "chain": "double_barspin"
+   "chain": "double_barspin",
+   "timeline": {
+    "rotate": [
+     0.16,
+     0.84
+    ],
+    "accel": 0.05,
+    "decel": 0.12,
+    "lift": 0.03,
+    "hands": [
+     0.14,
+     0.86
+    ]
+   }
   },
   {
    "id": "double_barspin",
@@ -356,14 +549,27 @@
    "scooter_rotation": {
     "axis": "bars",
     "degrees": 720,
-    "direction": 1
+    "direction": -1
    },
    "animation": "barspin",
    "hands_off": true,
    "score": 950,
    "difficulty": 4,
    "cancel_window": 0.07,
-   "chain": "triple_barspin"
+   "chain": "triple_barspin",
+   "timeline": {
+    "rotate": [
+     0.16,
+     0.84
+    ],
+    "accel": 0.05,
+    "decel": 0.12,
+    "lift": 0.03,
+    "hands": [
+     0.14,
+     0.86
+    ]
+   }
   },
   {
    "id": "triple_barspin",
@@ -386,13 +592,26 @@
    "scooter_rotation": {
     "axis": "bars",
     "degrees": 1080,
-    "direction": 1
+    "direction": -1
    },
    "animation": "barspin",
    "hands_off": true,
    "score": 1900,
    "difficulty": 6,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.16,
+     0.84
+    ],
+    "accel": 0.05,
+    "decel": 0.12,
+    "lift": 0.03,
+    "hands": [
+     0.14,
+     0.86
+    ]
+   }
   },
   {
    "id": "fingerwhip",
@@ -422,7 +641,29 @@
    "one_hand": true,
    "score": 900,
    "difficulty": 5,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.14,
+     0.88
+    ],
+    "accel": 0.08,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_hand": [
+     0.06,
+     0.8
+    ],
+    "back_foot": [
+     0.03,
+     0.9
+    ],
+    "front_foot": [
+     0.05,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "bri_flip",
@@ -443,15 +684,35 @@
    "airtime": 0.52,
    "duration": 0.5,
    "scooter_rotation": {
-    "axis": "bar_pitch",
+    "axis": "bar_roll",
     "degrees": 360,
-    "direction": -1
+    "direction": 1
    },
    "animation": "bri",
    "feet_off": true,
    "score": 850,
    "difficulty": 5,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.12,
+     0.86
+    ],
+    "accel": 0.2,
+    "decel": 0.2,
+    "raise": 0.28,
+    "side": 0.12,
+    "lift": 0.02,
+    "bars_turn": 90,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.04,
+     0.86
+    ]
+   }
   },
   {
    "id": "scooter_flip",
@@ -472,15 +733,37 @@
    "airtime": 0.55,
    "duration": 0.52,
    "scooter_rotation": {
-    "axis": "whole_pitch",
+    "axis": "bar_pitch",
     "degrees": 360,
-    "direction": -1
+    "direction": 1
    },
-   "animation": "scooter_flip",
+   "animation": "front_scoot",
    "feet_off": true,
    "score": 950,
    "difficulty": 5,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.1,
+     0.88
+    ],
+    "accel": 0.15,
+    "decel": 0.2,
+    "forward": 0.18,
+    "lift": 0.06,
+    "back_hand": [
+     0.06,
+     0.88
+    ],
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.04,
+     0.86
+    ]
+   }
   },
   {
    "id": "kickless",
@@ -508,7 +791,25 @@
    "feet_off": true,
    "score": 800,
    "difficulty": 4,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.08,
+     0.9
+    ],
+    "accel": 0.25,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.03,
+     0.86
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "inward",
@@ -526,15 +827,36 @@
    "airtime": 0.55,
    "duration": 0.52,
    "scooter_rotation": {
-    "axis": "bar_pitch",
+    "axis": "bar_roll",
     "degrees": 360,
-    "direction": 1
+    "direction": -1
    },
-   "animation": "bri",
+   "animation": "inward",
    "feet_off": true,
    "score": 950,
    "difficulty": 6,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.12,
+     0.86
+    ],
+    "accel": 0.2,
+    "decel": 0.2,
+    "raise": 0.28,
+    "side": 0.12,
+    "forward": 0.06,
+    "lift": 0.02,
+    "bars_turn": -90,
+    "back_foot": [
+     0.03,
+     0.88
+    ],
+    "front_foot": [
+     0.02,
+     0.9
+    ]
+   }
   },
   {
    "id": "full_whip",
@@ -566,12 +888,34 @@
      "direction": 1
     }
    ],
-   "animation": "whip",
+   "animation": "full_whip",
    "feet_off": true,
    "hands_off": true,
    "score": 900,
    "difficulty": 4,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.1,
+     0.88
+    ],
+    "accel": 0.08,
+    "decel": 0.15,
+    "lift": 0.12,
+    "hands": [
+     0.12,
+     0.88
+    ],
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.06,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "full_heel",
@@ -603,12 +947,34 @@
      "direction": -1
     }
    ],
-   "animation": "heelwhip",
+   "animation": "full_whip",
    "feet_off": true,
    "hands_off": true,
    "score": 1000,
    "difficulty": 5,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.1,
+     0.88
+    ],
+    "accel": 0.08,
+    "decel": 0.15,
+    "lift": 0.12,
+    "hands": [
+     0.12,
+     0.88
+    ],
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.06,
+     0.84
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "oppo_bar",
@@ -631,14 +997,27 @@
    "scooter_rotation": {
     "axis": "bars",
     "degrees": 360,
-    "direction": -1
+    "direction": 1
    },
    "animation": "barspin",
    "hands_off": true,
    "score": 450,
    "difficulty": 3,
    "cancel_window": 0.07,
-   "chain": "double_oppo_bar"
+   "chain": "double_oppo_bar",
+   "timeline": {
+    "rotate": [
+     0.16,
+     0.84
+    ],
+    "accel": 0.05,
+    "decel": 0.12,
+    "lift": 0.03,
+    "hands": [
+     0.14,
+     0.86
+    ]
+   }
   },
   {
    "id": "double_oppo_bar",
@@ -661,13 +1040,26 @@
    "scooter_rotation": {
     "axis": "bars",
     "degrees": 720,
-    "direction": -1
+    "direction": 1
    },
    "animation": "barspin",
    "hands_off": true,
    "score": 1100,
    "difficulty": 5,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.16,
+     0.84
+    ],
+    "accel": 0.05,
+    "decel": 0.12,
+    "lift": 0.03,
+    "hands": [
+     0.14,
+     0.86
+    ]
+   }
   },
   {
    "id": "whip_kickless",
@@ -696,7 +1088,25 @@
    "feet_off": true,
    "score": 1300,
    "difficulty": 5,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.08,
+     0.9
+    ],
+    "accel": 0.25,
+    "decel": 0.2,
+    "lift": 0.12,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.03,
+     0.86
+    ],
+    "forward": -0.05
+   }
   },
   {
    "id": "briwhip",
@@ -718,9 +1128,9 @@
    "duration": 0.6,
    "scooter_rotation": [
     {
-     "axis": "bar_pitch",
+     "axis": "bar_roll",
      "degrees": 360,
-     "direction": -1
+     "direction": 1
     },
     {
      "axis": "steer",
@@ -732,7 +1142,27 @@
    "feet_off": true,
    "score": 1500,
    "difficulty": 6,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.12,
+     0.86
+    ],
+    "accel": 0.2,
+    "decel": 0.2,
+    "raise": 0.28,
+    "side": 0.12,
+    "lift": 0.02,
+    "bars_turn": 90,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.04,
+     0.86
+    ]
+   }
   },
   {
    "id": "umbrella",
@@ -754,9 +1184,9 @@
    "duration": 0.62,
    "scooter_rotation": [
     {
-     "axis": "bar_pitch",
+     "axis": "bar_roll",
      "degrees": 360,
-     "direction": -1
+     "direction": 1
     },
     {
      "axis": "deck_roll",
@@ -768,7 +1198,27 @@
    "feet_off": true,
    "score": 1600,
    "difficulty": 6,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.12,
+     0.86
+    ],
+    "accel": 0.2,
+    "decel": 0.2,
+    "raise": 0.3,
+    "side": 0.14,
+    "lift": 0.02,
+    "bars_turn": 90,
+    "back_foot": [
+     0.02,
+     0.9
+    ],
+    "front_foot": [
+     0.05,
+     0.86
+    ]
+   }
   },
   {
    "id": "bartwist",
@@ -792,13 +1242,26 @@
    "scooter_rotation": {
     "axis": "bars",
     "degrees": 360,
-    "direction": 1
+    "direction": -1
    },
-   "animation": "barspin",
+   "animation": "bartwist",
    "one_hand": true,
    "score": 500,
    "difficulty": 3,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.14,
+     0.84
+    ],
+    "accel": 0.1,
+    "decel": 0.15,
+    "lift": 0.03,
+    "back_hand": [
+     0.1,
+     0.86
+    ]
+   }
   },
   {
    "id": "untwist",
@@ -819,13 +1282,26 @@
    "scooter_rotation": {
     "axis": "bars",
     "degrees": 360,
-    "direction": -1
+    "direction": 1
    },
-   "animation": "barspin",
+   "animation": "bartwist",
    "one_hand": true,
    "score": 550,
    "difficulty": 3,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.14,
+     0.84
+    ],
+    "accel": 0.1,
+    "decel": 0.15,
+    "lift": 0.03,
+    "back_hand": [
+     0.1,
+     0.86
+    ]
+   }
   },
   {
    "id": "no_hander",
@@ -1054,7 +1530,29 @@
    "hands_off": true,
    "score": 2400,
    "difficulty": 8,
-   "cancel_window": 0.06
+   "cancel_window": 0.06,
+   "timeline": {
+    "rotate": [
+     0.1,
+     0.9
+    ],
+    "accel": 0.1,
+    "decel": 0.2,
+    "forward": 0.3,
+    "lift": 0.12,
+    "hands": [
+     0.1,
+     0.88
+    ],
+    "back_foot": [
+     0.03,
+     0.9
+    ],
+    "front_foot": [
+     0.05,
+     0.86
+    ]
+   }
   },
   {
    "id": "suicide_no_hander",
@@ -1218,10 +1716,19 @@
     "direction": 1,
     "rewind": true
    },
-   "animation": "barspin",
+   "animation": "x_up",
    "score": 400,
    "difficulty": 3,
-   "cancel_window": 0.07
+   "cancel_window": 0.07,
+   "timeline": {
+    "rotate": [
+     0.1,
+     0.9
+    ],
+    "accel": 0.3,
+    "decel": 0.3,
+    "lift": 0.03
+   }
   }
  ]
 }

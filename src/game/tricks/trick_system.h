@@ -20,7 +20,7 @@ namespace sw {
 
 enum class TrickChannel { Deck = 0, Bars, Rider, Whole, Count };
 
-enum class ScooterAxis { None, Steer, DeckRoll, DeckPitch, Bars, WholePitch, WholeYaw, WholeRoll, BarPitch };
+enum class ScooterAxis { None, Steer, DeckRoll, DeckPitch, Bars, WholePitch, WholeYaw, WholeRoll, BarPitch, BarRoll };
 
 // input layer a trick lives on (Scooter Flow layout: RT, LT, RB + RT, RB + LT; classic: bare flick, RT,
 // bumper + flick, bumper + RT)
@@ -31,6 +31,20 @@ struct TrickRotation {
     float degrees = 360.0f;
     int direction = 1;
     bool rewind = false;  // goes out and back (rewind, x-up)
+};
+
+// how a trick unfolds over its duration (normalised 0..1): when the scooter turns and how fast (a kick
+// throws the deck round fast, the catch slows it), which hands / feet let go and when they catch again,
+// where the rider holds the scooter meanwhile (pulled up to the body, pushed up and out to one side)
+struct TrickTimeline {
+    float rotStart = 0.06f, rotEnd = 0.9f;
+    float accel = 0.12f, decel = 0.18f;  // fraction of the rotation window spent speeding up / slowing down
+    float frontFoot[2] = {-1, -1}, backFoot[2] = {-1, -1}, hands[2] = {-1, -1}, backHand[2] = {-1, -1};  // off
+    float lift = 0.06f;    // scooter pulled up towards the rider (m)
+    float side = 0.0f;     // pushed out to the rider's front side (m)
+    float raise = 0.0f;    // hands lifted with it (m)
+    float forward = 0.0f;  // thrown out in front (m)
+    float barsTurn = 0.0f; // bars turned against the deck while it goes round (degrees; bri flips)
 };
 
 struct TrickDefinition {
@@ -57,6 +71,9 @@ struct TrickDefinition {
     std::string chainTo;         // repeating (or holding) the input during the trick upgrades to this trick
     bool hold = false;           // grabs: active while the grab button is held
     std::string family;          // whip, heel, bar, bri, inward, ... (named combinations)
+    TrickTimeline timeline;
+    // rotation of `r` at progress t (radians before direction), follows the timeline's speed profile
+    float rotationAt(const TrickRotation& r, float t) const;
 };
 
 struct ActiveTrick {
@@ -87,10 +104,13 @@ struct ScooterPose {
     float wholePitch = 0.0f;  // whole scooter flips (front scoot)
     float wholeYaw = 0.0f;
     float wholeRoll = 0.0f;   // turndown / canvert tilt
-    float barPitch = 0.0f;    // whole scooter around the grips' axis, hands stay on (bri flip, inward)
+    float barPitch = 0.0f;    // whole scooter flips forward / back round the bar (front scooter flip)
+    float barRoll = 0.0f;     // whole scooter rolls round the forward line through the bar (bri flip, inward)
     bool feetOff = false, handsOff = false, oneHand = false, frontFootOff = false, backFootOff = false;
+    Vec3 offset;              // scooter moved relative to the rider (x = front side, y = up, z = back)
     std::string riderPose;    // current grab / trick pose name
     float riderPoseWeight = 0.0f;
+    float riderPoseTime = 0.5f;  // where in the trick clip (0..1)
     float scooterAway = 0.0f; // 0..1 how far the scooter is pushed away from the body (kickless)
 };
 

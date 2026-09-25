@@ -24,6 +24,7 @@ ScooterAxis axisFrom(const std::string& s) {
     if (s == "whole_yaw") return ScooterAxis::WholeYaw;
     if (s == "whole_roll") return ScooterAxis::WholeRoll;
     if (s == "bar_pitch") return ScooterAxis::BarPitch;
+    if (s == "bar_roll") return ScooterAxis::BarRoll;
     return ScooterAxis::None;
 }
 
@@ -47,6 +48,28 @@ float easeInOut(float t) {
     t = saturate(t);
     return t * t * (3.0f - 2.0f * t);
 }
+
+// distance along a move with a trapezoid speed profile: speeds up over `a`, cruises, slows down over `b`
+float trapezoid(float u, float a, float b) {
+    u = saturate(u);
+    a = clampf(a, 0.0f, 0.9f);
+    b = clampf(b, 0.0f, 0.9f - a);
+    float vmax = 1.0f / std::max(1.0f - 0.5f * a - 0.5f * b, 1e-3f);
+    if (a > 0.0f && u < a) return vmax * u * u / (2.0f * a);
+    if (b > 0.0f && u > 1.0f - b) {
+        float d = 1.0f - u;
+        return 1.0f - vmax * d * d / (2.0f * b);
+    }
+    return vmax * (0.5f * a + (u - a));
+}
+
+void readRange(const Json& j, const char* key, float out[2]) {
+    if (!j.contains(key) || !j[key].is_array() || j[key].size() != 2) return;
+    out[0] = j[key][0].get<float>();
+    out[1] = j[key][1].get<float>();
+}
+
+bool inRange(const float r[2], float t) { return r[0] >= 0.0f && t >= r[0] && t < r[1]; }
 
 bool conflicts(TrickChannel a, TrickChannel b) {
     if (a == b) return true;
@@ -103,10 +126,44 @@ bool TrickSystem::loadDefinitions(const std::string& absPath) {
         d.cancelWindow = jget<float>(t, "cancel_window", 0.08f);
         d.chainTo = jget<std::string>(t, "chain", "");
         d.hold = jget<bool>(t, "hold", d.inputType == "grab");
+        // timeline: defaults from the contact flags, then the trick's own values
+        TrickTimeline& tl = d.timeline;
+        if (d.feetOff) {
+            tl.backFoot[0] = 0.03f, tl.backFoot[1] = 0.9f;    // the back foot kicks and lands last
+            tl.frontFoot[0] = 0.06f, tl.frontFoot[1] = 0.84f;  // the front foot comes down first and stops the deck
+        }
+        if (d.frontFootOff) tl.frontFoot[0] = 0.06f, tl.frontFoot[1] = 0.86f;
+        if (d.backFootOff) tl.backFoot[0] = 0.04f, tl.backFoot[1] = 0.88f;
+        if (d.handsOff) tl.hands[0] = 0.14f, tl.hands[1] = 0.86f;
+        if (d.oneHand) tl.backHand[0] = 0.1f, tl.backHand[1] = 0.84f;
+        if (t.contains("timeline")) {
+            const Json& j = t["timeline"];
+            readRange(j, "front_foot", tl.frontFoot);
+            readRange(j, "back_foot", tl.backFoot);
+            readRange(j, "hands", tl.hands);
+            readRange(j, "back_hand", tl.backHand);
+            float rot[2] = {tl.rotStart, tl.rotEnd};
+            readRange(j, "rotate", rot);
+            tl.rotStart = rot[0];
+            tl.rotEnd = rot[1];
+            tl.accel = jget<float>(j, "accel", tl.accel);
+            tl.decel = jget<float>(j, "decel", tl.decel);
+            tl.lift = jget<float>(j, "lift", tl.lift);
+            tl.side = jget<float>(j, "side", tl.side);
+            tl.raise = jget<float>(j, "raise", tl.raise);
+            tl.forward = jget<float>(j, "forward", tl.forward);
+            tl.barsTurn = jget<float>(j, "bars_turn", tl.barsTurn);
+        }
         defs_.push_back(d);
     }
     LOG_INFO("tricks: %zu trick definitions", defs_.size());
     return true;
+}
+
+float TrickDefinition::rotationAt(const TrickRotation& r, float t) const {
+    float u = saturate((t - timeline.rotStart) / std::max(timeline.rotEnd - timeline.rotStart, 0.01f));
+    float f = trapezoid(u, timeline.accel, timeline.decel);
+    return r.degrees * kDeg2Rad * (r.rewind ? std::sin(f * kPi) : f);
 }
 
 const TrickDefinition* TrickSystem::find(const std::string& id) const {
@@ -162,10 +219,20 @@ bool TrickSystem::tryStart(const TrickDefinition& d, int direction, double) {
 
 void TrickSystem::upgrade(ActiveTrick& a, const TrickDefinition* up) {
     // keep the angle already turned: a tailwhip at 200 degrees becomes a double whip at 200 of 720 degrees
-    float angleDone = a.progress * a.def->degrees;
+    // (found on the new trick's speed profile, so the deck does not jump)
+    float t = 0.0f;
+    if (!a.def->rotations.empty() && !up->rotations.empty()) {
+        float angleDone = a.def->rotationAt(a.def->rotations[0], a.progress);
+        float lo = 0.0f, hi = 1.0f;
+        for (int i = 0; i < 24; ++i) {
+            float mid = 0.5f * (lo + hi);
+            (up->rotationAt(up->rotations[0], mid) < angleDone ? lo : hi) = mid;
+        }
+        t = 0.5f * (lo + hi);
+    }
     a.def = up;
-    a.time = up->degrees > 0.0f ? angleDone / up->degrees * up->duration : 0.0f;
-    a.progress = a.time / up->duration;
+    a.time = t * up->duration;
+    a.progress = t;
     lastStarted = up->name;
     startedThisStep = true;
 }
@@ -303,12 +370,17 @@ void TrickSystem::updatePose(float dt) {
     float riderW = 0.0f;
     for (const ActiveTrick& a : active_) {
         const TrickDefinition& d = *a.def;
-        float e = easeInOut(a.progress);
+        const TrickTimeline& tl = d.timeline;
+        float t = saturate(a.progress);
         // held tricks (grabs, turndowns) ease in, stay while held, ease out after release
         float holdW = d.hold ? (a.released ? 1.0f - saturate((a.time - d.duration) * 4.0f) : saturate(a.time * 6.0f)) : 0.0f;
+        // the scooter is held out of the way while it goes round (lifted, pushed out, bars turned)
+        float away = d.hold ? easeInOut(holdW) : easeInOut(t / 0.22f) * (1.0f - easeInOut((t - 0.72f) / 0.24f));
+        p.offset += Vec3(tl.side * float(a.direction), tl.lift + tl.raise, -tl.forward) * away;
+        p.bars += tl.barsTurn * kDeg2Rad * float(a.direction) * away;
         for (const TrickRotation& r : d.rotations) {
-            float ang = r.degrees * kDeg2Rad * float(r.direction * a.direction);
-            float v = d.hold ? ang * holdW * holdW * (3.0f - 2.0f * holdW) : r.rewind ? std::sin(a.progress * kPi) * ang : ang * e;
+            float sign = float(r.direction * a.direction);
+            float v = d.hold ? r.degrees * kDeg2Rad * sign * easeInOut(holdW) : d.rotationAt(r, t) * sign;
             switch (r.axis) {
                 case ScooterAxis::Steer: p.deckSteer += v; break;
                 case ScooterAxis::DeckRoll: p.deckRoll += v; break;
@@ -318,24 +390,32 @@ void TrickSystem::updatePose(float dt) {
                 case ScooterAxis::WholeYaw: p.wholeYaw += v; break;
                 case ScooterAxis::WholeRoll: p.wholeRoll += v; break;
                 case ScooterAxis::BarPitch: p.barPitch += v; break;
+                case ScooterAxis::BarRoll: p.barRoll += v; break;
                 case ScooterAxis::None: break;
             }
         }
-        bool mid = a.progress > 0.02f && a.progress < 0.97f;
-        if (d.hold) mid = !a.released || a.progress < 1.0f;
-        if (mid) {
-            p.feetOff |= d.feetOff;
-            p.handsOff |= d.handsOff;
-            p.oneHand |= d.oneHand;
-            p.frontFootOff |= d.frontFootOff;
-            p.backFootOff |= d.backFootOff;
+        if (d.hold) {
+            if (!a.released || a.progress < 1.0f) {
+                p.feetOff |= d.feetOff;
+                p.handsOff |= d.handsOff;
+                p.oneHand |= d.oneHand;
+                p.frontFootOff |= d.frontFootOff;
+                p.backFootOff |= d.backFootOff;
+            }
+        } else {
+            // hands and feet let go and catch again at their moments of the trick
+            p.frontFootOff |= inRange(tl.frontFoot, t);
+            p.backFootOff |= inRange(tl.backFoot, t);
+            p.handsOff |= inRange(tl.hands, t);
+            p.oneHand |= inRange(tl.backHand, t);
         }
-        if (d.channel == TrickChannel::Whole) p.scooterAway = std::max(p.scooterAway, std::sin(saturate(a.progress) * kPi));
         if (!d.animation.empty()) {
-            float w = d.hold ? holdW : std::sin(saturate(a.progress) * kPi);
-            if (w > riderW) {
+            // trick clips play along the trick (kick, tuck, catch); grabs hold their pose
+            float w = d.hold ? holdW : easeInOut(t / 0.06f) * (1.0f - easeInOut((t - 0.9f) / 0.1f));
+            if (w >= riderW) {
                 riderW = w;
                 p.riderPose = d.animation;
+                p.riderPoseTime = d.hold ? 0.5f : t;
             }
         }
     }
@@ -343,9 +423,11 @@ void TrickSystem::updatePose(float dt) {
     // smooth the rider pose weight so poses blend in / out
     pose_.riderPoseWeight = dampf(pose_.riderPoseWeight, p.riderPoseWeight, 14.0f, dt);
     std::string keepPose = p.riderPose.empty() ? pose_.riderPose : p.riderPose;
+    float keepTime = p.riderPose.empty() ? pose_.riderPoseTime : p.riderPoseTime;
     float keepW = pose_.riderPoseWeight;
     pose_ = p;
     pose_.riderPose = keepPose;
+    pose_.riderPoseTime = keepTime;
     pose_.riderPoseWeight = keepW;
 }
 

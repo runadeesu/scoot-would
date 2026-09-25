@@ -782,7 +782,15 @@ void Game::updatePlayCamera(float dt, float alpha) {
     bool lookActive = player_.state() != PlayerState::Air;
     Vec2 mouse = engine().window().mouseCaptured() ? in.mouseDelta() * 0.02f : Vec2(0);
     bool firstPerson = camera_.mode() == CameraMode::FirstPerson && player_.state() != PlayerState::Bailed;
-    if (firstPerson) {
+    if (opts_.cameraView == "side") {
+        // QA: tracks the rider from the side at a fixed distance (tricks read best from here)
+        Vec3 f = player_.scooter.forward();
+        f.y = 0;
+        f = f.lengthSq() > 1e-4f ? f.normalized() : Vec3(0, 0, -1);
+        Vec3 r = cross(f, Vec3(0, 1, 0)).normalized();
+        Vec3 c = body.position + Vec3(0, 0.9f, 0);
+        camera_.setManual(c + r * 2.9f + f * 0.5f + Vec3(0, 0.3f, 0), c, 50.0f);
+    } else if (firstPerson) {
         bool snap = cameraCut_ || fpWasOff_;
         // the Scooter Flow layout uses the right stick for pumping / popping: there only the mouse looks around
         Vec2 fpLook = input().scheme() == ControlScheme::Flow ? mouse : in.lookStick() + mouse;

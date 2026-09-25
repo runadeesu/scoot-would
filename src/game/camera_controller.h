@@ -28,6 +28,13 @@ public:
     void reset(const CameraTarget& t);
     void update(float dt, const CameraTarget& t, const Vec2& look, bool lookActive, bool resetPressed);
     void updateFree(float dt, const Vec3& move, const Vec2& mouse, float speed);
+    // fixed framing set by the caller (QA side view, replays)
+    void setManual(const Vec3& pos, const Vec3& target, float fovDeg) {
+        pos_ = pos;
+        lookAt_ = target;
+        fov_ = fovDeg;
+        nearZ_ = 0.08f;
+    }
     // first person: camera point at the rider's eye height and the rider body's orientation (includes air spins /
     // flips)
     void updateFirstPerson(float dt, const Vec3& eye, const Quat& body, float speed, bool grounded, const Vec2& look, bool lookActive,

@@ -4,4 +4,4 @@
     {"when": {"state": "Air", "airAbove": 0.14}, "look": [0, 0], "trick": 1.0},
     {"when": {"state": "Air", "airAbove": 0.17}, "flick": "right", "look": [1, 0]},
     {"when": {"state": "Air", "airAbove": 0.75}, "look": [0, 0], "trick": 0.0} ],
-  "expect": [ {"trick": "Triple Tailwhip", "noBail": true} ] }
+  "expect": [ {"trick": "Quad Whip", "noBail": true} ] }

@@ -111,6 +111,9 @@ private:
     int shadowBoneOffset_ = -1;
     Vec3 barCenterModel_{0, 0.8f, -0.18f};  // bar centre in rider model space
     Mat4 barsLocal_, deckLocal_;             // animated bars / deck relative to the scooter body
+    Mat4 partM_[PartCount];                  // world transforms of the parts this frame
+    void setPart(int part, const Mat4& m);
+    void shiftScooter(const Vec3& world);    // moves every part (the scooter hangs from the rider's hands)
     Transform displayXf_;
 };
 

@@ -14,6 +14,12 @@ struct RiderRig {
     Vec3 gripL, gripR;
     Vec3 footFront, footBack;  // sole contact points on the deck
     bool feetOff = false, handsOff = false, oneHand = false, frontFootOff = false, backFootOff = false;
+    // the scooter as solid shapes (tricks): legs that are off the deck are kept out of them
+    bool collide = false;
+    Vec3 deckCenter, deckHalf{0.062f, 0.02f, 0.235f};
+    Quat deckRot;
+    Vec3 stemA, stemB;      // fork crown -> bar centre
+    Vec3 wheelF, wheelB;    // axles
 };
 
 struct RiderAnimParams {
@@ -27,6 +33,9 @@ struct RiderAnimParams {
     float pushPlant = 0.26f, pushLift = 0.58f;
     std::string trickPose;
     float trickWeight = 0.0f;
+    float trickTime = 0.5f;  // position in the trick clip (0..1): kick, tuck, catch
+    float spinRate = 0.0f;   // body rotation in the air (rad/s): + turns left
+    float flipRate = 0.0f;   // + backwards
     bool manualNose = false;
     int grindType = 0;
     float airTime = 0.0f;
@@ -51,9 +60,13 @@ public:
     void skinMatrices(std::vector<Mat4>& out) const;
     int joint(const std::string& name) const { return skel_ ? skel_->find(name) : -1; }
     const std::string& currentState() const { return sm_.current(); }
+    // how far the hands that hold the bars fell short of the grips (rider model space): the scooter hangs from
+    // the hands, so the caller moves it by this much
+    Vec3 gripShortfall() const { return gripShort_; }
 
 private:
     void applyIK(const RiderRig& rig, float dt, bool goofy);
+    void keepLegsClear(const RiderRig& rig, int* leg, float sideSign, float plantedW);
     void mirrorPose(Pose& p) const;
     void applyFingers(float dt);
     void applyFace(float dt, float speed);
@@ -68,6 +81,7 @@ private:
     float feetW_ = 1.0f, handLW_ = 1.0f, handRW_ = 1.0f, backFootW_ = 1.0f;
     float crouchS_ = 0.0f, lookS_ = 0.0f, leanS_ = 0.0f;
     float pushW_ = 0.0f, fpW_ = 0.0f, frontOffW_ = 0.0f, backOffW_ = 0.0f;
+    float spinLead_ = 0.0f, flipLead_ = 0.0f;
     Vec3 pushFoot_;     // pushing foot sole target (rider model space, regular stance)
     float pushToe_ = 0.0f;  // heel lift at the end of the drive
     float footDownW_ = 0.0f, groundFoot_ = 0.0f;  // 0 = back foot on the tail, 1 = standing on the ground next to the deck
@@ -89,6 +103,7 @@ private:
     uint32_t rng_ = 12345u;
     std::string lastTrickPose_;
     float trickW_ = 0.0f;
+    Vec3 gripShort_;
 };
 
 }  // namespace sw
