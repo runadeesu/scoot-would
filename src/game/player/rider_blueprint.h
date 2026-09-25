@@ -67,7 +67,9 @@ struct ScooterDims {
     float deckLength = 0.5f;
     float deckWidth = 0.12f;
     float deckTop = 0.058f;      // above the axles
-    float barHeight = 0.86f;     // grip height above the deck top
+    // real street setup for a 1.77 m rider: 25" bars on a 10" deck + headset stack = 35.6" (0.905 m) from the
+    // ground to the top of the bars
+    float barHeight = 0.79f;     // grip height above the deck top
     float barWidth = 0.56f;
     float headTubeAngle = 83.0f; // degrees from horizontal
     // front axle (local, body space: origin between axles at axle height, -Z forward)

@@ -536,15 +536,15 @@ const char* kBrands[3] = {"FLOWLAB", "KDX PRO", "AXLE CO."};
 
 const ShopCategory kShopCats[6] = {
     {"DECK", PartThumbnails::Deck, 3, metalPalette, {"Street 4.8\"", "Wide 5.3\"", "Park 4.5\""}, {0, 1, 2},
-     {"122 mm wide  /  6061-T6 aluminium  /  integrated headtube", "135 mm wide  /  6061-T6 aluminium  /  flat nose",
-      "115 mm wide  /  6061-T6 aluminium  /  round nose"}},
-    {"BARS", PartThumbnails::Bars, 3, metalPalette, {"Standard", "Tall", "Wide"}, {2, 0, 1},
-     {"86 cm grip height  /  56 cm wide  /  4130 chromoly", "92 cm grip height  /  56 cm wide  /  4130 chromoly",
-      "86 cm grip height  /  62 cm wide  /  4130 chromoly"}},
-    {"CLAMP", PartThumbnails::Clamp, 1, metalPalette, {"Double Clamp", "", ""}, {2, 2, 2},
-     {"4 bolt double clamp  /  7075 aluminium", "", ""}},
+     {"4.8\" x 20.5\"  /  83\u00b0 integrated headtube  /  6061-T6", "5.3\" x 20.5\"  /  83\u00b0 integrated headtube  /  flat nose",
+      "4.5\" x 20.5\"  /  83\u00b0 integrated headtube  /  round nose"}},
+    {"BARS", PartThumbnails::Bars, 3, metalPalette, {"Standard 25\"", "Tall 27\"", "Wide 24\""}, {2, 0, 1},
+     {"25\" x 22\"  /  34.9 mm oversized  /  4130 chromoly", "27\" x 22\"  /  34.9 mm oversized  /  4130 chromoly",
+      "25\" x 24\"  /  34.9 mm oversized  /  4130 chromoly"}},
+    {"CLAMP", PartThumbnails::Clamp, 2, metalPalette, {"IHC Double Clamp", "SCS Clamp", ""}, {2, 1, 2},
+     {"double clamp  /  4 bolts  /  IHC / HIC  /  7075", "one piece over the headset  /  4 bolts  /  SCS", ""}},
     {"WHEELS", PartThumbnails::Wheel, 3, metalPalette, {"6 Spoke", "12 Spoke", "Solid Core"}, {1, 0, 2},
-     {"110 x 24 mm  /  hollow core  /  ABEC 9", "110 x 24 mm  /  12 spoke core  /  ABEC 9", "110 x 24 mm  /  solid core  /  ABEC 9"}},
+     {"110 x 24 mm  /  hollow core  /  608 ABEC 9", "110 x 24 mm  /  12 spoke core  /  608 ABEC 9", "110 x 24 mm  /  solid core  /  608 ABEC 9"}},
     {"URETHANE", PartThumbnails::Urethane, 1, urethanePalette, {"88A Street Urethane", "", ""}, {0, 0, 0},
      {"88A hardness  /  high rebound pour", "", ""}},
     {"GRIPS", PartThumbnails::Grips, 1, clothPalette, {"Soft Grips 160 mm", "", ""}, {1, 1, 1},
@@ -558,7 +558,7 @@ void shopEquipped(const Customization& c, int cat, int& variant, int& color) {
     switch (cat) {
         case 0: variant = c.deck; color = nearestIndex(pal, c.deckColor); break;
         case 1: variant = c.bars; color = nearestIndex(pal, c.barsColor); break;
-        case 2: variant = 0; color = nearestIndex(pal, c.clampColor); break;
+        case 2: variant = c.clamp; color = nearestIndex(pal, c.clampColor); break;
         case 3: variant = c.wheels; color = nearestIndex(pal, c.coreColor); break;
         case 4: variant = 0; color = nearestIndex(pal, c.wheelColor); break;
         default: variant = 0; color = nearestIndex(pal, c.gripColor); break;
@@ -570,7 +570,7 @@ Customization shopApply(Customization c, int cat, int variant, int color) {
     switch (cat) {
         case 0: c.deck = variant; c.deckColor = col; break;
         case 1: c.bars = variant; c.barsColor = col; break;
-        case 2: c.clampColor = col; break;
+        case 2: c.clamp = variant; c.clampColor = col; break;
         case 3: c.wheels = variant; c.coreColor = col; break;
         case 4: c.wheelColor = col; break;
         default: c.gripColor = col; break;

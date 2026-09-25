@@ -355,7 +355,7 @@ void ShopScene::buildMerchandise() {
                              {0.9f, 0.65f, 0.2f},    {0.05f, 0.55f, 0.5f},  {0.35f, 0.08f, 0.6f}, {0.95f, 0.35f, 0.03f}};
     MaterialPtr hw = mat("scooter_hardware");
     std::vector<MaterialPtr> deckMats = {mat("scooter_deck"), hw, mat("scooter_headset")};
-    std::vector<MaterialPtr> gripMats = {mat("scooter_griptape")};
+    std::vector<MaterialPtr> gripMats = {mat("scooter_griptape"), mat("scooter_deck")};
     std::vector<MaterialPtr> barMats = {mat("scooter_bars"), mat("scooter_barend")};
     std::vector<MaterialPtr> handleMats = {mat("scooter_grips")};
     std::vector<MaterialPtr> tyreMats = {mat("scooter_wheel")};
@@ -394,7 +394,7 @@ void ShopScene::buildMerchandise() {
             Mat4 m = align(Vec3(0, 1, 0), Vec3(0, 0, -1), Vec3(1, 0, 0), Vec3(0, 1, 0), anchor, Vec3(-kHalfW + 0.075f, 1.32f, z));
             Vec4 tint(anodised[size_t(i) % 8], 0.0f);
             add(decks[v], deckMats, m, true, tint);
-            add(grips[v], gripMats, m, true);
+            add(grips[v], gripMats, m, true, tint);
         }
         // hooks
         MeshBuilder hooks("hooks");

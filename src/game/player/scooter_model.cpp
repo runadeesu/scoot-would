@@ -1,10 +1,12 @@
 // scoot would - detailed pro freestyle scooter geometry.
 //
-// Real world reference dimensions (typical street / park scooter):
-//   deck 50-52 cm long, 11.5-13.5 cm wide, ~3.6 cm thick boxed profile with a hollow underside,
-//   integrated 83 degree headtube with headset cups, 110 mm wheels (24 mm wide PU on a spoked alloy
-//   core with two 608 bearings), threadless fork, double clamp, chromoly T-bar (34.9 mm downtube,
-//   31.8 mm crossbar, slight backsweep), 160 mm flanged grips, spring steel flex fender brake.
+// Real world reference dimensions (typical street / park scooter, retailer specs and sizing guides):
+//   deck 50-53 cm long, 11-13.5 cm wide (4.3"-5.3"), ~3.6 cm thick boxed profile with a hollow underside and a
+//   slight concave, integrated ~10 cm headtube at 83 degrees (82-84 usual) with headset cups, 24 mm dropouts,
+//   110 mm x 24 mm wheels (88A PU on a spoked alloy core, two 608 bearings on an 8 mm axle, socket head
+//   axle bolts), threadless fork, IHC double clamp (bar with a slit) or a one piece SCS clamp over the
+//   headset, chromoly T-bar (34.9 mm oversized downtube, 31.8 mm crossbar, slight backsweep), 160 mm flanged
+//   grips, spring steel flex fender brake. Overall height = bar length + ~10" (IHC) / ~11" (SCS).
 #include "game/player/scooter_model.h"
 
 #include "render/mesh_builder.h"
@@ -60,7 +62,7 @@ std::vector<Vec2> roundedRect(float x0, float x1, float z0, float z1, float rFro
 // prism from a convex XZ outline with chamfered top/bottom edges and an optional hollow underside
 // (rim + inner wall + recessed ceiling), smooth around the outline, hard between the bands
 void beveledSlab(MeshBuilder& b, const std::vector<Vec2>& outline, float yTop, float yBot, float chTop, float chBot, float hollowDepth,
-                 float rim) {
+                 float rim, float concave = 0.0f) {
     size_t n = outline.size();
     Vec2 cen(0);
     for (auto& p : outline) cen += p;
@@ -95,7 +97,8 @@ void beveledSlab(MeshBuilder& b, const std::vector<Vec2>& outline, float yTop, f
     band(bA, bB);
     // top face
     {
-        uint32_t c = b.addVertex(Vec3(cen.x, yTop, cen.y), Vec3(0, 1, 0), Vec2(0.5f, 0.5f));
+        // concave: the middle of the platform sits a little lower than the edges
+        uint32_t c = b.addVertex(Vec3(cen.x, yTop - concave, cen.y), Vec3(0, 1, 0), Vec2(0.5f, 0.5f));
         auto top = ring(yTop, chTop, Vec3(0.0f), 1.0f);
         for (size_t i = 0; i < n; ++i) triOut(b, c, top[i], top[i + 1]);
     }
@@ -195,7 +198,31 @@ void hexX(MeshBuilder& b, Vec3 c, float r, float len) {
     b.resetTransform();
 }
 
+// socket head cap screw along X: round head with a chamfer, dark hex socket in the outer face
+void socketX(MeshBuilder& b, Vec3 c, float r, float len, float outward, int headSlot, int recessSlot) {
+    Mat4 m = Mat4::translation(c) * Mat4::rotation(Quat::angleAxis(-kHalfPi, Vec3(0, 0, 1)));  // local Y -> world X
+    b.setTransform(m);
+    b.setMaterial(headSlot);
+    float o = outward > 0.0f ? 1.0f : -1.0f;
+    // lathe profile along local Y (outward = +Y after flipping for the -X side)
+    std::vector<Vec2> prof = {{0.0f, -o * len * 0.5f}, {r, -o * len * 0.5f}, {r, o * (len * 0.5f - r * 0.2f)}, {r * 0.8f, o * len * 0.5f},
+                              {0.0f, o * len * 0.5f}};
+    if (o < 0.0f) std::reverse(prof.begin(), prof.end());
+    b.lathe(prof, 18, false);
+    b.setMaterial(recessSlot);
+    std::vector<Vec3> hex;
+    for (int i = 0; i < 6; ++i) {
+        float a = float(i) / 6.0f * kTwoPi;
+        hex.push_back(Vec3(std::cos(a) * r * 0.45f, o * (len * 0.5f + 0.00015f), std::sin(a) * r * 0.45f));
+    }
+    b.polygon(hex, Vec3(0, o, 0));
+    b.resetTransform();
+}
+
 }  // namespace
+
+float scooterBarHeight(const ScooterDims& d, int bars) { return bars == 1 ? d.barHeight + 0.05f : d.barHeight; }
+float scooterBarWidth(const ScooterDims& d, int bars) { return bars == 2 ? 0.61f : d.barWidth; }
 
 ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions& opt) {
     ScooterMeshSet out;
@@ -216,7 +243,7 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
     {
         MeshBuilder b("scooter_deck");
         b.setMaterial(0);
-        beveledSlab(b, roundedRect(-deckW * 0.5f, deckW * 0.5f, zF, zB, noseR, 0.022f, 6), yTop, yBot, 0.0035f, 0.003f, 0.02f, 0.0065f);
+        beveledSlab(b, roundedRect(-deckW * 0.5f, deckW * 0.5f, zF, zB, noseR, 0.022f, 6), yTop, yBot, 0.0035f, 0.003f, 0.02f, 0.0065f, 0.0012f);
         // centre rib inside the hollow underside
         b.box(Vec3(0, yBot + 0.012f, (zF + zB) * 0.5f), Vec3(0.004f, 0.02f, (zB - zF) - 0.05f));
         // neck: boxed tube rising from the deck nose into the headtube
@@ -231,10 +258,10 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
                 0.0035f);
         // headtube
         b.setTransform(steerM);
-        b.lathe({{0.0245f, 0.106f}, {0.0245f, 0.229f}}, 28, true);
+        b.lathe({{0.0245f, 0.106f}, {0.0245f, 0.2f}}, 28, true);
         b.setMaterial(2);  // headset cups + top cap
         b.lathe({{0.017f, 0.095f}, {0.0277f, 0.095f}, {0.0277f, 0.106f}, {0.0245f, 0.107f}}, 28, false);
-        b.lathe({{0.0245f, 0.229f}, {0.0277f, 0.230f}, {0.0277f, 0.2405f}, {0.0205f, 0.241f}, {0.0205f, 0.2465f}, {0.0f, 0.2465f}}, 28, false);
+        b.lathe({{0.0245f, 0.2f}, {0.0277f, 0.201f}, {0.0277f, 0.2115f}, {0.0205f, 0.212f}, {0.0205f, 0.2175f}, {0.0f, 0.2175f}}, 28, false);
         b.resetTransform();
         b.setMaterial(0);
         // dropouts: side plates from the tail down around the rear axle
@@ -247,7 +274,8 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
         for (float s : {-1.0f, 1.0f}) plateZY(b, drop, s < 0 ? -hwDrop1 : hwDrop0, s < 0 ? -hwDrop0 : hwDrop1);
         // hardware: rear axle bolt head + nut, spacers, brake bolts
         b.setMaterial(1);
-        hexX(b, ra + Vec3(hwDrop1 + 0.003f, 0, 0), 0.0085f, 0.006f);
+        socketX(b, ra + Vec3(hwDrop1 + 0.003f, 0, 0), 0.0082f, 0.006f, 1.0f, 1, 2);
+        b.setMaterial(1);
         hexX(b, ra - Vec3(hwDrop1 + 0.0028f, 0, 0), 0.0088f, 0.0056f);
         for (float s : {-1.0f, 1.0f}) hexX(b, ra + Vec3(s * 0.0145f, 0, 0), 0.0058f, 0.004f);
         for (float z : {0.178f, 0.198f}) b.cylinder(Vec3(0, yTop + 0.0028f, z), 0.0042f, 0.0012f, 12, true);
@@ -262,6 +290,20 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
         std::vector<Vec3> pts;
         for (auto it = o.rbegin(); it != o.rend(); ++it) pts.push_back(Vec3(it->x, yTop + 0.0007f, it->y));
         b.polygon(pts, Vec3(0, 1, 0));
+        // logo cut out of the griptape near the tail (hexagon + triangle outlines): the deck shows through
+        b.setMaterial(1);
+        const float lz = 0.108f, ly = yTop + 0.0009f;
+        auto ringPoly = [&](int sides, float rOut, float rIn, float rot) {
+            for (int i = 0; i < sides; ++i) {
+                float a0 = rot + float(i) / float(sides) * kTwoPi, a1 = rot + float(i + 1) / float(sides) * kTwoPi;
+                Vec3 o0(std::cos(a0) * rOut, ly, lz + std::sin(a0) * rOut), o1(std::cos(a1) * rOut, ly, lz + std::sin(a1) * rOut);
+                Vec3 i0(std::cos(a0) * rIn, ly, lz + std::sin(a0) * rIn), i1(std::cos(a1) * rIn, ly, lz + std::sin(a1) * rIn);
+                b.polygon({o0, o1, i1, i0}, Vec3(0, 1, 0));
+            }
+        };
+        float logoR = std::min(0.031f, deckW * 0.26f);
+        ringPoly(6, logoR, logoR * 0.8f, 0.0f);
+        ringPoly(3, logoR * 0.5f, logoR * 0.32f, kHalfPi);  // triangle pointing to the tail
         out.grip = b.build();
     }
     // ---- brake: spring steel fender over the rear wheel ----------------------------------------
@@ -306,18 +348,19 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
             b.resetTransform();
         }
         b.setMaterial(1);
-        hexX(b, fa + Vec3(0.0215f + 0.0082f, 0, 0), 0.0085f, 0.006f);
+        socketX(b, fa + Vec3(0.0215f + 0.0082f, 0, 0), 0.0082f, 0.006f, 1.0f, 1, 2);
+        b.setMaterial(1);
         hexX(b, fa - Vec3(0.0215f + 0.008f, 0, 0), 0.0088f, 0.0056f);
         for (float s : {-1.0f, 1.0f}) hexX(b, fa + Vec3(s * 0.0142f, 0, 0), 0.0058f, 0.0036f);
         // steerer visible between the headset top cap and the clamp
         b.setTransform(steerM);
-        b.lathe({{0.0142f, 0.2465f}, {0.0142f, 0.252f}}, 20, true);
+        b.lathe({{0.0142f, 0.2175f}, {0.0142f, 0.223f}}, 20, true);
         b.resetTransform();
         out.fork = b.build();
     }
     // ---- bars: downtube, backswept crossbar, weld blend, gussets, bar ends ----------------------
-    float barH = opt.bars == 1 ? 0.92f : d.barHeight;
-    float barW = opt.bars == 2 ? 0.62f : d.barWidth;
+    float barH = scooterBarHeight(d, opt.bars);
+    float barW = scooterBarWidth(d, opt.bars);
     out.barHeight = barH;
     out.barWidth = barW;
     float sTop = (d.deckTop + barH) / S.y;
@@ -329,7 +372,7 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
     {
         MeshBuilder b("scooter_bars");
         b.setMaterial(0);
-        b.tube({at(0.253f), top}, 0.01745f, 20, true);
+        b.tube({at(opt.clamp == 1 ? 0.25f : 0.2235f), top}, 0.01745f, 20, true);
         std::vector<Vec3> cross;
         for (int i = 0; i <= 12; ++i) cross.push_back(crossPt(-barW * 0.5f + barW * float(i) / 12.0f));
         b.tube(cross, 0.0159f, 20, true);
@@ -362,21 +405,42 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
         }
         out.grips = b.build();
     }
-    // ---- clamp: double clamp with slit bosses and four bolts ------------------------------------
+    // ---- clamp: IHC double clamp around the slit bar, or a one piece SCS clamp over the headset -------
     {
         MeshBuilder b("scooter_clamp");
         b.setMaterial(0);
+        Vec3 back = (Vec3(0, 0, 1) - S * dot(Vec3(0, 0, 1), S)).normalized();  // slit + bolts face the rider
+        Quat along = Quat::fromTo(Vec3(0, 1, 0), S);
+        float s0, s1;
+        std::vector<float> bolts;
+        if (opt.clamp == 1) {
+            // SCS: sits on the headset top cap, the fork steerer clamps in the lower half, the bar (no slit) in
+            // the upper half; a bolt through the middle wall pulls the fork up
+            s0 = 0.2125f;
+            s1 = 0.297f;
+            bolts = {0.2255f, 0.2445f, 0.265f, 0.2835f};
+        } else {
+            s0 = 0.2215f;
+            s1 = 0.276f;
+            bolts = {0.235f, 0.2625f};
+        }
         b.setTransform(steerM);
-        b.lathe({{0.0178f, 0.2505f}, {0.0262f, 0.2505f}, {0.0268f, 0.253f}, {0.0268f, 0.3025f}, {0.0262f, 0.305f}, {0.0178f, 0.305f}}, 32, false);
+        b.lathe({{0.0178f, s0}, {0.0262f, s0}, {0.0268f, s0 + 0.0025f}, {0.0268f, s1 - 0.0025f}, {0.0262f, s1}, {0.0178f, s1}}, 32, false);
+        if (opt.clamp == 1) {
+            // relief groove between the fork and bar halves, compression bolt head on top of the middle wall
+            b.lathe({{0.0269f, 0.2535f}, {0.0262f, 0.2545f}, {0.0262f, 0.2575f}, {0.0269f, 0.2585f}}, 32, false);
+        }
         b.resetTransform();
-        // slit + bolt bosses face the rider (towards the tail)
-        Vec3 back = (Vec3(0, 0, 1) - S * dot(Vec3(0, 0, 1), S)).normalized();
-        for (float s : {-1.0f, 1.0f}) b.box(at(0.2778f) + back * 0.029f + X * (s * 0.0068f), Vec3(0.0105f, 0.052f, 0.02f), Quat::fromTo(Vec3(0, 1, 0), S));
+        float mid = (s0 + s1) * 0.5f, len = s1 - s0 - 0.004f;
+        for (float sgn : {-1.0f, 1.0f}) b.box(at(mid) + back * 0.029f + X * (sgn * 0.0068f), Vec3(0.0105f, len, 0.02f), along);
         b.setMaterial(1);
-        for (float h : {0.2635f, 0.292f}) {
+        for (float h : bolts) {
             Vec3 c = at(h) + back * 0.031f;
-            hexX(b, c + X * 0.0142f, 0.0047f, 0.0045f);   // socket head
-            hexX(b, c - X * 0.0138f, 0.0044f, 0.0036f);   // thread end
+            // socket head cap screw on one side, the threaded end on the other
+            b.setTransform(Mat4::translation(c + X * 0.0142f) * Mat4::rotation(Quat::angleAxis(-kHalfPi, Vec3(0, 0, 1))));
+            b.cylinder(Vec3(0, -0.0022f, 0), 0.0045f, 0.0045f, 14, true);
+            b.resetTransform();
+            hexX(b, c - X * 0.0138f, 0.0044f, 0.0036f);
         }
         out.clamp = b.build();
     }

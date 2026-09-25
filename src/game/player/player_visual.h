@@ -33,6 +33,7 @@ struct Customization {
     int deck = 0;    // shape variant
     int bars = 0;    // 0 standard, 1 tall, 2 wide
     int wheels = 0;  // core style
+    int clamp = 0;   // 0 IHC double clamp, 1 SCS
     Vec3 deckColor{0.12f, 0.12f, 0.14f};
     Vec3 barsColor{0.85f, 0.85f, 0.88f};
     Vec3 wheelColor{0.95f, 0.95f, 0.95f};
@@ -76,6 +77,7 @@ private:
 
     RenderScene* rs_ = nullptr;
     Customization custom_;
+    float barHeight_ = 0.79f, barWidth_ = 0.56f;  // of the current bars (the rider's hands follow them)
     std::shared_ptr<GpuMesh> parts_[PartCount];
     RenderScene::Handle partHandles_[PartCount];
     std::vector<MaterialPtr> partMats_[PartCount];

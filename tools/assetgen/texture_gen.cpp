@@ -696,8 +696,8 @@ bool generateTextures(const std::string& root) {
                 if (word[size_t(y) * size_t(W) + size_t(x)] > 0.0f) im.blend(x, y + 40, Vec4(0.98f, 0.97f, 0.94f, word[size_t(y) * size_t(W) + size_t(x)]));
         save(im, "shop_poster");
     }
-    // scooter griptape: silicon carbide grit (dense sharp grains on a black backing), slightly
-    // worn / dusty in patches; tileable, ~5 cm per repeat
+    // scooter griptape: silicon carbide grit (dense sharp grains on a black backing); tileable, ~5 cm per
+    // repeat. Uniform on purpose: wear patches inside a 5 cm tile repeat visibly across a 50 cm deck
     {
         const int N = 512;
         auto grain = [](int x, int y) {
@@ -723,9 +723,8 @@ bool generateTextures(const std::string& root) {
         for (int y = 0; y < N; ++y)
             for (int x = 0; x < N; ++x) {
                 float g = saturate(grain(x, y) * 1.8f);
-                float wear = smoothstep(0.62f, 0.85f, fbm(float(x) / 64.0f, float(y) / 64.0f, 8, 91, 4));
                 float sparkle = hash2(x, y, 5) > 0.992f ? 0.06f : 0.0f;
-                float v = 0.018f + 0.03f * g + sparkle * g + wear * 0.05f;
+                float v = 0.018f + 0.03f * g + sparkle * g;
                 col.at(x, y) = Vec4(v, v, v * 1.02f, 1.0f);
             }
         save(col, "griptape");

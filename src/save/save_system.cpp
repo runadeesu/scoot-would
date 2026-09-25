@@ -29,6 +29,7 @@ Json customizationToJson(const Customization& c) {
             {"deck", c.deck},
             {"bars", c.bars},
             {"wheels", c.wheels},
+            {"clamp", c.clamp},
             {"deckColor", toJson(c.deckColor)},
             {"barsColor", toJson(c.barsColor)},
             {"wheelColor", toJson(c.wheelColor)},
@@ -51,6 +52,7 @@ Customization customizationFromJson(const Json& j) {
     c.deck = std::clamp(jget<int>(j, "deck", c.deck), 0, 2);
     c.bars = std::clamp(jget<int>(j, "bars", c.bars), 0, 2);
     c.wheels = std::clamp(jget<int>(j, "wheels", c.wheels), 0, 2);
+    c.clamp = std::clamp(jget<int>(j, "clamp", c.clamp), 0, 1);
     c.deckColor = jvec3(j, "deckColor", c.deckColor);
     c.barsColor = jvec3(j, "barsColor", c.barsColor);
     c.wheelColor = jvec3(j, "wheelColor", c.wheelColor);

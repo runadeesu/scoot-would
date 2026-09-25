@@ -68,6 +68,7 @@ PartThumbnails::Shade PartThumbnails::render(Kind kind, int variant) const {
     if (!built[v]) {
         ScooterModelOptions o;
         o.deck = o.bars = o.wheels = v;
+        o.clamp = std::min(v, 1);
         sets[v] = buildScooterModel(dims, o);
         built[v] = true;
     }
@@ -77,7 +78,7 @@ PartThumbnails::Shade PartThumbnails::render(Kind kind, int variant) const {
     switch (kind) {
         case Deck:
             parts.push_back({&s.deck, Mat4::identity(), {kTintAlu, kHardware, kBlackAlu}});
-            parts.push_back({&s.grip, Mat4::identity(), {{false, 0.0f, 0.95f, {0.045f, 0.045f, 0.048f}}}});
+            parts.push_back({&s.grip, Mat4::identity(), {{false, 0.0f, 0.95f, {0.045f, 0.045f, 0.048f}}, kTintAlu}});
             parts.push_back({&s.brake, Mat4::identity(), {{false, 0.7f, 0.42f, {0.03f, 0.03f, 0.035f}}}});
             viewDir = Vec3(1.0f, 0.95f, 0.3f);
             break;

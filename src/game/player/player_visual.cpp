@@ -48,7 +48,10 @@ void PlayerVisual::buildScooterMeshes() {
     opt.deck = custom_.deck;
     opt.bars = custom_.bars;
     opt.wheels = custom_.wheels;
+    opt.clamp = custom_.clamp;
     ScooterMeshSet m = buildScooterModel(kDims, opt);
+    barHeight_ = m.barHeight;
+    barWidth_ = m.barWidth;
     parts_[Deck] = createGpuMesh(m.deck, false);
     parts_[Grip] = createGpuMesh(m.grip, false);
     parts_[Brake] = createGpuMesh(m.brake, false);
@@ -68,9 +71,9 @@ void PlayerVisual::create(RenderScene& rs) {
     buildScooterMeshes();
     MaterialPtr hw = assets().material("scooter_hardware");
     partMats_[Deck] = {assets().material("scooter_deck"), hw, assets().material("scooter_headset")};
-    partMats_[Grip] = {assets().material("scooter_griptape")};
+    partMats_[Grip] = {assets().material("scooter_griptape"), assets().material("scooter_deck")};  // logo cut-out
     partMats_[Brake] = {assets().material("scooter_brake")};
-    partMats_[Fork] = {assets().material("scooter_fork"), hw};
+    partMats_[Fork] = {assets().material("scooter_fork"), hw, assets().material("scooter_headset")};
     partMats_[Bars] = {assets().material("scooter_bars"), assets().material("scooter_barend")};
     partMats_[Grips] = {assets().material("scooter_grips")};
     partMats_[Clamp] = {assets().material("scooter_clamp"), hw};
@@ -198,7 +201,7 @@ void PlayerVisual::destroy() {
 }
 
 void PlayerVisual::applyCustomization(const Customization& c) {
-    bool rebuild = c.deck != custom_.deck || c.bars != custom_.bars || c.wheels != custom_.wheels;
+    bool rebuild = c.deck != custom_.deck || c.bars != custom_.bars || c.wheels != custom_.wheels || c.clamp != custom_.clamp;
     custom_ = c;
     if (!rs_) return;
     if (rebuild) {
@@ -209,7 +212,7 @@ void PlayerVisual::applyCustomization(const Customization& c) {
     // bearings and headset keep their own finish
     auto tint = [&](int part, const Vec3& col) { rs_->setTint(partHandles_[part], Vec4(col, 0.0f)); };
     tint(Deck, c.deckColor);
-    tint(Grip, Vec3(1));
+    tint(Grip, c.deckColor);  // griptape is not tintable, the logo cut-out shows the deck
     tint(Brake, Vec3(1));
     tint(Fork, c.barsColor);
     tint(Bars, c.barsColor);
@@ -349,8 +352,11 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
     ap.goofy = goofy_;
     ap.footDown = !bailed && player.stoppedTime() > 0.45f && !ap.pushing;
     RiderRig rig;
-    rig.gripL = d.gripL() - modelToBody.position;
-    rig.gripR = d.gripR() - modelToBody.position;
+    ScooterDims bars = d;  // hands on the grips of the fitted bars
+    bars.barHeight = barHeight_;
+    bars.barWidth = barWidth_;
+    rig.gripL = bars.gripL() - modelToBody.position;
+    rig.gripR = bars.gripR() - modelToBody.position;
     rig.footFront = d.frontFoot() - modelToBody.position;
     rig.footBack = d.backFoot() - modelToBody.position;
     if (player.state() == PlayerState::Air) {
