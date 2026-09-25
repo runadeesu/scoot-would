@@ -212,6 +212,16 @@ def main():
         if download(f"{FONT_BASE}/{family}/{fname}", out):
             print(f"  + {out}")
     manifest.append("| fonts/Barlow*.ttf | https://github.com/google/fonts/tree/main/ofl/barlow (Jeremy Tribby) | SIL OFL 1.1 (fonts/OFL.txt) |")
+    manifest += [
+        "",
+        "## Rider (human)",
+        "",
+        "- Body, shape targets, reference rig weights and eyes: MakeHuman system assets, CC0 1.0",
+        "  (https://github.com/makehumancommunity/makehuman, see `third_party/makehuman/README.md`).",
+        "- Skin, hair and neutral fabric textures in `assets/textures/rider/` are baked by",
+        "  `tools/assetgen/human_gen.cpp` (fabric weave derived from the CC0 Poly Haven fabric sets above;",
+        "  eye texture copied from MakeHuman, CC0).",
+    ]
     with open(os.path.join(ROOT, "assets", "SOURCES.md"), "w") as f:
         f.write("# Asset sources\n\n")
         f.write("Photographic textures and HDRIs come from [Poly Haven](https://polyhaven.com) and are CC0 (public domain).\n")
