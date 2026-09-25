@@ -8,6 +8,11 @@ namespace sw {
 bool Autotest::load(const std::string& absPath) {
     auto j = loadJsonFile(absPath);
     if (!j) return false;
+    return loadJson(*j);
+}
+
+bool Autotest::loadJson(const Json& jj) {
+    const Json* j = &jj;
     name_ = jget<std::string>(*j, "name", "test");
     map_ = jget<std::string>(*j, "map", "assets/scenes/testpark.json");
     spawn_ = jvec3(*j, "spawn", Vec3(0, 0, 0));
@@ -16,7 +21,7 @@ bool Autotest::load(const std::string& absPath) {
     duration_ = jget<float>(*j, "duration", 5.0f);
     cameraMode = jget<std::string>(*j, "camera", "");
     flow_ = jget<std::string>(*j, "scheme", "classic") == "flow";
-    for (auto& s : (*j)["steps"]) {
+    for (auto& s : j->value("steps", Json::array())) {
         if (s.contains("when"))
             conditional_.push_back({s.value("t", 0.0f), s});
         else

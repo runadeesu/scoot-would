@@ -153,7 +153,7 @@ private:
     void readBody();
     void castWheel(WheelContact& w, const Vec3& axleLocal, float dt);
     void applySuspension(WheelContact& w, float dt);
-    void applyGrip(WheelContact& w, const Vec3& wheelForward, float dt, float brake);
+    void applyGrip(WheelContact& w, const Vec3& wheelForward, float dt, float brake, bool throughCom = false);
     void keepUpright(float dt, const Controls& c);
     void airControl(float dt, const Controls& c);
 

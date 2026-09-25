@@ -8,6 +8,7 @@
 #include "game/modes/mode_manager.h"
 #include "game/player/player.h"
 #include "game/player/player_visual.h"
+#include "game/trailer.h"
 #include "game/world/shop_scene.h"
 #include "render/render_scene.h"
 #include "render/ui_draw.h"
@@ -44,6 +45,8 @@ struct GameOptions {
     int language = -1;        // --lang en / ja overrides the setting
     int antiAliasing = -1;    // --aa off / fxaa / taa overrides the setting (image comparisons)
     std::string cameraView;   // --view third / close / far / first overrides the camera setting
+    std::string trailer;      // --trailer script.json: play the trailer shots
+    std::string record;       // --record out.mp4: record the trailer (needs ffmpeg, SCOOT_FFMPEG)
 };
 
 struct DistrictInfo {
@@ -130,6 +133,16 @@ private:
     std::unique_ptr<Hud> hud_;
     std::unique_ptr<DebugUI> debug_;
     std::unique_ptr<Autotest> autotest_;
+    // trailer
+    std::unique_ptr<Trailer> trailer_;
+    size_t trailerShot_ = 0;
+    bool trailerRecording_ = false;  // the current shot is past its pre roll
+    float trailerShotTime_ = 0.0f;   // recorded seconds into the shot
+    double trailerClock_ = 0.0;      // recorded seconds before this shot
+    std::string trailerEnv_;         // environment preset the current shot set ("" = the map's own)
+    void startTrailerShot(size_t i);
+    void finishTrailer();
+    void logTrailerSound(const GameEvent& e);
     std::vector<MapInfo> maps_;
     AppState state_ = AppState::Menu;
     double testTime_ = 0.0;

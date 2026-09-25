@@ -1343,7 +1343,7 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
         SDL_EndGPURenderPass(rp);
     }
 
-    if (!screenshotPath_.empty()) takeScreenshot(cmd);
+    if (!screenshotPath_.empty() || frameSink_) takeScreenshot(cmd);
 
     // present -------------------------------------------------------------------------------
     Profiler::end(ProfileSection::Render);
@@ -1396,6 +1396,12 @@ void Renderer::takeScreenshot(SDL_GPUCommandBuffer*& cmd) {
     if (gpu().swapchainFormat() == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM || gpu().swapchainFormat() == SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM_SRGB)
         for (size_t i = 0; i < img.size(); i += 4) std::swap(img[i], img[i + 2]);
     for (size_t i = 3; i < img.size(); i += 4) img[i] = 255;
+    if (frameSink_) {
+        FrameSink sink = std::move(frameSink_);
+        frameSink_ = nullptr;
+        sink(img.data(), int(w), int(h));
+    }
+    if (screenshotPath_.empty()) return;
     fs::createDirectories(fs::parentPath(screenshotPath_));
     if (stbi_write_png(screenshotPath_.c_str(), int(w), int(h), 4, img.data(), int(w * 4)))
         LOG_INFO("renderer: screenshot saved to %s", screenshotPath_.c_str());

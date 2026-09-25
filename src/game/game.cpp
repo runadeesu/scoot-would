@@ -81,7 +81,7 @@ bool Game::init() {
     saves().init();
     input().setScheme(ControlScheme(saves().settings().gameplay.controlScheme));
     input().previewPadStyle(opts_.padPreview);
-    bool scripted = !opts_.autotest.empty() || !opts_.screenshot.empty();
+    bool scripted = !opts_.autotest.empty() || !opts_.screenshot.empty() || !opts_.trailer.empty();
     audio().init(!scripted);
     music().init();
     ui::context().init();
@@ -104,6 +104,20 @@ bool Game::init() {
         opts_.map = autotest_->map();
         player_.tricks.setScheme(autotest_->flowScheme());  // tests state the layout they were written for
         if (opts_.cameraView.empty()) opts_.cameraView = autotest_->cameraMode.empty() ? "third" : autotest_->cameraMode;
+    }
+    if (!opts_.trailer.empty()) {
+        trailer_ = std::make_unique<Trailer>();
+        if (!trailer_->load(fs::resolve(opts_.trailer))) {
+            LOG_ERROR("trailer: cannot load %s", opts_.trailer.c_str());
+            testExit_ = 2;
+            quit_ = true;
+            return true;
+        }
+        const TrailerShot& s0 = trailer_->shots()[0];
+        autotest_ = std::make_unique<Autotest>();
+        autotest_->loadJson(s0.test);
+        opts_.map = s0.map;
+        player_.tricks.setScheme(autotest_->flowScheme());
     }
     if (!opts_.cameraView.empty()) {
         const std::string& v = opts_.cameraView;
@@ -136,6 +150,17 @@ bool Game::init() {
     if (!loadMap(map)) return false;
     if (!spawn.empty()) spawnAt(spawn);
     applyCustomization();
+    if (trailer_) {
+        startTrailerShot(0);
+        if (!opts_.record.empty()) {
+            int w = 0, h = 0;
+            engine().window().pixelSize(w, h);
+            if (!trailer_->openRecorder(opts_.record, w, h)) {
+                testExit_ = 3;
+                quit_ = true;
+            }
+        }
+    }
 
     bool direct = autotest_ || opts_.skipMenu || (!opts_.map.empty() && opts_.menuScreen.empty()) || !opts_.challenge.empty();
     if (!opts_.challenge.empty()) startChallenge(opts_.challenge);
@@ -578,6 +603,7 @@ void Game::postPhysics(float dt) {
 void Game::processEvents() {
     SaveData& sd = saves().data();
     for (const GameEvent& e : player_.events()) {
+        if (trailer_ && trailerRecording_) logTrailerSound(e);
         audio_.onEvent(e);
         if (hud_) hud_->onEvent(e);
         modes_.onEvent(e, player_);
@@ -807,6 +833,41 @@ void Game::updatePlayCamera(float dt, float alpha) {
 
 void Game::update(float dt, float alpha) {
     ++frame_;
+    if (trailer_ && !quit_) {
+        // trailer: pre roll (simulated, not recorded) -> recorded part -> next shot
+        const TrailerShot& s = trailer_->shots()[trailerShot_];
+        if (!trailerRecording_) {
+            if (testTime_ >= double(s.preroll)) {
+                trailerRecording_ = true;
+                trailerShotTime_ = 0.0f;
+            }
+        } else {
+            trailerShotTime_ += dt;
+            if (trailerShotTime_ >= s.length - 0.5f / float(trailer_->fps())) {
+                trailerClock_ += double(s.length);
+                if (trailerShot_ + 1 < trailer_->shots().size())
+                    startTrailerShot(trailerShot_ + 1);
+                else
+                    finishTrailer();
+            }
+        }
+        if (!quit_) {
+            const TrailerShot& cur = trailer_->shots()[trailerShot_];
+            engine().setTimeScale(trailerRecording_ ? trailer_->timeScale(cur, trailerShotTime_) : 1.0f);
+            // looped beds under the music, per recorded frame: rolling wheels on the ground surface (louder with
+            // speed), wind in the air, the grind; hushed in slow motion
+            if (trailerRecording_) {
+                int frame = int(std::lround((trailerClock_ + double(trailerShotTime_)) * double(trailer_->fps())));
+                float hush = 0.35f + 0.65f * trailer_->timeScale(cur, trailerShotTime_);
+                PlayerState ps = player_.state();
+                float spd = player_.speed();
+                if ((ps == PlayerState::Riding || ps == PlayerState::Manual) && player_.scooter.grounded() && spd > 0.3f)
+                    trailer_->logBed(surfaces().get(player_.scooter.groundSurface()).rollSound, frame, saturate(spd / 9.0f) * 0.55f * hush);
+                if (ps == PlayerState::Air) trailer_->logBed("wind", frame, saturate((spd - 3.0f) / 12.0f) * 0.45f * hush);
+                if (ps == PlayerState::Grinding) trailer_->logBed(surfaces().get(player_.grind.surface).grindSound, frame, 0.6f * hush);
+            }
+        }
+    }
     Input& in = input();
     SaveData& sd = saves().data();
     if (menus_->loadPending()) menus_->performPendingLoad();
@@ -872,8 +933,8 @@ void Game::update(float dt, float alpha) {
     }
     if (debug_) debug_->update(dt);
 
-    // autotest: screenshots + finish
-    if (autotest_) {
+    // autotest: screenshots + finish (a trailer moves on from shot to shot itself)
+    if (autotest_ && !trailer_) {
         if (nextShot_ < autotest_->screenshotTimes.size() && testTime_ >= autotest_->screenshotTimes[nextShot_]) {
             char name[128];
             snprintf(name, sizeof(name), "autotest/%s_%zu.png", autotest_->name().c_str(), nextShot_);
@@ -894,9 +955,13 @@ void Game::update(float dt, float alpha) {
 void Game::render(float dt, float alpha) {
     // scripted tests only render the frames leading up to a screenshot (much faster on software GPUs); a few
     // frames before it so temporal effects (TAA, motion blur) have their history as in a real game
-    if (autotest_ && !(nextShot_ < autotest_->screenshotTimes.size() && testTime_ + 0.25 >= autotest_->screenshotTimes[nextShot_]) &&
-        !pendingShot_)
+    if (trailer_) {
+        // trailer: the pre roll is only simulated, its last moments rendered so TAA has a history at the cut
+        if (quit_ || (!trailerRecording_ && testTime_ + 0.3 < double(trailer_->shots()[trailerShot_].preroll))) return;
+    } else if (autotest_ && !(nextShot_ < autotest_->screenshotTimes.size() && testTime_ + 0.25 >= autotest_->screenshotTimes[nextShot_]) &&
+               !pendingShot_) {
         return;
+    }
     pendingShot_ = false;
     int w, h;
     engine().window().pixelSize(w, h);
@@ -905,6 +970,13 @@ void Game::render(float dt, float alpha) {
     if (state_ == AppState::Menu) view = menuView_;
     if (state_ == AppState::Editor && debug_) view = debug_->editorView(aspect);
     if (opts_.fixedCamera) view = RenderView::lookAt(opts_.cameraPos, opts_.cameraTarget, Vec3(0, 1, 0), 60.0f * kDeg2Rad, aspect, 0.1f);
+    if (trailer_) {
+        Vec3 cp, ct;
+        float fov = 50.0f;
+        Vec3 rider = player_.state() == PlayerState::Bailed ? player_.ragdoll.centre() : player_.renderTransform(alpha).position;
+        if (trailer_->camera(trailer_->shots()[trailerShot_], trailerShotTime_, dt, rider, player_.velocity(), cp, ct, fov))
+            view = RenderView::lookAt(cp, ct, Vec3(0, 1, 0), fov * kDeg2Rad, aspect, 0.05f);
+    }
 
     // game UI
     ui_.clear();
@@ -915,12 +987,78 @@ void Game::render(float dt, float alpha) {
         if (hudVisible && (!autotest_ || !autotest_->screenshotTimes.empty())) hud_->draw(ui, dt, view);
     }
     if (menus_->active()) menus_->draw(ui, dt);
+    if (trailer_ && trailerRecording_) trailer_->drawOverlay(ui, trailer_->shots()[trailerShot_], trailerShotTime_);
     ui.end();
+    if (trailer_ && trailerRecording_ && trailer_->recording())
+        renderer().captureNextFrame([this](const uint8_t* px, int fw, int fh) { trailer_->writeFrame(px, fw, fh); });
 
     RenderCallbacks cb;
     if (debug_) debug_->callbacks(cb);
     renderer().renderFrame(renderScene_, view, &ui_, cb, dt);
     (void)alpha;
+}
+
+void Game::startTrailerShot(size_t i) {
+    const TrailerShot& s = trailer_->shots()[i];
+    trailerShot_ = i;
+    trailerRecording_ = false;
+    trailerShotTime_ = 0.0f;
+    engine().setTimeScale(1.0f);
+    autotest_ = std::make_unique<Autotest>();
+    autotest_->loadJson(s.test);
+    player_.tricks.setScheme(autotest_->flowScheme());
+    camera_.setMode(s.view == "first" ? CameraMode::FirstPerson : s.view == "close" ? CameraMode::Close : s.view == "far" ? CameraMode::Far
+                                                                                                        : CameraMode::Follow);
+    testTime_ = 0.0;
+    nextShot_ = 0;
+    if (s.map != mapPath_) {
+        loadMap(s.map);  // spawns the rider from the shot, map's own environment
+    } else {
+        spawnPlayerAtDefault();
+        // back to the map's own light after a shot with another preset
+        if (s.env.empty() && !trailerEnv_.empty()) applyEnvironment(jget<std::string>(scene_.environmentJson(), "preset", "day"));
+    }
+    if (!s.env.empty()) applyEnvironment(s.env);
+    trailerEnv_ = s.env;
+    // the shot's scooter setup on top of the saved one
+    Json cj = customizationToJson(saves().data().custom);
+    for (auto it = s.custom.begin(); it != s.custom.end(); ++it) cj[it.key()] = it.value();
+    visual_.applyCustomization(customizationFromJson(cj));
+    visual_.setRiderVisible(!s.hideRider && !opts_.hideRider);
+    cameraCut_ = true;
+    trailer_->resetCamera();
+    renderer().resetHistory();
+    LOG_INFO("trailer: shot %zu / %zu (%s)", i + 1, trailer_->shots().size(), jget<std::string>(s.test, "name", "").c_str());
+}
+
+void Game::finishTrailer() {
+    trailer_->closeRecorder();
+    if (!opts_.record.empty()) {
+        std::string base = opts_.record;
+        size_t dot = base.find_last_of('.');
+        if (dot != std::string::npos) base = base.substr(0, dot);
+        trailer_->saveSounds(base + ".sounds.json");
+    }
+    engine().setTimeScale(1.0f);
+    quit_ = true;
+}
+
+void Game::logTrailerSound(const GameEvent& e) {
+    double t = trailerClock_ + double(trailerShotTime_);
+    switch (e.type) {
+        case GameEventType::Push: trailer_->logSound("push", t, 0.7f); break;
+        case GameEventType::Pop: trailer_->logSound("pop", t, 0.6f + saturate(e.magnitude / 5.0f) * 0.4f); break;
+        case GameEventType::Land: {
+            float m = e.magnitude;
+            trailer_->logSound(m > 8.0f ? "land_hard" : m > 4.0f ? "land_normal" : "land_soft", t, 0.5f + saturate(m / 10.0f) * 0.5f);
+            break;
+        }
+        case GameEventType::TrickStart: trailer_->logSound(e.text.find("Bar") != std::string::npos ? "barspin" : "whip", t, 0.5f); break;
+        case GameEventType::TrickLanded: trailer_->logSound("catch", t, 0.6f); break;
+        case GameEventType::GrindStart: trailer_->logSound("scooter_hit", t, 0.8f); break;
+        case GameEventType::Bail: trailer_->logSound("bail", t, 1.0f); break;
+        default: break;
+    }
 }
 
 }  // namespace sw

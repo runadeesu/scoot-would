@@ -6,13 +6,53 @@
 #include "core/log.h"
 #include "core/filesystem.h"
 #include "core/json.h"
+#include "audio/music.h"
 #include "game/game.h"
 #include "save/save_system.h"
 
+#include <cstdio>
 #include <cstring>
 #include <string>
 
 using namespace sw;
+
+namespace {
+// --render-song song.json out.wav: the built in synthesiser renders a song offline (trailer soundtrack)
+int renderSongToWav(const std::string& songPath, const std::string& outPath) {
+    fs::init();
+    auto j = loadJsonFile(fs::resolve(songPath));
+    if (!j) {
+        LOG_ERROR("render-song: cannot read %s", songPath.c_str());
+        return 1;
+    }
+    SoundPtr s = renderSong(*j, songPath);
+    if (!s || s->frames.empty()) return 1;
+    FILE* f = fopen(outPath.c_str(), "wb");
+    if (!f) return 1;
+    auto u32 = [&](uint32_t v) { fwrite(&v, 4, 1, f); };
+    auto u16 = [&](uint16_t v) { fwrite(&v, 2, 1, f); };
+    uint32_t n = uint32_t(s->frames.size()), ch = uint32_t(s->channels), sr = uint32_t(s->sampleRate);
+    fwrite("RIFF", 1, 4, f);
+    u32(36 + n * 2);
+    fwrite("WAVEfmt ", 1, 8, f);
+    u32(16);
+    u16(1);
+    u16(uint16_t(ch));
+    u32(sr);
+    u32(sr * ch * 2);
+    u16(uint16_t(ch * 2));
+    u16(16);
+    fwrite("data", 1, 4, f);
+    u32(n * 2);
+    for (float v : s->frames) {
+        int16_t q = int16_t(std::max(-1.0f, std::min(1.0f, v)) * 32767.0f);
+        fwrite(&q, 2, 1, f);
+    }
+    fclose(f);
+    LOG_INFO("render-song: %s -> %s (%.1f s)", songPath.c_str(), outPath.c_str(), double(s->duration()));
+    return 0;
+}
+}  // namespace
 
 int main(int argc, char** argv) {
     EngineConfig cfg;
@@ -23,6 +63,12 @@ int main(int argc, char** argv) {
         auto next = [&]() -> std::string { return i + 1 < argc ? argv[++i] : ""; };
         if (a == "--map") opts.map = next();
         else if (a == "--autotest") opts.autotest = next();
+        else if (a == "--trailer") opts.trailer = next();
+        else if (a == "--record") opts.record = next();
+        else if (a == "--render-song") {
+            std::string song = next();
+            return renderSongToWav(song, next());
+        }
         else if (a == "--gpu") cfg.gpuDriver = next();
         else if (a == "--gpu-debug") cfg.gpuDebug = true;
         else if (a == "--windowed") {
@@ -75,12 +121,12 @@ int main(int argc, char** argv) {
                     "            [--lang en|ja] [--stance regular|goofy] [--pad xbox|ps|switch] [--no-rider]\n"
                     "            [--aa off|fxaa|taa] [--view third|close|far|first]\n"
                     "            [--env preset] [--autotest test.json] [--screenshot file.png frame] [--camera x,y,z,tx,ty,tz]\n"
-                    "            [--debugview n]");
+                    "            [--debugview n] [--trailer script.json [--record out.mp4]] [--render-song song.json out.wav]");
             return 0;
         }
     }
     // window + presentation from the saved settings (command line wins; scripted runs use defaults)
-    if (!windowFromArgs && opts.autotest.empty() && opts.screenshot.empty() && fs::init()) {
+    if (!windowFromArgs && opts.autotest.empty() && opts.screenshot.empty() && opts.trailer.empty() && fs::init()) {
         if (auto j = loadJsonFile(fs::userPath("settings.json"))) {
             Settings s = SaveSystem::settingsFromJson(*j);
             cfg.windowMode = WindowMode(s.graphics.windowMode);
@@ -97,6 +143,18 @@ int main(int argc, char** argv) {
         cfg.vsync = false;
     }
     if (!opts.screenshot.empty()) cfg.fixedFrameTime = 1.0f / 60.0f;
+    if (!opts.trailer.empty()) {
+        // every frame is one frame of the video; the script sets the resolution unless --size did
+        auto tj = fs::init() ? loadJsonFile(fs::resolve(opts.trailer)) : std::nullopt;
+        int fps = tj ? jget<int>(*tj, "fps", 30) : 30;
+        cfg.fixedFrameTime = 1.0f / float(fps);
+        cfg.vsync = false;
+        if (tj && !windowFromArgs) {
+            cfg.width = jget<int>(*tj, "width", 1920);
+            cfg.height = jget<int>(*tj, "height", 1080);
+            cfg.windowMode = WindowMode::Windowed;
+        }
+    }
     if (!engine().init(cfg)) {
         engine().shutdown();
         return 1;

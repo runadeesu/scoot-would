@@ -1,0 +1,3 @@
+{ "name": "mega_ramp", "map": "assets/scenes/city.json", "spawn": [265, 16, 0], "yaw": -90, "velocity": [1.5, 0, 0], "duration": 9.0,
+  "steps": [ {"t": 0.2, "push": true} ],
+  "expect": [ {"noBail": true, "maxSpeedMin": 13.0}, {"t": 8.5, "posMin": [330, -0.5, -3.5], "posMax": [420, 8, 3.5]} ], "screenshots": [] }

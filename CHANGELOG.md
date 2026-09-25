@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Trailer
+- Trailer mode: `--trailer script.json --record out.mp4` plays scripted shots (autotest inputs, cinematic
+  track / fixed / dolly / orbit cameras, slow motion, JA + EN title cards, letterbox, fades) and records every
+  frame through ffmpeg at a fixed frame time. `tools/make_trailer.sh` renders the soundtrack (the game's own
+  synthesiser, `assets/music/trailer_theme.json`), records `assets/trailer/trailer.json` (15 shots, 60 s, from
+  `tools/trailergen.py`), mixes the gameplay sounds logged while recording under the song
+  (`tools/trailer_audio.py`) and muxes the video.
+
+### Fixes
+- Mega Park: the mega ramp could not be cleared - an 11 m tower gave about 10 m/s off the kicker against a 14 m
+  gap to a landing 2.5 m higher. The tower is now 16 m (26 m roll in), the gap 11 m and the landing deck 4 m: a
+  plain drop in carries 14 to 18 m. The Mega Park spawn moved up onto the new tower deck. New autotest `mega_ramp`.
+- Landings nose first down a transition (a pool air) could slew the scooter up to 60 degrees sideways: on the
+  front wheel alone the side grip at the lone contact twisted the scooter, and the yaw kept building. The grip at
+  a lone contact now keeps the line without twisting the scooter, and on the ground the yaw rate follows what the
+  wheels allow (steer angle and speed). New autotest `pool_air_turn`.
+- A bounce off the vert below the coping was treated as an air out of the ramp and pushed the rider away from the
+  wall; it is a plain air back down the same wall now.
+
 ### Controls
 - Spins and flips in the air are on the left stick (Scooter Flow layout too); the right stick is only for the pop,
   compressing and the RT / LT tricks. A stick held back or forward into the air (manual) flips only after it came

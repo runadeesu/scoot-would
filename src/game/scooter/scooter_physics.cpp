@@ -172,7 +172,7 @@ void ScooterPhysics::applySuspension(WheelContact& w, float dt) {
     }
 }
 
-void ScooterPhysics::applyGrip(WheelContact& w, const Vec3& wheelForward, float dt, float) {
+void ScooterPhysics::applyGrip(WheelContact& w, const Vec3& wheelForward, float dt, float, bool throughCom) {
     if (!w.contact) return;
     Vec3 n = w.normal;
     Vec3 fwd = projectOnPlane(wheelForward, n).normalized();
@@ -185,7 +185,10 @@ void ScooterPhysics::applyGrip(WheelContact& w, const Vec3& wheelForward, float 
     const SurfaceType& st = surfaces().get(w.surface);
     float maxImp = st.friction * tuning.lateralGrip * (w.load + tuning.mass * 2.0f) * dt;
     float j = clampf(-vLat * mEff, -maxImp, maxImp);
-    physics().addImpulseAt(body_, side * j, p);
+    if (throughCom)
+        physics().addImpulse(body_, side * j);
+    else
+        physics().addImpulseAt(body_, side * j, p);
 }
 
 void ScooterPhysics::keepUpright(float dt, const Controls& c) {
@@ -198,6 +201,14 @@ void ScooterPhysics::keepUpright(float dt, const Controls& c) {
     Vec3 wAlign = s > 1e-5f ? axis / s * (ang * 16.0f) : Vec3(0);
     Vec3 w = physics().angularVelocity(body_);
     float yawRate = dot(w, desiredUp);
+    // rolling wheels set the yaw rate (v tan(steer) / wheelbase). On the front wheel alone (a nose first landing
+    // down a transition) the wheel load acts ahead of the centre of mass and any yaw error grows on its own: that
+    // slewed pool landings 60 deg sideways. The rider holds the bars straight until the back wheel is down, so the
+    // yaw is held to what the wheels allow. Wheelies (manuals) keep their free pivot on the back wheel.
+    if (!wheelie_) {
+        float kin = -forwardSpeed() * std::tan(steerAngle_) / std::max(tuning.wheelBase, 0.3f);
+        yawRate = lerpf(yawRate, kin, damp(front_.contact && rear_.contact ? 12.0f : 40.0f, dt));
+    }
     // in place turning at very low speed (a rider can lift and swing the scooter)
     float spd = speed();
     if (spd < 1.5f && std::fabs(c.steer) > 0.1f) {
@@ -219,6 +230,7 @@ void ScooterPhysics::keepUpright(float dt, const Controls& c) {
     }
     Vec3 target = desiredUp * yawRate + wAlign + ff;
     w = lerp(w, target, damp(30.0f, dt));
+    if (!wheelie_) w += desiredUp * (yawRate - dot(w, desiredUp));
     physics().setAngularVelocity(body_, w);
 }
 
@@ -358,9 +370,13 @@ void ScooterPhysics::step(float dt, const Controls& c) {
         readBody();
         Vec3 f = forward();
         Vec3 frontDir = Quat::angleAxis(-steerAngle_, up()) * f;
+        // on one wheel outside a manual (touching down nose or tail first) the tyre keeps the line but does not twist
+        // the scooter: with the centre of mass a metre up, the side force at a lone contact wound the scooter into a
+        // yaw spin during pool landings (the rider holds the bars straight until both wheels are down)
+        bool lone = front_.contact != rear_.contact && !wheelie_;
         for (int it = 0; it < 2; ++it) {
-            applyGrip(front_, frontDir, dt, 0.0f);
-            applyGrip(rear_, f, dt, c.brake);
+            applyGrip(front_, frontDir, dt, 0.0f, lone);
+            applyGrip(rear_, f, dt, c.brake, lone);
         }
         readBody();
         // rolling resistance, air drag and brake along the ground plane

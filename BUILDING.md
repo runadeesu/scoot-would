@@ -29,6 +29,12 @@ DISPLAY=:99 ./tools/run_autotests.sh
 DISPLAY=:99 "./build/linux/src/scoot would" --menu scooter --screenshot shop.png 40
 ```
 
+Trailer video (needs ffmpeg with libx264 and aac, see DEVELOPMENT.md):
+
+```
+DISPLAY=:99 SCOOT_FFMPEG=/path/to/ffmpeg ./tools/make_trailer.sh
+```
+
 ## Windows x64 release
 
 From Linux with MinGW-w64:

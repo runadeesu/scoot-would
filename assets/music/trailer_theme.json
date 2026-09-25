@@ -1,0 +1,20 @@
+{
+  "_comment": "Trailer soundtrack: 120 bpm, 30 bars = 60 s. Sections line up with the shots in assets/trailer/trailer.json (2 s per bar).",
+  "bpm": 120, "swing": 0.0, "root": "D2", "scale": "minor", "seed": 11,
+  "chords": [[0, "m"], [8, ""], [3, ""], [10, ""]],
+  "keys": "pluck", "keysRhythm": "x..x..x...x..x..",
+  "leadDensity": 0.45, "leadOctave": 5,
+  "drums": { "kick": "x...x...x...x...", "snare": "....x.......x...", "hat": "x.x.x.x.x.x.x.x.", "openhat": "..x...x...x...x." },
+  "bassRhythm": "x.xx..x.x.xx..x.",
+  "padCutoff": 2200, "masterLowpass": 15000,
+  "structure": [
+    { "bars": 2, "parts": ["pad"] },
+    { "bars": 2, "parts": ["pad", "hats", "bass"] },
+    { "bars": 4, "parts": ["drums", "bass", "keys"] },
+    { "bars": 6, "parts": ["drums", "bass", "keys", "lead"] },
+    { "bars": 2, "parts": ["pad", "hats"] },
+    { "bars": 8, "parts": ["drums", "bass", "keys", "lead", "pad"] },
+    { "bars": 3, "parts": ["drums", "bass", "keys", "pad"] },
+    { "bars": 3, "parts": ["pad"] }
+  ]
+}

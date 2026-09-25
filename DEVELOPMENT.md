@@ -9,7 +9,7 @@ scoot would [--map scene.json] [--spawn label] [--challenge id] [--play] [--edit
             [--lang en|ja] [--stance regular|goofy] [--pad xbox|ps|switch] [--no-rider] [--aa off|fxaa|taa]
             [--view third|close|far|first]
             [--env preset] [--autotest test.json] [--screenshot file.png frame] [--camera x,y,z,tx,ty,tz]
-            [--debugview n]
+            [--debugview n] [--trailer script.json [--record out.mp4]] [--render-song song.json out.wav]
 ```
 
 `--screenshot` saves the given frame and quits; `--camera` fixes the view; `--pad` shows controller glyphs
@@ -29,6 +29,30 @@ DISPLAY=:99 ./tools/run_autotests.sh
 ```
 
 A test states the control layout it was written for with `"scheme": "flow"` (default classic).
+
+## Trailer
+
+`tools/make_trailer.sh` makes the game trailer (about 60 s, 1920x1080, 30 fps) from inside the game:
+
+```
+DISPLAY=:99 SCOOT_FFMPEG=/path/to/ffmpeg ./tools/make_trailer.sh     # -> out/trailer/scoot_would_trailer.mp4
+```
+
+- `python3 tools/trailergen.py` writes the script, `assets/trailer/trailer.json`. Each shot is an autotest (map,
+  spawn, speed, timed / conditional inputs) plus a pre-roll (simulated, not recorded), a length, a camera (`game`,
+  `track` in the rider's travel frame, `fixed`, `dolly`, `orbit`), slow-motion ranges, title cards (JA + EN,
+  fades, cards can run across a cut), a scooter setup, an environment preset and fades to black. Shot lengths
+  are whole bars of the song (120 bpm, 2 s a bar), so cuts land on the beat.
+- `--trailer script.json --record out.mp4` plays the shots with a fixed frame time (one video frame per frame,
+  vsync off, the window at the script's size) and pipes every frame (scene + titles + letterbox) to ffmpeg
+  (`libx264`). The gameplay sounds are logged next to the video (`out.sounds.json`): one-shots (push, pop,
+  landings, trick starts, catches, bail) and looped beds per frame (rolling on the ground surface, wind, grinds),
+  hushed in slow motion.
+- `--render-song song.json out.wav` renders the soundtrack (`assets/music/trailer_theme.json`) with the game's own
+  synthesiser; `tools/trailer_audio.py` mixes the song with the logged sounds (`assets/audio`), and ffmpeg muxes
+  it all.
+
+To check one shot quickly, copy the script with only that shot and a small `width` / `height` and record it.
 
 ## Adding content
 

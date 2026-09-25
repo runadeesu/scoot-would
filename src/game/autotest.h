@@ -17,6 +17,7 @@ namespace sw {
 class Autotest {
 public:
     bool load(const std::string& absPath);
+    bool loadJson(const Json& j);  // same contents as a test file (trailer shots use it)
     const std::string& map() const { return map_; }
     Vec3 spawnPos() const { return spawn_; }
     float spawnYaw() const { return yaw_; }

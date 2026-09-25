@@ -150,15 +150,16 @@ void Player::enterAir(bool popped) {
     scooter.transferAir = false;
     if (rampAir_) {
         // only where a deck follows the coping (quarters, bowls): over a spine or a hip the far side drops away
-        // steeply right behind the coping and the rider transfers
-        Vec3 probe = scooter.position() + rampOut_ * 0.8f + Vec3(0.0f, 0.6f, 0.0f);
+        // steeply right behind the coping and the rider transfers. A deck well above the wheels means the rider left
+        // the wall below the coping (a bounce off the vert on a hard landing): a plain air back down the same wall.
+        float y = scooter.position().y;
+        Vec3 probe = scooter.position() + rampOut_ * 0.8f + Vec3(0.0f, 1.5f, 0.0f);
         RayHit hit;
-        bool deck = physics().raycast(probe, Vec3(0, -1, 0), 2.2f, hit, kWorldMask, scooter.body()) &&
-                    hit.point.y > scooter.position().y - 0.9f;
-        if (!deck) {
-            rampAir_ = false;
-            scooter.transferAir = true;
-        }
+        bool found = physics().raycast(probe, Vec3(0, -1, 0), 3.1f, hit, kWorldMask, scooter.body());
+        bool deck = found && hit.point.y > y - 0.9f;
+        bool belowLip = found && hit.point.y > y + 0.6f;
+        if (!deck || belowLip) rampAir_ = false;
+        if (!deck) scooter.transferAir = true;
     }
     rampNormal_ = rampAir_ ? n.normalized() : Vec3(0, 1, 0);
     rampLip_ = scooter.lastGroundPoint();

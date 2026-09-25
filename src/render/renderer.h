@@ -68,6 +68,9 @@ public:
     bool renderFrame(RenderScene& scene, const RenderView& view, const UIDrawList* ui, const RenderCallbacks& cb, float dt);
 
     void requestScreenshot(const std::string& absPath) { screenshotPath_ = absPath; }
+    // hands the next rendered frame (scene + UI, RGBA8, top row first) to the callback: video recording
+    using FrameSink = std::function<void(const uint8_t* rgba, int w, int h)>;
+    void captureNextFrame(FrameSink sink) { frameSink_ = std::move(sink); }
     // camera cut: the next frame starts without temporal history (TAA, motion blur)
     void resetHistory() { taaValid_ = false; hasPrev_ = false; }
     void setFlash(const Vec4& rgbAmount) { flash_ = rgbAmount; }
@@ -187,6 +190,7 @@ private:
     float time_ = 0.0f;
     Vec4 flash_{0, 0, 0, 0};
     std::string screenshotPath_;
+    FrameSink frameSink_;
     uint32_t lightCount_ = 0;
 };
 

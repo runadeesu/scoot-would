@@ -54,7 +54,7 @@ def facing_yaw(dx, dz):
 
 def district(name, cx, cz, material, spawn_off, spawn_face, spawn_y=0.0, half=70.0):
     add("slab", (cx, 0, cz), 0, {"size": [BLOCK - 2, 0.03, BLOCK - 2], "grindEdges": False}, material, name + " ground", name)
-    add("zone", (cx, 0, cz), 0, {"halfExtents": [half, 12, half], "area": name, "kind": "area"}, None, name + " area")
+    add("zone", (cx, 0, cz), 0, {"halfExtents": [half, max(12, spawn_y + 6), half], "area": name, "kind": "area"}, None, name + " area")
     add("spawn", (cx + spawn_off[0], spawn_y, cz + spawn_off[1]), facing_yaw(*spawn_face), {"label": name, "default": name == "Street Plaza"},
         None, name + " spawn")
 
@@ -229,10 +229,11 @@ def skatepark(rng):
 def mega_park(rng):
     cx, cz = 2 * PITCH, 0.0
     name = "Mega Park"
-    district(name, cx, cz, "concrete_worn", (-63, 0), (1, 0), spawn_y=11.0)
-    # mega ramp runs +X from the tower
-    add("mega_ramp", (cx - 65, 0, cz), 0, {"towerHeight": 11.0, "rollInLength": 20.0, "width": 7.5, "kickerHeight": 3.0, "kickerLength": 7.0,
-                                           "gap": 14.0, "landingHeight": 5.5, "landingLength": 20.0, "quarterHeight": 6.0}, "plywood", "mega ramp", name)
+    district(name, cx, cz, "concrete_worn", (-63, 0), (1, 0), spawn_y=16.0)
+    # mega ramp runs +X from the tower. Sized so a plain drop in clears the gap: a 16 m tower gives about 14 m/s off a
+    # 45 degree, 3 m kicker, which carries 14 to 18 m against a 4 m landing deck (11 m gap + 2 m table)
+    add("mega_ramp", (cx - 65, 0, cz), 0, {"towerHeight": 16.0, "rollInLength": 26.0, "width": 7.5, "kickerHeight": 3.0, "kickerLength": 7.0,
+                                           "gap": 11.0, "landingHeight": 4.0, "landingLength": 18.0, "quarterHeight": 6.0}, "plywood", "mega ramp", name)
     # tower stairs for the walk back up (and the respawn point sits on the deck)
     # big air lines: kicker -> table top landing
     for (z, h, gapl) in [(34, 1.4, 6.0), (-34, 2.2, 9.0)]:
