@@ -143,6 +143,10 @@ void Player::enterAir(bool popped) {
     airRotateArmed_ = false;
     airStartY_ = scooter.position().y;
     airPeak_ = 0.0f;
+    Vec3 n = scooter.groundNormal();
+    Vec3 nh(n.x, 0.0f, n.z);
+    rampAir_ = n.y < 0.6f && nh.lengthSq() > 0.25f;  // wall steeper than ~53 deg
+    rampOut_ = rampAir_ ? -nh.normalized() : Vec3(0.0f);
     coyote_ = popped ? 0.0f : 0.12f;
     predictLanding();
     tricks.beginAir(timeToLand_, scooter.fakie());
@@ -360,6 +364,13 @@ void Player::fixedUpdate(float dt, const PlayerInput& in, std::deque<FlickEvent>
                 c.flip = in.move.y;
                 c.roll = in.move.x * std::fabs(in.move.y) * 0.8f;
                 if (std::fabs(in.move.y) < 0.35f) c.flip = 0.0f;
+            }
+            // transition air: riders steer the scooter back over the ramp with their body, so a mellow lip (70-80 deg)
+            // brings them down the wall instead of out onto the deck. Holding forward means a transfer / air to deck.
+            if (rampAir_ && in.move.y < 0.6f) {
+                Vec3 v = scooter.velocity();
+                float out = dot(v, rampOut_);
+                if (out > -0.25f) scooter.setVelocity(v - rampOut_ * ((out + 0.25f) * saturate(dt * 5.0f)));
             }
             predictLanding();
             tricks.airUpdate(dt, flicks, time, in.grab, in.trickMod, in.alt, in.rightDir, scooter.angularVelocity(), scooter.right(), scooter.forward(), timeToLand_);

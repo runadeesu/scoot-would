@@ -474,6 +474,173 @@ void bowlPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     out.materials = {M(mat, "concrete_park"), "coping"};
 }
 
+// In-ground concrete pool / flow bowl: a rounded rectangle whose walls are one transition swept round the
+// coping line, so straight walls and corner pockets are one continuous surface. The floor is at y = 0 and the
+// deck at y = depth: place it depth below grade and the deck is the ground (no guardrail needed at grade).
+// length/width run coping to coping (X/Z), cornerRadius is the plan radius of the coping line at the
+// corners (length = width = 2 * cornerRadius is a round pool). Coping "steel" is 2 3/8 in pipe; "pool" is
+// concrete bullnose blocks with a band of tile underneath, the classic backyard pool.
+void poolPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
+    float L = P(j, "length", 12.0f), W = P(j, "width", 8.0f), depth = P(j, "depth", 1.8f), trans = P(j, "transition", 2.4f);
+    float deck = P(j, "deck", 1.5f), rc = P(j, "cornerRadius", 3.0f);
+    bool poolCoping = Ps(j, "coping", "steel") == "pool";
+    bool tile = Pb(j, "tile", poolCoping);
+    const float kNoseR = 0.045f, kBlock = 0.30f;  // bullnose radius, coping block depth (12 in)
+    // riding surface profile (u = distance behind the coping line: negative towards the middle, y up)
+    float vert = std::max(0.0f, depth - trans);
+    float curveH = depth - vert;
+    float thetaMax = std::acos(clampf(1.0f - curveH / trans, -1.0f, 1.0f));
+    float xTop = trans * std::sin(thetaMax);
+    float a = L * 0.5f, bz = W * 0.5f;
+    rc = clampf(rc, std::min(xTop + 0.1f, std::min(a, bz)), std::min(a, bz));
+    float topY = poolCoping ? depth + kCopingProud - 2.0f * kNoseR : depth;  // where the wall meets the coping
+    float tileY = tile ? topY - 0.15f : topY;
+    std::vector<Vec2> prof;  // (u, y) from the floor edge up to under the coping
+    int ts = std::max(10, int(trans * 7.0f));
+    for (int i = 0; i <= ts; ++i) {
+        float th = thetaMax * float(i) / float(ts);
+        prof.push_back({trans * std::sin(th) - xTop, trans * (1.0f - std::cos(th))});
+    }
+    if (vert > 0.0f) prof.push_back({0.0f, depth});
+    // cut the profile at the tile line and the coping underside
+    auto cutAt = [&](float y) {
+        for (size_t i = 0; i + 1 < prof.size(); ++i) {
+            if (prof[i].y < y - 1e-4f && prof[i + 1].y > y + 1e-4f) {
+                float t = (y - prof[i].y) / (prof[i + 1].y - prof[i].y);
+                prof.insert(prof.begin() + long(i) + 1, prof[i] + (prof[i + 1] - prof[i]) * t);
+                return;
+            }
+        }
+    };
+    cutAt(tileY);
+    cutAt(topY);
+    while (prof.size() > 2 && prof.back().y > topY + 1e-4f) prof.pop_back();
+    // coping line: rounded rectangle, outward normals
+    struct PathPt {
+        Vec2 p, n;
+        float s;
+    };
+    // corner c holds path[c * (cseg + 1) .. c * (cseg + 1) + cseg]; the straight walls are the segments between
+    // corners (zero length on a round pool: skipped)
+    std::vector<PathPt> path;
+    int cseg = std::max(6, int(rc * kHalfPi / 0.22f));
+    Vec2 centres[4] = {{a - rc, bz - rc}, {-(a - rc), bz - rc}, {-(a - rc), -(bz - rc)}, {a - rc, -(bz - rc)}};
+    for (int c = 0; c < 4; ++c) {
+        float a0 = float(c) * kHalfPi;
+        for (int i = 0; i <= cseg; ++i) {
+            float th = a0 + kHalfPi * float(i) / float(cseg);
+            Vec2 n(std::cos(th), std::sin(th));
+            path.push_back({centres[c] + n * rc, n, 0.0f});
+        }
+    }
+    path.push_back(path.front());
+    for (size_t i = 1; i < path.size(); ++i) path[i].s = path[i - 1].s + (path[i].p - path[i - 1].p).length();
+    auto at = [](const PathPt& pp, float u, float y) { return Vec3(pp.p.x + pp.n.x * u, y, pp.p.y + pp.n.y * u); };
+    auto dedupe = [](std::vector<Vec3> v, bool closed) {
+        std::vector<Vec3> o;
+        for (auto& p : v)
+            if (o.empty() || (o.back() - p).lengthSq() > 1e-8f) o.push_back(p);
+        if (closed && o.size() > 1 && (o.back() - o.front()).lengthSq() < 1e-8f) o.pop_back();
+        return o;
+    };
+    // sweep a (u, y) profile round the path; the surface faces +y / the middle of the pool
+    MeshBuilder b("pool");
+    auto sweep = [&](const std::vector<Vec2>& pr, auto matOf) {
+        std::vector<float> ps(pr.size(), 0.0f);
+        for (size_t k = 1; k < pr.size(); ++k) ps[k] = ps[k - 1] + (pr[k] - pr[k - 1]).length();
+        auto pn = [&](size_t k) {  // profile normal (u, y): rotate the tangent +90 deg
+            Vec2 t0 = k > 0 ? (pr[k] - pr[k - 1]).normalized() : Vec2(0, 0);
+            Vec2 t1 = k + 1 < pr.size() ? (pr[k + 1] - pr[k]).normalized() : Vec2(0, 0);
+            Vec2 t = (t0 + t1);
+            if (t.lengthSq() < 1e-8f) t = t1.lengthSq() > 0 ? t1 : t0;
+            t = t.normalized();
+            return Vec2(-t.y, t.x);
+        };
+        for (size_t k = 0; k + 1 < pr.size(); ++k) {
+            b.setMaterial(matOf((pr[k].y + pr[k + 1].y) * 0.5f));
+            Vec2 n0 = pn(k), n1 = pn(k + 1);
+            for (size_t i = 0; i + 1 < path.size(); ++i) {
+                const PathPt &A = path[i], &B = path[i + 1];
+                if ((B.p - A.p).lengthSq() < 1e-8f) continue;
+                Vec3 p00 = at(A, pr[k].x, pr[k].y), p01 = at(B, pr[k].x, pr[k].y);
+                Vec3 p10 = at(A, pr[k + 1].x, pr[k + 1].y), p11 = at(B, pr[k + 1].x, pr[k + 1].y);
+                auto nrm = [](const PathPt& pp, Vec2 q) { return Vec3(pp.n.x * q.x, q.y, pp.n.y * q.x).normalized(); };
+                uint32_t v00 = b.addVertex(p00, nrm(A, n0), Vec2(A.s, ps[k])), v01 = b.addVertex(p01, nrm(B, n0), Vec2(B.s, ps[k]));
+                uint32_t v10 = b.addVertex(p10, nrm(A, n1), Vec2(A.s, ps[k + 1])), v11 = b.addVertex(p11, nrm(B, n1), Vec2(B.s, ps[k + 1]));
+                Vec3 face = cross(p01 - p00, p10 - p00);
+                if (dot(face, nrm(A, n0) + nrm(B, n1)) >= 0.0f) {
+                    b.addTriangle(v00, v01, v11);
+                    b.addTriangle(v00, v11, v10);
+                } else {
+                    b.addTriangle(v00, v11, v01);
+                    b.addTriangle(v00, v10, v11);
+                }
+            }
+        }
+    };
+    sweep(prof, [&](float y) { return tile && y > tileY ? 2 : 0; });
+    // flat floor inside the transitions
+    b.setMaterial(0);
+    std::vector<Vec3> floorPts;
+    for (size_t i = path.size() - 1; i-- > 0;) floorPts.push_back(at(path[i], -xTop, 0.0f));  // CCW seen from above
+    b.polygon(dedupe(floorPts, true), Vec3(0, 1, 0));
+    // coping
+    float backU = 0.0f;  // where the deck starts behind the coping line
+    b.setMaterial(1);
+    if (poolCoping) {
+        std::vector<Vec2> cp;  // bullnose: under the block, round the front, over the top
+        Vec2 c(-0.035f + kNoseR, depth + kCopingProud - kNoseR);
+        cp.push_back({0.0f, topY});
+        for (int i = 0; i <= 8; ++i) {
+            float th = -kHalfPi - kPi * float(i) / 8.0f;
+            cp.push_back(c + Vec2(std::cos(th), std::sin(th)) * kNoseR);
+        }
+        cp.push_back({kBlock - 0.004f, depth + kCopingProud});
+        cp.push_back({kBlock, depth});
+        cp.erase(cp.begin() + 1);  // the first nose point sits under the block, on the wall line
+        sweep(cp, [](float) { return 1; });
+        backU = kBlock;
+        std::vector<Vec3> rail;
+        for (auto& pp : path) rail.push_back(at(pp, c.x, depth + kCopingProud));
+        rail = dedupe(rail, false);
+        addRail(out, rail, RailType::Coping, kNoseR);
+    } else {
+        std::vector<Vec3> tubePts, rail;
+        for (auto& pp : path) {
+            tubePts.push_back(at(pp, kCopingR - kCopingProud, depth - (kCopingR - kCopingProud)));
+            rail.push_back(at(pp, kCopingR - kCopingProud, depth + kCopingProud));
+        }
+        b.tube(dedupe(tubePts, false), kCopingR, 12, false);
+        addRail(out, dedupe(rail, false), RailType::Coping, kCopingR);
+        backU = 2.0f * kCopingR - kCopingProud;
+    }
+    // deck out to the outer rectangle: four pieces split at the corner diagonals
+    b.setMaterial(0);
+    float A = a + deck, B = bz + deck;
+    Vec2 outer[4] = {{A, B}, {-A, B}, {-A, -B}, {A, -B}};
+    size_t perCorner = size_t(cseg + 1);
+    for (int c = 0; c < 4; ++c) {
+        // from the middle of corner c's arc (it faces outer[c]) along the wall to the middle of the next corner
+        size_t mid = size_t(c) * perCorner + size_t(cseg / 2);
+        size_t midNext = size_t((c + 1) % 4) * perCorner + size_t(cseg / 2);
+        std::vector<Vec3> poly;
+        poly.push_back(Vec3(outer[c].x, depth, outer[c].y));
+        for (size_t i = mid;; i = (i + 1) % (path.size() - 1)) {
+            poly.push_back(at(path[i], backU, depth));
+            if (i == midNext) break;
+        }
+        poly.push_back(Vec3(outer[(c + 1) % 4].x, depth, outer[(c + 1) % 4].y));
+        b.polygon(dedupe(poly, true), Vec3(0, 1, 0));
+    }
+    // outer walls (hidden below grade, closes the solid when it stands on its own)
+    b.quad(Vec3(A, 0, B), Vec3(A, 0, -B), Vec3(A, depth, -B), Vec3(A, depth, B));
+    b.quad(Vec3(-A, 0, -B), Vec3(-A, 0, B), Vec3(-A, depth, B), Vec3(-A, depth, -B));
+    b.quad(Vec3(-A, 0, B), Vec3(A, 0, B), Vec3(A, depth, B), Vec3(-A, depth, B));
+    b.quad(Vec3(A, 0, -B), Vec3(-A, 0, -B), Vec3(-A, depth, -B), Vec3(A, depth, -B));
+    out.mesh = b.build();
+    out.materials = {M(mat, "concrete_park"), poolCoping ? "pool_coping" : "coping", "pool_tile"};
+}
+
 // descending slope towards +X that meets the ground tangentially (roll-ins, landings).
 // Returns the CCW outline and the x where the surface reaches the ground.
 std::vector<Vec2> slopeProfile(float height, float length, float radius, float& groundX) {
@@ -1009,6 +1176,8 @@ void registerBuiltinPrefabs() {
           {{"steps", 6}, {"rise", 0.17}, {"run", 0.33}, {"width", 4.0}, {"landingTop", 2.5}, {"handrail", true}, {"handrailBoth", false}, {"hubba", false}, {"railHeight", 0.9}});
     r.add("rail", "Street", railPrefab, {{"length", 5.0}, {"height", 0.45}, {"drop", 0.0}, {"type", "round"}, {"segments", 1}});
     r.add("bowl", "Skatepark", bowlPrefab, {{"radius", 7.0}, {"depth", 2.2}, {"transition", 2.6}, {"deck", 2.0}, {"segments", 48}});
+    r.add("pool", "Skatepark", poolPrefab,
+          {{"length", 12.0}, {"width", 8.0}, {"cornerRadius", 3.0}, {"depth", 1.8}, {"transition", 2.4}, {"deck", 1.5}, {"coping", "steel"}, {"tile", false}});
     r.add("mega_ramp", "Mega Park", megaRampPrefab,
           {{"towerHeight", 11.0}, {"rollInLength", 20.0}, {"width", 7.0}, {"kickerHeight", 3.2}, {"kickerLength", 7.0}, {"gap", 14.0},
            {"landingHeight", 5.5}, {"landingLength", 20.0}, {"quarterHeight", 6.0}});

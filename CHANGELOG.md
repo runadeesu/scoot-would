@@ -33,6 +33,21 @@
 - Plated finishes for deck, bars, clamp and wheel cores: Chrome, Neo Chrome (oil-slick bands that shift with
   the viewing angle) and Blue Chrome.
 
+### Parks and ramps (built to real dimensions)
+- New map: Maple Grove Skatepark, a community concrete park poured in the ground like the real ones (the deck
+  is the ground, no guardrails round the bowls): a 4.5 ft flow bowl with 6.5 ft transitions, corner pockets and
+  a spine, an 8.5 ft deep end with about a foot of vert, concrete bullnose pool coping and a tile line, and a
+  street section (platform with 27 degree banks, five stair with 6.5 in risers / 14 in treads, a 34 in handrail
+  and hubbas, 16 and 18 in ledges, an 8 in manual pad, a 13 in flat bar, a 2 ft funbox with a bar, a 4 ft
+  quarter with a 6 ft transition). Lawn, trees, park lights, rules sign, parking lot. Four spawn points and
+  four challenges.
+- New `pool` prefab: rounded rectangle bowls whose walls are one transition swept round the coping line, so
+  the straight walls and the corner pockets are one surface (round pools too); steel or pool coping, tile.
+- Copings are 2 3/8 in steel set 1/8 in proud of the deck; decks 38 in or higher get a 42 in guardrail with
+  vertical bars that stops 24 in short of open sides (ASTM F2334).
+- Air out of a steep transition (quarters, bowl walls) brings the rider back down the wall: riders steer the
+  scooter back over the ramp with their body. Hold forward to air out onto the deck instead.
+
 ### Camera
 - First person view (Y / Tab cycles: third person, close, far, first person; also SETTINGS > GAMEPLAY >
   Camera, remembered): a wide POV lens at the rider's eyes, forearms and hands on the grips at the bottom of

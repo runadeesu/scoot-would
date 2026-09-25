@@ -597,6 +597,133 @@
     40000
    ],
    "desc": "Two minutes at the spot. Every obstacle counts, link them into long combos."
+  },
+  {
+   "id": "mg_session",
+   "name": "Maple Grove Session",
+   "mode": "trick",
+   "map": "assets/scenes/maple_grove.json",
+   "spawn": "Maple Grove",
+   "time": 120,
+   "targets": [
+    10000,
+    25000,
+    50000
+   ],
+   "desc": "Two minutes in a real concrete park. Carve the bowls for speed, link the street section."
+  },
+  {
+   "id": "mg_deep_end",
+   "name": "Deep End",
+   "mode": "trick",
+   "map": "assets/scenes/maple_grove.json",
+   "spawn": "Deep End",
+   "time": 90,
+   "targets": [
+    4000,
+    12000,
+    25000
+   ],
+   "desc": "Eight and a half feet, pool coping and tile. Pump the walls and boost over the coping."
+  },
+  {
+   "id": "mg_street_line",
+   "name": "Street Section Line",
+   "mode": "line",
+   "map": "assets/scenes/maple_grove.json",
+   "spawn": "Maple Grove",
+   "targets": [
+    40,
+    28,
+    20
+   ],
+   "gates": [
+    {
+     "pos": [
+      6.0,
+      0.2,
+      -4.0
+     ],
+     "radius": 2.4,
+     "yaw": 90,
+     "require": "manual"
+    },
+    {
+     "pos": [
+      19.0,
+      0.41,
+      -4.0
+     ],
+     "radius": 2.4,
+     "yaw": 90,
+     "require": "grind"
+    },
+    {
+     "pos": [
+      33.8,
+      1.0,
+      0.0
+     ],
+     "radius": 3.5,
+     "yaw": 90,
+     "require": "air"
+    },
+    {
+     "pos": [
+      24.0,
+      0.46,
+      9.0
+     ],
+     "radius": 2.6,
+     "yaw": 90,
+     "require": "grind"
+    },
+    {
+     "pos": [
+      11.0,
+      0.33,
+      7.0
+     ],
+     "radius": 2.4,
+     "yaw": 90,
+     "require": "grind"
+    }
+   ],
+   "desc": "Manual the pad, grind the 16 in ledge, air the quarter, then back through the 18 in ledge and the flat bar."
+  },
+  {
+   "id": "mg_five_stair",
+   "name": "Five Stair",
+   "mode": "line",
+   "map": "assets/scenes/maple_grove.json",
+   "spawn": "Street Section",
+   "targets": [
+    25,
+    16,
+    11
+   ],
+   "gates": [
+    {
+     "pos": [
+      17.0,
+      0.83,
+      -19.5
+     ],
+     "radius": 3.0,
+     "yaw": 90
+    },
+    {
+     "pos": [
+      17.0,
+      0.0,
+      -11.5
+     ],
+     "radius": 3.5,
+     "yaw": 0,
+     "require": "air"
+    }
+   ],
+   "desc": "Roll the platform and send the five stair (or the hubbas, or the rail)."
   }
  ]
 }

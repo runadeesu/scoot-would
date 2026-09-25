@@ -1,0 +1,3 @@
+{ "name": "pool_deep_end", "map": "assets/scenes/maple_grove.json", "spawn": [-18, -2.6, 12], "yaw": 90, "velocity": [-7.2, 0, 0], "duration": 6.0,
+  "steps": [ {"t": 0.1, "push": false} ],
+  "expect": [ {"heightMin": -0.5, "noBail": true}, {"t": 5.9, "posMin": [-26, -2.7, 6], "posMax": [-10, 2.5, 18]} ], "screenshots": [0.9] }

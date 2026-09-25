@@ -14,7 +14,7 @@ scoot would [--map scene.json] [--spawn label] [--challenge id] [--play] [--edit
 
 `--screenshot` saves the given frame and quits; `--camera` fixes the view; `--pad` shows controller glyphs
 without a controller; `--aa` overrides the anti-aliasing setting (image comparisons); `--view` picks the camera; `--debugview` 1 albedo, 2 normals, 3 roughness, 4 occlusion, 5 shadow, 6 specular IBL,
-7 reflection, 8 irradiance.
+7 reflection, 8 irradiance, 9 diffuse ambient only, 10 SSAO, 11 material AO.
 
 In game: F1 developer overlay (performance, physics, tuning), F2 level editor, F3 physics debug draw,
 F5 shader reload, F11 screenshot.

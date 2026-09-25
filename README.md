@@ -24,7 +24,8 @@ IK driven rider.
   stick = pop, rotations and, with RT / LT, tricks and grabs); a classic button layout is available. Every
   action can be rebound. See [CONTROLS.md](CONTROLS.md).
 - **Places**: Scoot City (plaza, downtown, skatepark, mega park, school, industrial, rooftops, ditch,
-  residential, contest park) and the Street Spot, one dense city corner built around one line.
+  residential, contest park), the Street Spot, one dense city corner built around one line, and Maple Grove,
+  a concrete skatepark built to real dimensions (flow bowl, 8.5 ft pool with pool coping, street section).
 - **Modes**: free ride, trick challenges, lines, best trick, time attack, with bronze / silver / gold.
 - **Rider**: realistic human built on the CC0 MakeHuman base mesh, clothing that layers correctly, regular /
   goofy stance, face animation (blinks, saccades, breathing), finger grips on the bars.

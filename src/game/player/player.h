@@ -125,6 +125,9 @@ private:
     Vec3 pumpNormal_{0, 1, 0};
     float airPeak_ = 0.0f;
     float airStartY_ = 0.0f;
+    // left a steep transition (quarter / bowl wall): the rider pulls the scooter back over the ramp
+    bool rampAir_ = false;
+    Vec3 rampOut_;  // horizontal direction from the ramp out over its deck
     float bailTimer_ = 0.0f;
     std::string bailReason_;
     LandingInfo lastLanding_;

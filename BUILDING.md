@@ -61,6 +61,7 @@ generator.
 | `build/linux/tools/scoot_assetgen --audio` | synthesized sound effects (music tracks are note data in `assets/music/*.json`, synthesized at run time) |
 | `python3 tools/citygen.py` | `assets/scenes/city.json` (Scoot City) |
 | `python3 tools/spotgen.py` | `assets/scenes/street_spot.json` |
+| `python3 tools/parkgen.py` | `assets/scenes/maple_grove.json` (Maple Grove Skatepark, dimensions in the script header) |
 
 Shaders (`shaders/*.vert|frag`, GLSL 450) are compiled at run time to SPIR-V / DXIL through SDL_shadercross
 and cached in the user folder.

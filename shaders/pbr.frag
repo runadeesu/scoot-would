@@ -204,7 +204,7 @@ void main() {
     prefiltered *= horizon * horizon;
     float specOcc = clamp(pow(NoV + occlusion, exp2(-16.0 * rough - 1.0)) - 1.0 + occlusion, 0.0, 1.0);
     // in shadow the sky is partly blocked too: darken ambient slightly
-    float ambientShadow = mix(0.72, 1.0, shadow);
+    float ambientShadow = mix(0.9, 1.0, shadow);
     vec3 kd = (1.0 - F) * (1.0 - metal);
     diffuse += kd * albedo * irradiance * occlusion * ambientShadow;
     specular += prefiltered * (F * brdf.x + brdf.y) * specOcc * mix(0.6, 1.0, shadow);
@@ -221,6 +221,9 @@ void main() {
     else if (debugView == 6) color = prefiltered * (F * brdf.x + brdf.y);
     else if (debugView == 7) color = textureLod(texEnv, envDir(R, frame.envParams.x), 0.0).rgb * iblScale;
     else if (debugView == 8) color = irradiance;
+    else if (debugView == 9) color = kd * albedo * irradiance * occlusion * ambientShadow;
+    else if (debugView == 10) color = vec3(ssao);
+    else if (debugView == 11) color = vec3(ao);
 
     color = applyFog(color, vWorldPos, V);
     outColor = vec4(color, base.a);

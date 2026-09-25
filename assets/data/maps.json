@@ -9,6 +9,15 @@
       ]
     },
     {
+      "id": "maplegrove", "name": "Maple Grove Skatepark", "scene": "assets/scenes/maple_grove.json",
+      "districts": [
+        { "id": "mgpark",   "name": "Maple Grove",    "spawn": "Maple Grove",    "color": "#6fbf5a", "desc": "Community concrete park built to real dimensions: in-ground flow bowl with a spine, an 8.5 ft deep end with pool coping and tile, and a street section." },
+        { "id": "mgflow",   "name": "Flow Bowl",      "spawn": "Flow Bowl",      "color": "#3aa0e8", "desc": "4.5 ft deep with 6.5 ft transitions, corner pockets and a spine. Steel coping 1/8 in proud." },
+        { "id": "mgdeep",   "name": "Deep End",       "spawn": "Deep End",       "color": "#4a7ae8", "desc": "8.5 ft pool with a foot of vert under concrete pool coping and a tile line." },
+        { "id": "mgstreet", "name": "Street Section", "spawn": "Street Section", "color": "#e8b33a", "desc": "Platform with banks, a five stair with a 34 in handrail and hubbas, 16 and 18 in ledges, a manual pad and a flat bar." }
+      ]
+    },
+    {
       "id": "city", "name": "Scoot City", "scene": "assets/scenes/city.json",
       "districts": [
         { "id": "plaza",       "name": "Street Plaza",      "spawn": "Street Plaza",      "color": "#e8b33a", "desc": "Marble ledges, stair sets, handrails and manual pads in the middle of town." },
