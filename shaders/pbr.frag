@@ -77,6 +77,24 @@ void main() {
         N = normalize(T * tn.x + B * tn.y + N * max(tn.z, 0.05));
     }
 
+    // plated finishes on tintable parts (instance tint alpha: 2 chrome, 3 neo-chrome, 4 blue chrome): polished
+    // metal; neo-chrome is anodised in bands of oil-slick colour that shift with the viewing angle
+    if (mat.params2.w > 0.5 && vTint.a > 1.5) {
+        float finish = vTint.a;
+        float nv = clamp(dot(N, normalize(frame.cameraPos.xyz - vWorldPos)), 0.0, 1.0);
+        vec3 c = vec3(0.93, 0.94, 0.96);
+        if (finish > 3.5) {
+            c = mix(vec3(0.18, 0.42, 1.0), vec3(0.55, 0.3, 0.95), pow(1.0 - nv, 2.0));
+        } else if (finish > 2.5) {
+            float h = fract(0.9 * (1.0 - nv) + (vUV.x * 1.3 + vUV.y * 0.7) * 1.6 + fbm(vUV * 3.0) * 0.5);
+            c = 0.55 + 0.45 * cos(6.2831 * (h + vec3(0.0, 0.33, 0.67)));
+            c = mix(c, vec3(0.85), 0.12);
+        }
+        base.rgb = c;
+        metal = 1.0;
+        rough = finish > 2.5 ? 0.12 : 0.07;
+    }
+
     // large scale variation and grime so tiled surfaces do not look uniform
     float wear = mat.params2.z;
     if (wear > 0.0) {

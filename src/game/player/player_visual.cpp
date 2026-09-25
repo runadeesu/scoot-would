@@ -236,7 +236,11 @@ void PlayerVisual::applyCustomization(const Customization& c) {
     }
     // alpha 0: only the tintable (painted / anodised) slot of a part takes the colour, hardware,
     // bearings and headset keep their own finish
-    auto tint = [&](int part, const Vec3& col) { rs_->setTint(partHandles_[part], Vec4(col, 0.0f)); };
+    // plated finishes travel in the tint's alpha (2 chrome, 3 neo-chrome, 4 blue chrome; see pbr.frag)
+    auto tint = [&](int part, const Vec3& col) {
+        PartFinish f = partFinish(col);
+        rs_->setTint(partHandles_[part], f == PartFinish::Paint ? Vec4(col, 0.0f) : Vec4(1.0f, 1.0f, 1.0f, 1.0f + float(int(f))));
+    };
     tint(Deck, c.deckColor);
     tint(Grip, c.deckColor);  // griptape is not tintable, the logo cut-out shows the deck
     tint(Brake, Vec3(1));

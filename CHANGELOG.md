@@ -30,6 +30,8 @@
   boxed deck with the hollow section showing at the tail.
 - Griptape cut to a point towards the neck, leaving the polished nose corners bare; hex mark near the front.
 - Y-Bar 25": the downtube splits into two arms that sweep into the crossbar.
+- Plated finishes for deck, bars, clamp and wheel cores: Chrome, Neo Chrome (oil-slick bands that shift with
+  the viewing angle) and Blue Chrome.
 
 ### Camera
 - First person view (Y / Tab cycles: third person, close, far, first person; also SETTINGS > GAMEPLAY >

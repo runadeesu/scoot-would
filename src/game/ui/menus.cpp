@@ -44,7 +44,9 @@ const std::vector<NamedColor>& metalPalette() {
     static const std::vector<NamedColor> p = {
         {"Raw", {0.85f, 0.85f, 0.88f}},     {"Black", {0.03f, 0.03f, 0.035f}}, {"White", {0.9f, 0.9f, 0.9f}},     {"Gold", {0.9f, 0.65f, 0.2f}},
         {"Red", {0.75f, 0.06f, 0.05f}},     {"Blue", {0.05f, 0.2f, 0.75f}},    {"Teal", {0.05f, 0.55f, 0.5f}},    {"Neon Green", {0.35f, 0.9f, 0.1f}},
-        {"Purple", {0.35f, 0.08f, 0.6f}},   {"Orange", {0.95f, 0.35f, 0.03f}}, {"Pink", {0.9f, 0.3f, 0.55f}},     {"Oil Slick", {0.25f, 0.12f, 0.4f}}};
+        {"Purple", {0.35f, 0.08f, 0.6f}},   {"Orange", {0.95f, 0.35f, 0.03f}}, {"Pink", {0.9f, 0.3f, 0.55f}},
+        // plated finishes (see PartFinish)
+        {"Chrome", {-1.0f, -1.0f, -1.0f}},  {"Neo Chrome", {-2.0f, -2.0f, -2.0f}}, {"Blue Chrome", {-3.0f, -3.0f, -3.0f}}};
     return p;
 }
 
@@ -669,7 +671,7 @@ void Menus::drawScooter(Context& ui) {
     // item name, colour, spec
     ui.text(kBrands[cat.brand[focusV]], Vec2(P.x + 28, P.y + 134), 22.0f, inkDim, FontStyle::Bold);
     ui.text(cat.names[focusV], Vec2(P.x + 28, P.y + 158), 40.0f, ink, FontStyle::Bold);
-    Vec3 fc = pal[size_t(focusC)].c;
+    Vec3 fc = finishDisplayColor(pal[size_t(focusC)].c);
     Vec3 sw(std::pow(fc.x, 1.0f / 2.2f), std::pow(fc.y, 1.0f / 2.2f), std::pow(fc.z, 1.0f / 2.2f));
     ui.circle(Vec2(P.x + 38, P.y + 222), 10, Vec4(sw, 1), 24);
     ui.arc(Vec2(P.x + 38, P.y + 222), 10, 1.5f, 0, kTwoPi, ink * Vec4(1, 1, 1, 0.35f));
@@ -706,7 +708,7 @@ void Menus::drawScooter(Context& ui) {
         int v = i / perVariant, ci = i % perVariant;
         ui.rect(t, Vec4(0.97f, 0.975f, 0.98f, focused ? 0.98f : 0.8f), 12);
         ui.rectGradient(Rect(t.x, t.y + t.h * 0.55f, t.w, t.h * 0.45f), Vec4(0, 0, 0, 0.0f), Vec4(0, 0, 0, 0.06f), 12);
-        if (Texture* tex = thumbs_.get(cat.kind, v, pal[size_t(ci)].c)) {
+        if (Texture* tex = thumbs_.get(cat.kind, v, finishDisplayColor(pal[size_t(ci)].c))) {
             ui.image(tex, t.shrink(6));
         } else {
             float ph = std::fmod(ui.time() * 2.0f + float(i) * 0.13f, 1.0f);

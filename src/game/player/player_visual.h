@@ -44,6 +44,20 @@ struct Customization {
 
 bool riderPartVisible(const std::string& meshName, const Customization& c);
 
+// metal finishes stored in a part colour: negative values select a plated finish instead of a paint colour
+enum class PartFinish { Paint = 0, Chrome = 1, NeoChrome = 2, BlueChrome = 3 };
+inline PartFinish partFinish(const Vec3& c) { return c.x < -0.5f ? PartFinish(int(-c.x + 0.5f)) : PartFinish::Paint; }
+inline Vec3 finishColor(PartFinish f) { return Vec3(-float(int(f))); }
+// what the finish looks like on a swatch / thumbnail
+inline Vec3 finishDisplayColor(const Vec3& c) {
+    switch (partFinish(c)) {
+        case PartFinish::Chrome: return Vec3(0.92f, 0.93f, 0.95f);
+        case PartFinish::NeoChrome: return Vec3(0.45f, 0.3f, 0.7f);
+        case PartFinish::BlueChrome: return Vec3(0.3f, 0.52f, 0.98f);
+        default: return c;
+    }
+}
+
 class PlayerVisual {
 public:
     PlayerVisual();
