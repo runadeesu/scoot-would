@@ -185,20 +185,48 @@ void buildingPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
 }
 
 // --- skatepark obstacles ------------------------------------------------------
+// Dimensions follow skatepark practice and ASTM F2334 (public skatepark facilities): 2 3/8 in (60.3 mm) steel
+// coping set about 1/8 in (3 mm) proud of the deck and of the transition, radius a little larger than the height
+// on park quarters (4 ft / 6 ft, 6 ft / 8 ft), guardrails on decks 38 in (0.97 m) or higher.
+constexpr float kCopingR = 0.0302f;   // 60.3 mm steel pipe
+constexpr float kCopingProud = 0.003f;
+
+// coping along a lip at (lipX, h) whose deck continues towards +x (dir = +1) or -x (dir = -1)
+void coping(MeshBuilder& b, PrefabBuild& out, float lipX, float h, float dir, float z0, float z1) {
+    Vec2 c(lipX + dir * (kCopingR - kCopingProud), h - (kCopingR - kCopingProud));
+    b.tube({{c.x, c.y, z0}, {c.x, c.y, z1}}, kCopingR, 12, true);
+    addRail(out, {{c.x, h + kCopingProud, z0}, {c.x, h + kCopingProud, z1}}, RailType::Coping, kCopingR);
+}
+
+// guardrail at the back of a high deck: 42 in (1.07 m) tall, vertical bars only (nothing to climb), ends 24 in
+// (0.61 m) short of the deck's open sides
+void guardrail(MeshBuilder& b, float x, float y, float z0, float z1) {
+    float zs = z0 + 0.61f, ze = z1 - 0.61f;
+    if (ze - zs < 0.3f) return;
+    float top = y + 1.07f;
+    b.tube({{x, top, zs}, {x, top, ze}}, 0.024f, 10, true);          // 48 mm top rail
+    b.tube({{x, y + 0.1f, zs}, {x, y + 0.1f, ze}}, 0.017f, 8, true);  // foot rail
+    int posts = std::max(2, int(std::ceil((ze - zs) / 1.6f)) + 1);
+    for (int i = 0; i < posts; ++i) {
+        float z = lerpf(zs, ze, float(i) / float(posts - 1));
+        b.tube({{x, y, z}, {x, top, z}}, 0.024f, 10, false);
+    }
+    for (float z = zs + 0.1f; z < ze - 0.05f; z += 0.1f) b.tube({{x, y + 0.1f, z}, {x, top, z}}, 0.008f, 6, false);  // 100 mm spacing
+}
+
 void quarterPipePrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     float h = P(j, "height", 1.8f), r = P(j, "radius", 2.4f), w = P(j, "width", 6.0f), deck = P(j, "deck", 1.2f);
     auto prof = profiles::quarterPipe(h, r, deck, std::max(8, int(r * 6)));
     float len = profileLength(prof);
     prof = shifted(prof, -len * 0.5f);
     float lipX = prof[3].x;  // (xTop, height) point in the profile order
+    float backX = prof[2].x;
     MeshBuilder b("quarter");
     b.setMaterial(0);
     b.extrude(prof, -w * 0.5f, w * 0.5f, true, true);
-    if (Pb(j, "coping", true)) {
-        b.setMaterial(1);
-        b.tube({{lipX, h - 0.01f, -w * 0.5f}, {lipX, h - 0.01f, w * 0.5f}}, 0.03f, 10, true);
-        addRail(out, {{lipX, h + 0.02f, -w * 0.5f}, {lipX, h + 0.02f, w * 0.5f}}, RailType::Coping, 0.03f);
-    }
+    b.setMaterial(1);
+    if (Pb(j, "coping", true)) coping(b, out, lipX, h, 1.0f, -w * 0.5f, w * 0.5f);
+    if (h >= 0.97f && Pb(j, "guardrail", true)) guardrail(b, backX - 0.06f, h, -w * 0.5f, w * 0.5f);
     out.mesh = b.build();
     out.materials = {M(mat, "concrete_park"), "coping"};
 }
@@ -221,9 +249,8 @@ void halfPipePrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     b.box(Vec3(0, 0.02f, 0), Vec3(flat, 0.04f, w));
     b.setMaterial(1);
     for (float s : {-1.0f, 1.0f}) {
-        float x = s * (flat * 0.5f + lipLocal);
-        b.tube({{x, h - 0.01f, -w * 0.5f}, {x, h - 0.01f, w * 0.5f}}, 0.03f, 10, true);
-        addRail(out, {{x, h + 0.02f, -w * 0.5f}, {x, h + 0.02f, w * 0.5f}}, RailType::Coping, 0.03f);
+        coping(b, out, s * (flat * 0.5f + lipLocal), h, s, -w * 0.5f, w * 0.5f);
+        if (h >= 0.97f && Pb(j, "guardrail", true)) guardrail(b, s * (flat * 0.5f + lipLocal + deck - 0.06f), h, -w * 0.5f, w * 0.5f);
     }
     (void)len;
     out.mesh = b.build();
@@ -238,8 +265,9 @@ void spinePrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     b.setMaterial(0);
     b.extrude(prof, -w * 0.5f, w * 0.5f, true, true);
     b.setMaterial(1);
-    b.tube({{0, h - 0.005f, -w * 0.5f}, {0, h - 0.005f, w * 0.5f}}, 0.035f, 10, true);
-    addRail(out, {{0, h + 0.025f, -w * 0.5f}, {0, h + 0.025f, w * 0.5f}}, RailType::Coping, 0.035f);
+    // spine: one pipe over the ridge, its top 1/8 in above the two transitions
+    b.tube({{0, h - kCopingR + kCopingProud, -w * 0.5f}, {0, h - kCopingR + kCopingProud, w * 0.5f}}, kCopingR, 12, true);
+    addRail(out, {{0, h + kCopingProud, -w * 0.5f}, {0, h + kCopingProud, w * 0.5f}}, RailType::Coping, kCopingR);
     out.mesh = b.build();
     out.materials = {M(mat, "concrete_park"), "coping"};
 }
@@ -431,15 +459,17 @@ void bowlPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     b.lathe({{lipR + deck, 0.0f}, {lipR + deck, depth}}, seg, false, false);
     // coping ring
     b.setMaterial(1);
+    // pool coping style ring, set 1/8 in proud of the deck and the wall like the straight copings
     std::vector<Vec3> ring;
+    float cr = lipR + (kCopingR - kCopingProud);
     for (int i = 0; i <= seg; ++i) {
         float a = float(i) / float(seg) * kTwoPi;
-        ring.push_back(Vec3(std::cos(a) * lipR, depth - 0.005f, -std::sin(a) * lipR));
+        ring.push_back(Vec3(std::cos(a) * cr, depth - (kCopingR - kCopingProud), -std::sin(a) * cr));
     }
-    b.tube(ring, 0.03f, 8, false);
+    b.tube(ring, kCopingR, 12, false);
     std::vector<Vec3> rr = ring;
-    for (auto& p : rr) p.y += 0.035f;
-    addRail(out, rr, RailType::Coping, 0.03f);
+    for (auto& p : rr) p.y = depth + kCopingProud;
+    addRail(out, rr, RailType::Coping, kCopingR);
     out.mesh = b.build();
     out.materials = {M(mat, "concrete_park"), "coping"};
 }
@@ -487,9 +517,7 @@ void megaRampPrefab(const Json& j, const std::string& mat, PrefabBuild& out) {
     auto qp = profiles::quarterPipe(qpH, qpH * 1.1f, 2.0f, 20);
     b.extrude(shifted(qp, x), -w * 0.5f, w * 0.5f, true, true);
     b.setMaterial(1);
-    float lip = x + qp[3].x;
-    b.tube({{lip, qpH - 0.01f, -w * 0.5f}, {lip, qpH - 0.01f, w * 0.5f}}, 0.035f, 10, true);
-    addRail(out, {{lip, qpH + 0.03f, -w * 0.5f}, {lip, qpH + 0.03f, w * 0.5f}}, RailType::Coping, 0.035f);
+    coping(b, out, x + qp[3].x, qpH, 1.0f, -w * 0.5f, w * 0.5f);
     // guard rails on the tower
     b.setMaterial(2);
     for (float s : {-1.0f, 1.0f}) b.tube({{0.2f, towerH + 1.0f, s * (w * 0.5f - 0.1f)}, {deckL - 0.2f, towerH + 1.0f, s * (w * 0.5f - 0.1f)}}, 0.03f, 8, true);
