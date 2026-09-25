@@ -128,7 +128,11 @@ bool Game::init() {
         state_ = AppState::Menu;
         menus_->open(Menus::Screen::Main, false);
         if (opts_.menuScreen == "rider") menus_->open(Menus::Screen::Rider);
-        else if (opts_.menuScreen == "scooter") menus_->open(Menus::Screen::Scooter);
+        else if (opts_.menuScreen.rfind("scooter", 0) == 0) {
+            // "scooter" or "scooter:<category>" (screenshots of every shop page)
+            if (opts_.menuScreen.size() > 8) menus_->setShopCategory(std::atoi(opts_.menuScreen.c_str() + 8));
+            menus_->open(Menus::Screen::Scooter);
+        }
         else if (opts_.menuScreen == "settings") menus_->open(Menus::Screen::Settings);
         else if (opts_.menuScreen == "map") menus_->open(Menus::Screen::Map);
         else if (opts_.menuScreen == "play") menus_->open(Menus::Screen::Play);
@@ -274,6 +278,8 @@ void Game::updateLamps() {
 
 bool Game::loadMap(const std::string& relPath) {
     Timer t;
+    if (inShop_) setShop(false);
+    shop_.reset();
     modes_.stop(&renderScene_);
     audio_.stop();
     visual_.destroy();
@@ -574,6 +580,7 @@ static ui::NavInput buildNav(float dt) {
     n.back = in.pressed(Action::Back);
     n.tabLeft = in.pressed(Action::TabLeft);
     n.tabRight = in.pressed(Action::TabRight);
+    n.extra = in.pressed(Action::MenuExtra);
     n.mouse = in.mousePosition();
     n.mouseMoved = in.mouseDelta().lengthSq() > 0.0f;
     n.click = in.mouseClicked(SDL_BUTTON_LEFT);
@@ -582,8 +589,91 @@ static ui::NavInput buildNav(float dt) {
     return n;
 }
 
+void Game::setShop(bool on) {
+    if (on == inShop_) return;
+    inShop_ = on;
+    if (on) {
+        shop_.ensureBuilt(renderScene_);
+        shop_.setActive(true);
+        mapEnv_ = renderScene_.environment;
+        renderScene_.environment = shop_.environment();
+        visual_.setDisplay(true, shop_.displayTransform());
+        shopCamInit_ = false;
+    } else {
+        shop_.setActive(false);
+        renderScene_.environment = mapEnv_;
+        visual_.setDisplay(false);
+    }
+    renderScene_.environmentVersion++;
+}
+
+// orbit camera around the displayed scooter: right stick / mouse drag rotate, triggers / wheel zoom;
+// the target follows the part category being edited
+bool Game::updateShopCamera(float dt) {
+    if (!inShop_) return false;
+    Input& in = input();
+    int cat = menus_->shopCategory();
+    // focus point (display scooter body space), distance and pitch per category
+    const ScooterDims d;
+    struct Focus {
+        Vec3 p;
+        float dist, pitch;
+    };
+    Vec3 clampPos = d.frontAxle() + d.steerAxis() * (0.24f / d.steerAxis().y);
+    const Focus foci[6] = {{Vec3(0, 0.36f, 0.0f), 2.1f, 0.3f},           {Vec3(0, 0.55f, -0.2f), 1.95f, 0.16f},
+                           {clampPos, 0.95f, 0.22f},                     {d.frontAxle() + Vec3(0, 0.12f, 0), 1.15f, 0.16f},
+                           {d.frontAxle() + Vec3(0, 0.12f, 0), 1.15f, 0.16f}, {d.barCenter() - Vec3(0, 0.05f, 0), 1.3f, 0.1f}};
+    const Focus& f = foci[std::clamp(cat, 0, 5)];
+    int w, h;
+    engine().window().pixelSize(w, h);
+    Vec2 look = in.lookStick();
+    bool overPanel = in.mousePosition().x < float(w) * 0.34f;
+    if (in.mouseDown(SDL_BUTTON_LEFT) && !overPanel) look += Vec2(in.mouseDelta().x, -in.mouseDelta().y) * 0.12f;
+    shopYaw_ -= look.x * 1.8f * dt;
+    shopPitch_ = clampf(shopPitch_ - look.y * 1.2f * dt, -0.15f, 1.1f);
+    float zoomIn = in.axis(Axis::Grab) - in.axis(Axis::Brake);
+    if (!overPanel) zoomIn += in.mouseWheel() * 6.0f;
+    shopZoom_ = clampf(shopZoom_ * (1.0f - zoomIn * 1.2f * dt), 0.55f, 1.8f);
+    if (!shopCamInit_) {
+        shopYaw_ = 0.55f;
+        shopPitch_ = f.pitch;
+        shopZoom_ = 1.0f;
+    }
+    static int lastCat = -1;
+    if (cat != lastCat) {
+        shopPitch_ = f.pitch;
+        lastCat = cat;
+    }
+    Transform disp = shop_.displayTransform();
+    Vec3 target = disp.transformPoint(f.p);
+    float dist = f.dist * shopZoom_;
+    Vec3 dir(std::cos(shopPitch_) * std::sin(shopYaw_), std::sin(shopPitch_), std::cos(shopPitch_) * std::cos(shopYaw_));
+    Vec3 eye = target + dir * dist;
+    // the options panel covers the left third: shift the subject into the free area
+    float aspect = h > 0 ? float(w) / float(h) : 16.0f / 9.0f;
+    const float fov = 40.0f * kDeg2Rad;
+    Vec3 fwd = (target - eye).normalized();
+    Vec3 right = cross(fwd, Vec3(0, 1, 0)).normalized();
+    float halfW = std::tan(fov * 0.5f) * aspect * dist;
+    Vec3 shift = right * (-0.33f * halfW);
+    eye += shift;
+    target += shift;
+    eye = shop_.clampToRoom(eye);
+    if (!shopCamInit_) {
+        shopEye_ = eye;
+        shopTarget_ = target;
+        shopCamInit_ = true;
+    }
+    shopEye_ = dampv(shopEye_, eye, 6.0f, dt);
+    shopTarget_ = dampv(shopTarget_, target, 6.0f, dt);
+    menuView_ = RenderView::lookAt(shopEye_, shopTarget_, Vec3(0, 1, 0), fov, aspect, 0.05f);
+    audio().setListener(shopEye_, (shopTarget_ - shopEye_).normalized(), Vec3(0, 1, 0), Vec3(0));
+    return true;
+}
+
 void Game::updateMenuCamera(float dt) {
     menuTime_ += dt;
+    if (updateShopCamera(dt)) return;
     Transform body = player_.renderTransform(1.0f);
     Vec3 fwd = player_.scooter.valid() ? player_.scooter.forward() : Vec3(0, 0, -1);
     fwd.y = 0;
@@ -656,6 +746,7 @@ void Game::update(float dt, float alpha) {
     bool wantCapture = state_ == AppState::Playing && !menus_->active() && !(debug_ && debug_->wantsMouse()) && !autotest_ && opts_.screenshot.empty();
     if (wantCapture != engine().window().mouseCaptured()) engine().window().setMouseCaptured(wantCapture);
 
+    setShop(state_ == AppState::Menu && menus_->screen() == Menus::Screen::Scooter);
     Profiler::begin(ProfileSection::Animation);
     visual_.update(dt, alpha, player_);
     Profiler::end(ProfileSection::Animation);

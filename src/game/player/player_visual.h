@@ -57,6 +57,9 @@ public:
     void setRiderVisible(bool v);  // scooter only (photo mode, showroom shots)
     void setGoofy(bool g) { goofy_ = g; }
     void setBindPose(bool b) { bindPose_ = b; }
+    // showroom: the scooter stands alone at `where` (no rider, no physics pose)
+    void setDisplay(bool on, const Transform& where = Transform());
+    bool display() const { return display_; }
     bool goofy() const { return goofy_; }
     bool usingModel() const { return model_ != nullptr; }
     const std::vector<Transform>& jointsModel() const { return jointsModel_; }
@@ -93,6 +96,8 @@ private:
     bool riderVisible_ = true;
     bool goofy_ = false;
     bool bindPose_ = false;
+    bool display_ = false;
+    Transform displayXf_;
 };
 
 }  // namespace sw

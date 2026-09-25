@@ -121,6 +121,10 @@ std::string valueText(const ChallengeDef& d, int v) { return d.lowerIsBetter ? (
 
 void Menus::open(Screen s, bool push) {
     if (push && screen_ != Screen::None && screen_ != s && screen_ != Screen::Loading) stack_.push_back(screen_);
+    if (s == Screen::Scooter) {
+        shopFocus_ = -1;
+        shopPreviewKey_ = -1;
+    }
     screen_ = s;
     screenTime_ = 0.0f;
     scroll_ = 0.0f;
@@ -130,6 +134,12 @@ void Menus::open(Screen s, bool push) {
 
 void Menus::back() {
     game_.sound().ui("ui_back");
+    if (screen_ == Screen::Scooter) {
+        // drop the unconfirmed preview: back to the equipped setup
+        game_.applyCustomization();
+        shopFocus_ = -1;
+        shopPreviewKey_ = -1;
+    }
     if (screen_ == Screen::Rider || screen_ == Screen::Scooter) {
         saves().markDirty();
         saves().flush();
@@ -497,41 +507,266 @@ void Menus::drawRider(Context& ui) {
     footer(ui, "Left / Right  Change      B / Esc  Back");
 }
 
-void Menus::drawScooter(Context& ui) {
-    header(ui, "SCOOTER", "Deck, bars, wheels and colors");
-    Customization c = game_.visual().customization();
+// --- scooter shop -----------------------------------------------------------------------------------
+namespace {
+
+const std::vector<NamedColor>& urethanePalette() {
+    static const std::vector<NamedColor> p = {
+        {"White", {0.92f, 0.92f, 0.9f}},  {"Black", {0.04f, 0.04f, 0.045f}}, {"Smoke", {0.32f, 0.33f, 0.35f}}, {"Red", {0.8f, 0.07f, 0.06f}},
+        {"Blue", {0.06f, 0.2f, 0.75f}},   {"Teal", {0.05f, 0.55f, 0.5f}},     {"Lime", {0.4f, 0.85f, 0.12f}},  {"Pink", {0.9f, 0.35f, 0.58f}},
+        {"Purple", {0.35f, 0.1f, 0.6f}},  {"Orange", {0.95f, 0.38f, 0.04f}},  {"Yellow", {0.95f, 0.78f, 0.08f}}, {"Ice", {0.72f, 0.82f, 0.9f}}};
+    return p;
+}
+
+struct ShopCategory {
+    const char* title;
+    PartThumbnails::Kind kind;
+    int variants;
+    const std::vector<NamedColor>& (*palette)();
+    const char* names[3];
+    int brand[3];
+    const char* specs[3];
+};
+
+// fictional brands (their banners hang in the shop)
+const char* kBrands[3] = {"FLOWLAB", "KDX PRO", "AXLE CO."};
+
+const ShopCategory kShopCats[6] = {
+    {"DECK", PartThumbnails::Deck, 3, metalPalette, {"Street 4.8\"", "Wide 5.3\"", "Park 4.5\""}, {0, 1, 2},
+     {"122 mm wide  /  6061-T6 aluminium  /  integrated headtube", "135 mm wide  /  6061-T6 aluminium  /  flat nose",
+      "115 mm wide  /  6061-T6 aluminium  /  round nose"}},
+    {"BARS", PartThumbnails::Bars, 3, metalPalette, {"Standard", "Tall", "Wide"}, {2, 0, 1},
+     {"86 cm grip height  /  56 cm wide  /  4130 chromoly", "92 cm grip height  /  56 cm wide  /  4130 chromoly",
+      "86 cm grip height  /  62 cm wide  /  4130 chromoly"}},
+    {"CLAMP", PartThumbnails::Clamp, 1, metalPalette, {"Double Clamp", "", ""}, {2, 2, 2},
+     {"4 bolt double clamp  /  7075 aluminium", "", ""}},
+    {"WHEELS", PartThumbnails::Wheel, 3, metalPalette, {"6 Spoke", "12 Spoke", "Solid Core"}, {1, 0, 2},
+     {"110 x 24 mm  /  hollow core  /  ABEC 9", "110 x 24 mm  /  12 spoke core  /  ABEC 9", "110 x 24 mm  /  solid core  /  ABEC 9"}},
+    {"URETHANE", PartThumbnails::Urethane, 1, urethanePalette, {"88A Street Urethane", "", ""}, {0, 0, 0},
+     {"88A hardness  /  high rebound pour", "", ""}},
+    {"GRIPS", PartThumbnails::Grips, 1, clothPalette, {"Soft Grips 160 mm", "", ""}, {1, 1, 1},
+     {"160 mm  /  soft compound  /  flanged", "", ""}},
+};
+
+// equipped (variant, colour index) of a category
+void shopEquipped(const Customization& c, int cat, int& variant, int& color) {
+    const ShopCategory& k = kShopCats[cat];
+    const auto& pal = k.palette();
+    switch (cat) {
+        case 0: variant = c.deck; color = nearestIndex(pal, c.deckColor); break;
+        case 1: variant = c.bars; color = nearestIndex(pal, c.barsColor); break;
+        case 2: variant = 0; color = nearestIndex(pal, c.clampColor); break;
+        case 3: variant = c.wheels; color = nearestIndex(pal, c.coreColor); break;
+        case 4: variant = 0; color = nearestIndex(pal, c.wheelColor); break;
+        default: variant = 0; color = nearestIndex(pal, c.gripColor); break;
+    }
+}
+
+Customization shopApply(Customization c, int cat, int variant, int color) {
+    const Vec3 col = kShopCats[cat].palette()[size_t(color)].c;
+    switch (cat) {
+        case 0: c.deck = variant; c.deckColor = col; break;
+        case 1: c.bars = variant; c.barsColor = col; break;
+        case 2: c.clampColor = col; break;
+        case 3: c.wheels = variant; c.coreColor = col; break;
+        case 4: c.wheelColor = col; break;
+        default: c.gripColor = col; break;
+    }
+    return c;
+}
+
+void brandMark(Context& ui, int brand, Vec2 c) {
+    switch (brand) {
+        case 0: ui.text(kBrands[0], c + Vec2(0, -30), 58.0f, Vec4(0.07f, 0.07f, 0.08f, 1), FontStyle::Display, Align::Center); break;
+        case 1: ui.text(kBrands[1], c + Vec2(0, -30), 58.0f, Vec4(0.86f, 0.13f, 0.1f, 1), FontStyle::Display, Align::Center); break;
+        default: {
+            float w = ui.measure(kBrands[2], 46.0f, FontStyle::Bold) + 44.0f;
+            ui.rect(Rect(c.x - w * 0.5f, c.y - 34, w, 68), Vec4(0.19f, 0.21f, 0.24f, 1), 6);
+            ui.text(kBrands[2], c + Vec2(0, -25), 46.0f, Vec4(0.38f, 0.9f, 0.55f, 1), FontStyle::Bold, Align::Center);
+            break;
+        }
+    }
+}
+
+}  // namespace
+
+void Menus::shopHints(Context& ui) {
     float W = ui.width();
-    Rect panel(W - 820, 170, 760, 860);
-    ui.shadow(panel, 14, 20, 0.4f);
-    ui.rect(panel, ui.theme().panel, 14);
-    float y = panel.y + 26, x = panel.x + 30, w = panel.w - 60, h = 62, gap = 9;
-    bool changed = false;
-    auto row = [&](const std::string& label, const std::string& value) {
-        int d = ui.choice(label, value, Rect(x, y, w, h));
-        y += h + gap;
-        return d;
+    ui.rectGradient(Rect(0, 990, W, 90), Vec4(0, 0, 0, 0.0f), Vec4(0, 0, 0, 0.62f));
+    bool pad = input().lastDevice() == InputDevice::Gamepad;
+    struct Hint {
+        const char* pad;
+        const char* key;
+        const char* label;
     };
-    const char* decks[] = {"Street 4.8\"", "Wide 5.3\"", "Park 4.5\""};
-    const char* bars[] = {"Standard", "Tall", "Wide"};
-    const char* wheels[] = {"6 Spoke", "12 Spoke", "Solid Core"};
-    if (int d = row("Deck", decks[c.deck])) { c.deck = (c.deck + d + 3) % 3; changed = true; }
-    if (int d = row("Deck Color", colorName(metalPalette(), c.deckColor))) { cycleColor(metalPalette(), c.deckColor, d); changed = true; }
-    if (int d = row("Bars", bars[c.bars])) { c.bars = (c.bars + d + 3) % 3; changed = true; }
-    if (int d = row("Bars Color", colorName(metalPalette(), c.barsColor))) { cycleColor(metalPalette(), c.barsColor, d); changed = true; }
-    if (int d = row("Wheels", wheels[c.wheels])) { c.wheels = (c.wheels + d + 3) % 3; changed = true; }
-    if (int d = row("Wheel Color", colorName(metalPalette(), c.wheelColor))) { cycleColor(metalPalette(), c.wheelColor, d); changed = true; }
-    if (int d = row("Core Color", colorName(metalPalette(), c.coreColor))) { cycleColor(metalPalette(), c.coreColor, d); changed = true; }
-    if (int d = row("Grips", colorName(clothPalette(), c.gripColor))) { cycleColor(clothPalette(), c.gripColor, d); changed = true; }
-    if (int d = row("Clamp", colorName(metalPalette(), c.clampColor))) { cycleColor(metalPalette(), c.clampColor, d); changed = true; }
-    if (ui.button("DONE", Rect(x, y + 16, w, 70), true)) {
-        back();
-        return;
+    const Hint hints[5] = {{"LS", "WASD", "NAVIGATION"}, {"RS", "DRAG", "ROTATE CAMERA"}, {"X", "X", "SAVE"}, {"A", "ENTER", "SELECT"},
+                           {"B", "ESC", "BACK"}};
+    float x = W - 56;
+    for (int i = 4; i >= 0; --i) {
+        const Hint& h = hints[i];
+        float lw = ui.measure(h.label, 24.0f, FontStyle::Bold);
+        x -= lw;
+        ui.text(h.label, Vec2(x, 1026), 24.0f, ui.theme().text, FontStyle::Bold);
+        const char* glyph = pad ? h.pad : h.key;
+        float gw = std::max(36.0f, ui.measure(glyph, 18.0f, FontStyle::Bold) + 20.0f);
+        x -= gw + 12;
+        Rect g(x, 1024, gw, 34);
+        ui.rect(g, Vec4(0.95f, 0.95f, 0.95f, 0.92f), 17);
+        ui.textBox(glyph, g, 18.0f, Vec4(0.06f, 0.06f, 0.07f, 1), FontStyle::Bold, Align::Center);
+        x -= 40;
     }
-    if (changed) {
-        saves().data().custom = c;
+    if (toastTime_ < 2.5f && !toast_.empty()) {
+        float a = saturate((2.5f - toastTime_) * 3.0f);
+        float tw = ui.measure(toast_, 26.0f, FontStyle::Bold) + 48;
+        Rect r(W - 56 - tw, 44, tw, 56);
+        ui.rect(r, ui.theme().accent * Vec4(1, 1, 1, a), 10);
+        ui.textBox(toast_, r, 26.0f, ui.theme().accentText * Vec4(1, 1, 1, a), FontStyle::Bold, Align::Center);
+    }
+}
+
+void Menus::drawScooter(Context& ui) {
+    const NavInput& nav = ui.nav();
+    thumbs_.beginFrame();
+    const Customization equipped = saves().data().custom;
+    // category switching (LB / RB, Q / E)
+    int prevCat = shopCat_;
+    if (nav.tabLeft) shopCat_ = (shopCat_ + 5) % 6;
+    if (nav.tabRight) shopCat_ = (shopCat_ + 1) % 6;
+    const ShopCategory& cat = kShopCats[shopCat_];
+    const auto& pal = cat.palette();
+    const int perVariant = int(pal.size());
+    const int count = cat.variants * perVariant;
+    const int cols = 3;
+    int eqV, eqC;
+    shopEquipped(equipped, shopCat_, eqV, eqC);
+    const int eqIndex = std::clamp(eqV, 0, cat.variants - 1) * perVariant + eqC;
+    if (shopFocus_ < 0 || prevCat != shopCat_) {
+        shopFocus_ = eqIndex;
+        shopScroll_ = std::max(0.0f, float(shopFocus_ / cols - 1) * 182.0f);
+        if (prevCat != shopCat_) game_.sound().ui("ui_move");
+    }
+    int before = shopFocus_;
+    if (nav.left && shopFocus_ % cols > 0) --shopFocus_;
+    if (nav.right && shopFocus_ % cols < cols - 1 && shopFocus_ + 1 < count) ++shopFocus_;
+    if (nav.up && shopFocus_ >= cols) shopFocus_ -= cols;
+    if (nav.down && shopFocus_ + cols < count) shopFocus_ += cols;
+
+    // panel (frosted glass)
+    const Rect P(44, 44, 580, 940);
+    ui.shadow(P, 18, 24, 0.25f);
+    ui.frosted(P, 18, Vec4(0.9f, 0.915f, 0.935f, 1.0f), 0.5f);
+    ui.rectGradient(P, Vec4(1, 1, 1, 0.16f), Vec4(1, 1, 1, 0.04f), 18);
+    ui.rectOutline(P, Vec4(1, 1, 1, 0.45f), 1.5f, 18);
+    const Vec4 ink(0.07f, 0.075f, 0.09f, 1.0f), inkDim(0.3f, 0.32f, 0.36f, 1.0f);
+    // header: LB  TITLE  RB + page dots
+    bool pad = input().lastDevice() == InputDevice::Gamepad;
+    Rect lb(P.x + 24, P.y + 30, 62, 44), rb(P.x + P.w - 24 - 62, P.y + 30, 62, 44);
+    for (int i = 0; i < 2; ++i) {
+        Rect r = i == 0 ? lb : rb;
+        bool hover = r.contains(ui.mouse());
+        ui.rect(r, Vec4(0.08f, 0.085f, 0.1f, hover ? 1.0f : 0.88f), 10);
+        ui.textBox(i == 0 ? (pad ? "LB" : "Q") : (pad ? "RB" : "E"), r, 22.0f, Vec4(1, 1, 1, 1), FontStyle::Bold, Align::Center);
+        if (hover && nav.click) {
+            shopCat_ = (shopCat_ + (i == 0 ? 5 : 1)) % 6;
+            shopFocus_ = -1;
+            game_.sound().ui("ui_move");
+        }
+    }
+    ui.text(cat.title, Vec2(P.x + P.w * 0.5f, P.y + 18), 64.0f, ink, FontStyle::Display, Align::Center);
+    for (int i = 0; i < 6; ++i) {
+        Vec2 c(P.x + P.w * 0.5f + (float(i) - 2.5f) * 22.0f, P.y + 112);
+        ui.circle(c, i == shopCat_ ? 6.0f : 4.5f, i == shopCat_ ? ink : ink * Vec4(1, 1, 1, 0.28f), 16);
+    }
+    const int focusV = std::min(shopFocus_ / perVariant, cat.variants - 1), focusC = shopFocus_ % perVariant;
+    // item name, colour, spec
+    ui.text(kBrands[cat.brand[focusV]], Vec2(P.x + 28, P.y + 134), 22.0f, inkDim, FontStyle::Bold);
+    ui.text(cat.names[focusV], Vec2(P.x + 28, P.y + 158), 40.0f, ink, FontStyle::Bold);
+    Vec3 fc = pal[size_t(focusC)].c;
+    Vec3 sw(std::pow(fc.x, 1.0f / 2.2f), std::pow(fc.y, 1.0f / 2.2f), std::pow(fc.z, 1.0f / 2.2f));
+    ui.circle(Vec2(P.x + 38, P.y + 222), 10, Vec4(sw, 1), 24);
+    ui.arc(Vec2(P.x + 38, P.y + 222), 10, 1.5f, 0, kTwoPi, ink * Vec4(1, 1, 1, 0.35f));
+    std::string colLine = pal[size_t(focusC)].name;
+    if (shopFocus_ == eqIndex) colLine += "   -   EQUIPPED";
+    ui.text(colLine, Vec2(P.x + 58, P.y + 208), 24.0f, ink, FontStyle::SemiBold);
+    ui.text(cat.specs[focusV], Vec2(P.x + 28, P.y + 242), 20.0f, inkDim, FontStyle::SemiBold);
+
+    // thumbnail grid
+    const float tile = 168.0f, gap = 14.0f, gx = P.x + 24, gy = P.y + 284, gh = 3 * (tile + gap) - gap + 8;
+    const int rows = (count + cols - 1) / cols;
+    const float maxScroll = std::max(0.0f, float(rows) * (tile + gap) - gap - gh + 8);
+    Rect gridRect(gx - 6, gy - 4, 3 * tile + 2 * gap + 12, gh + 8);
+    if (gridRect.contains(ui.mouse()) && nav.wheel != 0.0f) shopScroll_ = clampf(shopScroll_ - nav.wheel * 90.0f, 0.0f, maxScroll);
+    if (shopFocus_ != before) {
+        int row = shopFocus_ / cols;
+        float top = float(row) * (tile + gap), bottom = top + tile;
+        if (top < shopScroll_) shopScroll_ = top;
+        if (bottom > shopScroll_ + gh - 8) shopScroll_ = bottom - gh + 8;
+        game_.sound().ui("ui_move");
+    }
+    static float scrollAnim = 0.0f;
+    scrollAnim = dampf(scrollAnim, shopScroll_, 16.0f, 1.0f / 60.0f);
+    ui.pushClip(gridRect);
+    int clicked = -1;
+    for (int i = 0; i < count; ++i) {
+        int r = i / cols, c = i % cols;
+        Rect t(gx + float(c) * (tile + gap), gy + float(r) * (tile + gap) - scrollAnim, tile, tile);
+        if (t.y + t.h < gridRect.y || t.y > gridRect.y + gridRect.h) continue;
+        bool focused = i == shopFocus_;
+        bool hover = t.contains(ui.mouse()) && gridRect.contains(ui.mouse());
+        if (hover && nav.mouseMoved && shopFocus_ != i) shopFocus_ = i;
+        if (hover && nav.click) clicked = i;
+        int v = i / perVariant, ci = i % perVariant;
+        ui.rect(t, Vec4(0.97f, 0.975f, 0.98f, focused ? 0.98f : 0.8f), 12);
+        ui.rectGradient(Rect(t.x, t.y + t.h * 0.55f, t.w, t.h * 0.45f), Vec4(0, 0, 0, 0.0f), Vec4(0, 0, 0, 0.06f), 12);
+        if (Texture* tex = thumbs_.get(cat.kind, v, pal[size_t(ci)].c)) {
+            ui.image(tex, t.shrink(6));
+        } else {
+            float ph = std::fmod(ui.time() * 2.0f + float(i) * 0.13f, 1.0f);
+            ui.circle(t.center(), 5.0f + 3.0f * ph, ink * Vec4(1, 1, 1, 0.25f * (1.0f - ph)), 16);
+        }
+        if (i == eqIndex) {
+            Vec2 bc(t.x + t.w - 20, t.y + 20);
+            ui.circle(bc, 12, ui.theme().accent, 20);
+            ui.line(bc + Vec2(-5.5f, 0.5f), bc + Vec2(-1.5f, 4.5f), 2.6f, ui.theme().accentText);
+            ui.line(bc + Vec2(-1.5f, 4.5f), bc + Vec2(6.0f, -4.5f), 2.6f, ui.theme().accentText);
+        }
+        if (focused) ui.rectOutline(t.shrink(-3), ui.theme().accent, 4.0f, 14);
+    }
+    ui.popClip();
+    if (maxScroll > 0.0f) {
+        float bh = gh * gh / (gh + maxScroll);
+        float by = gy + (gh - bh) * (scrollAnim / maxScroll);
+        ui.rect(Rect(P.x + P.w - 12, gy, 4, gh), ink * Vec4(1, 1, 1, 0.08f), 2);
+        ui.rect(Rect(P.x + P.w - 12, by, 4, bh), ink * Vec4(1, 1, 1, 0.45f), 2);
+    }
+    // brand of the focused part
+    ui.rect(Rect(P.x + 28, P.y + P.h - 124, P.w - 56, 1.5f), ink * Vec4(1, 1, 1, 0.15f));
+    brandMark(ui, cat.brand[focusV], Vec2(P.x + P.w * 0.5f, P.y + P.h - 62));
+
+    // live preview of the focused part on the display scooter; select equips it
+    const int previewKey = shopCat_ * 1000 + shopFocus_;
+    if (previewKey != shopPreviewKey_) {
+        shopPreviewKey_ = previewKey;
+        game_.visual().applyCustomization(shopApply(equipped, shopCat_, focusV, focusC));
+    }
+    if (clicked >= 0) shopFocus_ = clicked;
+    if ((nav.confirm || clicked >= 0) && screenTime_ > 0.15f) {
+        int v = std::min(shopFocus_ / perVariant, cat.variants - 1), c = shopFocus_ % perVariant;
+        saves().data().custom = shopApply(equipped, shopCat_, v, c);
         customizationChanged();
+        shopPreviewKey_ = -1;
+        toast_ = std::string(cat.names[v]) + "  /  " + pal[size_t(c)].name;
+        toastTime_ = 0.0f;
+        game_.sound().ui("ui_select");
     }
-    footer(ui, "Left / Right  Change      B / Esc  Back");
+    if (nav.extra) {
+        saves().markDirty();
+        saves().flush();
+        toast_ = "SETUP SAVED";
+        toastTime_ = 0.0f;
+        game_.sound().ui("ui_select");
+    }
+    shopHints(ui);
 }
 
 void Menus::drawSettings(Context& ui) {

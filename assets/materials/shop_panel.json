@@ -1,0 +1,8 @@
+{
+  "_comment": "back lit shop sign",
+  "baseColor": "assets/textures/gen/shop_panel.png",
+  "emissive": "assets/textures/gen/shop_panel.png",
+  "emissiveStrength": 1.2,
+  "roughness": 0.35,
+  "surface": "metal"
+}

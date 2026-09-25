@@ -71,6 +71,8 @@ TEXTURES = {
     "fabric_leather_02": "fabric_leather",
     "rusty_painted_metal": "metal_painted_rusty",
     "painted_concrete": "concrete_painted",
+    # scooter shop interior
+    "laminate_floor_02": "wood_laminate",
 }
 MAPS = {"Diffuse": "diff", "nor_gl": "nrm", "arm": "arm"}
 
@@ -80,6 +82,9 @@ MODELS = [
     "water_manhole_cover", "exterior_aircon_unit", "power_box_01", "trashbag", "old_tyre", "wooden_crate_01", "plastic_crate_01",
     "cardboard_box_01", "planter_box_01", "shrub_02", "shrub_04", "weed_plant_02", "painted_wooden_bench", "modular_street_seating",
     "rollershutter_door", "covered_car", "potted_plant_02", "nettle_plant",
+    # scooter shop interior
+    "boombox", "modern_arm_chair_01", "modern_ceiling_lamp_01", "pachira_aquatica_01", "steel_frame_shelves_01",
+    "wooden_display_shelves_01", "wall_clock", "bar_chair_round_01",
 ]
 MODEL_DIR = os.path.join(ROOT, "assets", "models", "props")
 
@@ -89,6 +94,7 @@ HDRIS = {
     "kloofendal_43d_clear_puresky": ("clear", "1k"),
     "overcast_soil_puresky": ("overcast", "1k"),
     "moonless_golf": ("night", "1k"),
+    "gear_store": ("shop", "2k"),
 }
 
 

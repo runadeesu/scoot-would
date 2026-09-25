@@ -1,0 +1,8 @@
+{
+  "_comment": "cyan LED neon flex",
+  "color": "#c8f8ff",
+  "emissiveColor": "#2ad8ff",
+  "emissiveStrength": 22.0,
+  "roughness": 0.4,
+  "surface": "metal"
+}

@@ -1,0 +1,7 @@
+{
+  "color": "#0a0a0b",
+  "emissive": "assets/textures/gen/shop_laptop.png",
+  "emissiveStrength": 1.4,
+  "roughness": 0.08,
+  "surface": "metal"
+}

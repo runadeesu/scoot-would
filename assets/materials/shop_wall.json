@@ -1,0 +1,10 @@
+{
+  "_comment": "scooter shop: blue grey emulsion paint on plaster",
+  "color": "#a9b5c0",
+  "normal": "assets/textures/plaster_white_nrm.jpg",
+  "normalScale": 0.3,
+  "uvScale": 0.3,
+  "roughness": 0.82,
+  "antiTile": true,
+  "surface": "concrete"
+}

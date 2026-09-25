@@ -12,7 +12,7 @@ Input& input() {
 
 static const char* kActionNames[] = {"Push", "Brake", "Jump", "SpinLeft", "SpinRight", "Grab", "Revert", "Respawn", "Checkpoint",
                                      "Pause", "Debug", "CameraReset", "CameraMode", "Confirm", "Back", "NavUp", "NavDown", "NavLeft",
-                                     "NavRight", "TabLeft", "TabRight"};
+                                     "NavRight", "TabLeft", "TabRight", "MenuExtra"};
 static_assert(sizeof(kActionNames) / sizeof(kActionNames[0]) == size_t(Action::Count), "action names");
 
 const char* Input::actionName(Action a) { return kActionNames[int(a)]; }

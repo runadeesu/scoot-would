@@ -17,7 +17,8 @@ struct UIVertex {
 struct UIDrawCmd {
     Texture* texture = nullptr;  // nullptr = font atlas / white
     bool rgbaImage = false;      // false: texture red channel = signed distance (font atlas)
-    float softness = 0.0f;       // SDF edge widening (soft shadows / glow)
+    float softness = 0.0f;       // SDF edge widening (soft shadows / glow); backdrop: tint amount
+    bool backdrop = false;       // frosted glass: blurred scene behind the shape, tinted by the vertex colour
     uint32_t firstIndex = 0;
     uint32_t indexCount = 0;
     int clipX = 0, clipY = 0, clipW = 0, clipH = 0;  // 0 size = no clip
@@ -28,10 +29,12 @@ struct UIDrawList {
     std::vector<uint32_t> indices;
     std::vector<UIDrawCmd> commands;
     Texture* defaultAtlas = nullptr;
+    bool usesBackdrop = false;  // the renderer prepares the blurred backdrop this frame
     void clear() {
         vertices.clear();
         indices.clear();
         commands.clear();
+        usesBackdrop = false;
     }
 };
 

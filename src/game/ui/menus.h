@@ -3,6 +3,7 @@
 #pragma once
 
 #include "game/modes/mode_manager.h"
+#include "game/ui/part_thumbs.h"
 #include "ui/ui.h"
 
 #include <string>
@@ -23,6 +24,8 @@ public:
     Screen screen() const { return screen_; }
     bool active() const { return screen_ != Screen::None; }
     bool customizing() const { return screen_ == Screen::Rider || screen_ == Screen::Scooter; }
+    int shopCategory() const { return shopCat_; }  // scooter shop: part category being edited
+    void setShopCategory(int c) { shopCat_ = std::clamp(c, 0, 5); }
     void draw(ui::Context& ui, float dt);
     void setChallengeType(ModeType t) { listType_ = t; }
     // a map load is shown for one frame before it happens
@@ -37,6 +40,7 @@ private:
     void drawMap(ui::Context& ui);
     void drawRider(ui::Context& ui);
     void drawScooter(ui::Context& ui);
+    void shopHints(ui::Context& ui);
     void drawSettings(ui::Context& ui);
     void drawPause(ui::Context& ui);
     void drawResults(ui::Context& ui);
@@ -61,6 +65,10 @@ private:
     int loadingFrames_ = 0;
     std::string toast_;
     float toastTime_ = 10.0f;
+    // scooter shop
+    int shopCat_ = 0, shopFocus_ = -1, shopPreviewKey_ = -1;
+    float shopScroll_ = 0.0f;
+    PartThumbnails thumbs_;
 };
 
 }  // namespace sw

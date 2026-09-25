@@ -127,6 +127,19 @@ private:
     GpuTexture envEquirect_, envCube_, brdfLut_;
     int envMips_ = 1;
     std::string loadedHdri_;
+    // recently used environments stay resident so switching back (menu shop <-> street) is instant
+    struct EnvCacheEntry {
+        std::string key, hdri;
+        GpuTexture equirect, cube;
+        Vec4 sh[9];
+        Vec3 sunDir;
+        float skyUpLum = 1.0f;
+        int mips = 1;
+    };
+    std::vector<EnvCacheEntry> envCache_;
+    std::string envKey_;
+    // UI backdrop blur (frosted panels): 1/2, 1/4, 1/8 downsamples of the final image
+    GpuTexture backdrop_[3];
     uint64_t loadedEnvVersion_ = ~0ull;
     Vec4 sh_[9];
     Vec3 sunDir_{0.4f, 0.8f, 0.3f};

@@ -112,6 +112,12 @@ void Renderer::shutdown() {
     gpu().release(shadowMap_);
     gpu().release(envEquirect_);
     gpu().release(envCube_);
+    for (auto& e : envCache_) {
+        gpu().release(e.equirect);
+        gpu().release(e.cube);
+    }
+    envCache_.clear();
+    for (auto& b : backdrop_) gpu().release(b);
     gpu().release(brdfLut_);
 }
 
@@ -174,6 +180,7 @@ void Renderer::releaseTargets() {
     for (GpuTexture* t : {&depth_, &normals_, &hdr_, &hdrTemp_, &ldr_, &backbuffer_, &ssao_, &ssaoTemp_}) gpu().release(*t);
     for (auto& b : bloom_) gpu().release(b);
     bloom_.clear();
+    for (auto& b : backdrop_) gpu().release(b);
 }
 
 void Renderer::createTargets(int w, int h) {
@@ -197,6 +204,9 @@ void Renderer::createTargets(int w, int h) {
         bloom_.push_back(gpu().createTexture2D(uint32_t(bw), uint32_t(bh), kHdrFormat, rt, 1, "bloom"));
     }
     backbuffer_ = gpu().createTexture2D(uint32_t(w), uint32_t(h), gpu().swapchainFormat(), rt, 1, "backbuffer");
+    for (int i = 0; i < 3; ++i)
+        backdrop_[i] = gpu().createTexture2D(uint32_t(std::max(1, w >> (i + 1))), uint32_t(std::max(1, h >> (i + 1))), kHdrFormat, rt, 1,
+                                             "ui backdrop");
     hasPrev_ = false;
     LOG_INFO("renderer: output %dx%d, internal %dx%d", w, h, rw_, rh_);
 }
@@ -403,6 +413,48 @@ void Renderer::loadEnvironment(RenderScene& scene) {
     if (scene.environmentVersion == loadedEnvVersion_ && envCube_.handle) return;
     loadedEnvVersion_ = scene.environmentVersion;
     const Environment& env = scene.environment;
+    // everything the IBL preprocessing depends on
+    char keyBuf[256];
+    std::snprintf(keyBuf, sizeof(keyBuf), "|%.4f|%d|%.3f,%.3f,%.3f|%.3f|%d", env.rotation, int(env.autoSun), env.sunDirection.x,
+                  env.sunDirection.y, env.sunDirection.z, env.sunIntensity, int(env.groundFill));
+    std::string key = env.hdri + keyBuf;
+    if (key == envKey_ && envCube_.handle) return;
+    if (envCube_.handle) {
+        // park the current environment, it is likely needed again soon
+        gpu().waitIdle();
+        EnvCacheEntry e;
+        e.key = envKey_;
+        e.hdri = loadedHdri_;
+        e.equirect = envEquirect_;
+        e.cube = envCube_;
+        for (int i = 0; i < 9; ++i) e.sh[i] = sh_[i];
+        e.sunDir = sunDir_;
+        e.skyUpLum = skyUpLum_;
+        e.mips = envMips_;
+        envCache_.push_back(e);
+        envEquirect_ = GpuTexture{};
+        envCube_ = GpuTexture{};
+    }
+    envKey_ = key;
+    for (size_t i = 0; i < envCache_.size(); ++i) {
+        if (envCache_[i].key != key) continue;
+        EnvCacheEntry e = envCache_[i];
+        envCache_.erase(envCache_.begin() + long(i));
+        envEquirect_ = e.equirect;
+        envCube_ = e.cube;
+        for (int k = 0; k < 9; ++k) sh_[k] = e.sh[k];
+        sunDir_ = e.sunDir;
+        skyUpLum_ = e.skyUpLum;
+        envMips_ = e.mips;
+        loadedHdri_ = e.hdri;
+        LOG_INFO("renderer: environment '%s' restored from cache", loadedHdri_.c_str());
+        return;
+    }
+    while (envCache_.size() > 2) {
+        gpu().release(envCache_.front().equirect);
+        gpu().release(envCache_.front().cube);
+        envCache_.erase(envCache_.begin());
+    }
     Timer t;
     ImageF img;
     bool ok = !env.hdri.empty() && loadHdrImage(fs::resolve(env.hdri), img, 2048);
@@ -429,7 +481,7 @@ void Renderer::loadEnvironment(RenderScene& scene) {
     // Pure sky HDRIs have an empty lower hemisphere. Replace it with ground bounce light
     // (ground albedo * incoming light) so reflections and the ambient term below the horizon
     // are plausible, blended smoothly at the horizon.
-    {
+    if (env.groundFill) {
         double up[3] = {0, 0, 0};
         int W = img.width, H = img.height;
         int step = std::max(1, W / 256);
@@ -477,7 +529,6 @@ void Renderer::loadEnvironment(RenderScene& scene) {
         half[i * 4 + 3] = floatToHalf(1.0f);
     }
     gpu().waitIdle();
-    gpu().release(envEquirect_);
     {
         uint32_t levels = 1;
         for (int s = std::max(img.width, img.height); s > 1; s >>= 1) ++levels;
@@ -591,7 +642,6 @@ void Renderer::loadEnvironment(RenderScene& scene) {
     }
 
     // prefiltered specular cube
-    gpu().release(envCube_);
     envMips_ = 6;
     SDL_GPUTextureCreateInfo ci{};
     ci.type = SDL_GPU_TEXTURETYPE_CUBE;
@@ -1191,6 +1241,15 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
         fullscreen(cmd, backbuffer_.handle, 0, fxaa_, {{ldr_.handle, gpu().sampler(SamplerKind::LinearClamp)}}, &params,
                    sizeof(params), true);
     }
+    // blurred copy of the final image behind frosted UI panels
+    if (ui && ui->usesBackdrop) {
+        for (int i = 0; i < 3; ++i) {
+            const GpuTexture& from = i == 0 ? backbuffer_ : backdrop_[i - 1];
+            Vec4 params(1.0f / float(from.width), 1.0f / float(from.height), 0.0f, 1.0f);
+            fullscreen(cmd, backdrop_[i].handle, 0, bloomDown_, {{from.handle, gpu().sampler(SamplerKind::LinearClamp)}}, &params,
+                       sizeof(params), true);
+        }
+    }
 
     // UI + overlays ----------------------------------------------------------------------
     {
@@ -1211,9 +1270,11 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
                 if (c.indexCount == 0) continue;
                 Texture* t = c.texture ? c.texture : ui->defaultAtlas;
                 SDL_GPUTexture* th = t && t->gpuTex.handle ? t->gpuTex.handle : assets().white()->gpuTex.handle;
+                if (c.backdrop && backdrop_[2].handle) th = backdrop_[2].handle;
                 SDL_GPUTextureSamplerBinding sb{th, gpu().sampler(SamplerKind::LinearClamp)};
                 SDL_BindGPUFragmentSamplers(rp, 0, &sb, 1);
-                Vec4 mode(c.rgbaImage ? 1.0f : 0.0f, c.softness, 0, 0);
+                Vec4 mode(c.backdrop ? 2.0f : c.rgbaImage ? 1.0f : 0.0f, c.softness, 1.0f / float(std::max(1u, backdrop_[2].width)),
+                          1.0f / float(std::max(1u, backdrop_[2].height)));
                 SDL_PushGPUFragmentUniformData(cmd, 0, &mode, sizeof(mode));
                 SDL_Rect sc;
                 if (c.clipW > 0 && c.clipH > 0)

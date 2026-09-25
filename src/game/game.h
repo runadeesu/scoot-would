@@ -8,6 +8,7 @@
 #include "game/modes/mode_manager.h"
 #include "game/player/player.h"
 #include "game/player/player_visual.h"
+#include "game/world/shop_scene.h"
 #include "render/render_scene.h"
 #include "render/ui_draw.h"
 #include "scene/scene.h"
@@ -106,6 +107,8 @@ private:
     void processEvents();
     void updateLamps();
     void updateMenuCamera(float dt);
+    bool updateShopCamera(float dt);
+    void setShop(bool on);
     void updatePlayCamera(float dt, float alpha);
     void loadMapList();
 
@@ -136,6 +139,13 @@ private:
     RenderView menuView_;
     bool inputFrozen_ = false;
     std::string lastArea_;
+    // scooter shop (customization backdrop)
+    ShopScene shop_;
+    bool inShop_ = false;
+    Environment mapEnv_;
+    float shopYaw_ = 0.55f, shopPitch_ = 0.2f, shopDist_ = 1.5f, shopZoom_ = 1.0f;
+    Vec3 shopEye_, shopTarget_;
+    bool shopCamInit_ = false;
 };
 
 }  // namespace sw

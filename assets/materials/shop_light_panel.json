@@ -1,0 +1,8 @@
+{
+  "_comment": "recessed LED ceiling panel",
+  "color": "#ffffff",
+  "emissiveColor": "#fff3e2",
+  "emissiveStrength": 9.0,
+  "roughness": 0.5,
+  "surface": "metal"
+}

@@ -31,6 +31,7 @@ void Context::begin(UIDrawList* dl, int pw, int ph, float dt, const NavInput& na
     dl_ = dl;
     scale_ = float(std::max(ph, 1)) / 1080.0f;
     canvasW_ = float(pw) / scale_;
+    pixelSize_ = Vec2(float(std::max(pw, 1)), float(std::max(ph, 1)));
     dt_ = dt;
     time_ += dt;
     nav_ = nav;
@@ -74,11 +75,11 @@ float& Context::hoverAnim(int idx) {
 
 // --- batching ----------------------------------------------------------------------------------
 
-void Context::setBatch(Texture* tex, bool image, float softness) {
+void Context::setBatch(Texture* tex, bool image, float softness, bool backdrop) {
     if (!dl_) return;
     Rect clip = clips_.empty() ? Rect() : clips_.back();
     int cx = int(clip.x * scale_), cy = int(clip.y * scale_), cw = int(clip.w * scale_), ch = int(clip.h * scale_);
-    bool same = !dl_->commands.empty() && cur_.tex == tex && cur_.image == image && cur_.softness == softness;
+    bool same = !dl_->commands.empty() && cur_.tex == tex && cur_.image == image && cur_.softness == softness && cur_.backdrop == backdrop;
     if (same) {
         const UIDrawCmd& last = dl_->commands.back();
         same = last.clipX == cx && last.clipY == cy && last.clipW == cw && last.clipH == ch;
@@ -93,8 +94,10 @@ void Context::setBatch(Texture* tex, bool image, float softness) {
     c.clipY = cy;
     c.clipW = cw;
     c.clipH = ch;
+    c.backdrop = backdrop;
     dl_->commands.push_back(c);
-    cur_ = {image, tex, softness};
+    cur_ = {image, tex, softness, backdrop};
+    if (backdrop) dl_->usesBackdrop = true;
 }
 
 uint32_t Context::vtx(Vec2 p, Vec2 uv, uint32_t color) {
@@ -241,6 +244,32 @@ void Context::image(Texture* tex, const Rect& r, const Vec4& tint) {
              e = vtx({r.x, r.y + r.h}, {0, 1}, c);
     addTri(dl_, a, b, d);
     addTri(dl_, a, d, e);
+}
+
+void Context::frosted(const Rect& r, float radius, const Vec4& tint, float tintAmount) {
+    if (!dl_) return;
+    std::vector<Vec2> pts = roundRectPath(r, radius);
+    if (pts.size() < 3) return;
+    setBatch(nullptr, false, clampf(tintAmount, 0.0f, 1.0f), true);
+    size_t n = pts.size();
+    float aa = 0.6f / scale_;
+    Vec2 c = r.center();
+    uint32_t base = uint32_t(dl_->vertices.size());
+    auto suv = [&](Vec2 p) { return Vec2(p.x * scale_ / pixelSize_.x, p.y * scale_ / pixelSize_.y); };
+    for (size_t i = 0; i < n; ++i) {
+        Vec2 d = (pts[i] - c);
+        float l = d.length();
+        Vec2 o = l > 1e-4f ? pts[i] + d / l * aa : pts[i];
+        vtx(pts[i], suv(pts[i]), packColor(tint));
+        vtx(o, suv(o), packColor(Vec4(tint.x, tint.y, tint.z, 0.0f)));
+    }
+    for (size_t i = 1; i + 1 < n; ++i) addTri(dl_, base, base + uint32_t(i * 2), base + uint32_t((i + 1) * 2));
+    for (size_t i = 0; i < n; ++i) {
+        uint32_t i0 = base + uint32_t(i * 2), o0 = i0 + 1;
+        uint32_t i1 = base + uint32_t(((i + 1) % n) * 2), o1 = i1 + 1;
+        addTri(dl_, i0, o0, o1);
+        addTri(dl_, i0, o1, i1);
+    }
 }
 
 float Context::measure(const std::string& s, float size, FontStyle style) {

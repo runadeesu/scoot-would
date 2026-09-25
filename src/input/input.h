@@ -37,6 +37,7 @@ enum class Action : int {
     NavRight,
     TabLeft,
     TabRight,
+    MenuExtra,  // X: secondary menu action (save a setup, ...)
     Count
 };
 

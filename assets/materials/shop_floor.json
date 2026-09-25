@@ -1,0 +1,11 @@
+{
+  "_comment": "scooter shop: light oak laminate",
+  "baseColor": "assets/textures/wood_laminate_diff.jpg",
+  "normal": "assets/textures/wood_laminate_nrm.jpg",
+  "orm": "assets/textures/wood_laminate_arm.jpg",
+  "uvScale": 0.6,
+  "roughness": 0.85,
+  "antiTile": true,
+  "wear": 0.15,
+  "surface": "wood"
+}

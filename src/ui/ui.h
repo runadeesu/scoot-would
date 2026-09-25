@@ -42,7 +42,7 @@ struct Theme {
 
 struct NavInput {
     bool up = false, down = false, left = false, right = false;  // edge + repeat
-    bool confirm = false, back = false, tabLeft = false, tabRight = false;
+    bool confirm = false, back = false, tabLeft = false, tabRight = false, extra = false;
     Vec2 mouse;          // pixels
     bool mouseMoved = false, click = false, mouseDown = false;
     float wheel = 0.0f;
@@ -72,6 +72,8 @@ public:
     void circle(Vec2 c, float r, const Vec4& color, int segments = 32);
     void arc(Vec2 c, float r, float thickness, float a0, float a1, const Vec4& color);
     void image(Texture* tex, const Rect& r, const Vec4& tint = Vec4(1, 1, 1, 1));
+    // frosted glass: the blurred scene behind r, mixed towards tint.rgb by tintAmount (tint.a = opacity)
+    void frosted(const Rect& r, float radius, const Vec4& tint, float tintAmount);
     // returns the advance width; `size` = pixel height of the em at 1080p
     float text(const std::string& s, Vec2 pos, float size, const Vec4& color, FontStyle style = FontStyle::SemiBold, Align align = Align::Left,
                float shadowAlpha = 0.0f);
@@ -110,8 +112,9 @@ private:
         bool image = false;
         Texture* tex = nullptr;
         float softness = 0.0f;
+        bool backdrop = false;
     };
-    void setBatch(Texture* tex, bool image, float softness);
+    void setBatch(Texture* tex, bool image, float softness, bool backdrop = false);
     uint32_t vtx(Vec2 canvasPos, Vec2 uv, uint32_t color);
     Vec2 px(Vec2 c) const { return c * scale_; }
     void fillConvexAA(const std::vector<Vec2>& pts, const Vec4& color, const Vec4* colors = nullptr);
@@ -124,6 +127,7 @@ private:
     Theme theme_;
     NavInput nav_;
     float scale_ = 1.0f, canvasW_ = 1920.0f, dt_ = 0.0f, time_ = 0.0f;
+    Vec2 pixelSize_{1920.0f, 1080.0f};
     Vec2 mouseCanvas_;
     int focus_ = 0, count_ = 0, prevCount_ = 0;
     bool lastFocused_ = false, movedFocus_ = false, activatedAny_ = false;

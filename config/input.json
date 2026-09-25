@@ -22,6 +22,7 @@
     "NavLeft":     { "gamepad": ["DpadLeft"], "keyboard": ["Left", "A"] },
     "NavRight":    { "gamepad": ["DpadRight"],"keyboard": ["Right", "D"] },
     "TabLeft":     { "gamepad": ["LB"],       "keyboard": ["Q"] },
-    "TabRight":    { "gamepad": ["RB"],       "keyboard": ["E"] }
+    "TabRight":    { "gamepad": ["RB"],       "keyboard": ["E"] },
+    "MenuExtra":   { "gamepad": ["X"],        "keyboard": ["X"] }
   }
 }

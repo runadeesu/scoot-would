@@ -223,7 +223,7 @@ void PlayerVisual::applyCustomization(const Customization& c) {
         RenderObject* o = rs_->get(riderHandles_[i]);
         if (!o) continue;
         bool vis = riderPartVisible(riderMeshVariant_[i], c);
-        o->visible = vis && visible_ && riderVisible_;
+        o->visible = vis && visible_ && riderVisible_ && !display_;
     }
     // rider material tints: materials are tintable, the instance tint carries the colour
     if (model_) {
@@ -248,7 +248,16 @@ void PlayerVisual::applyCustomization(const Customization& c) {
                    : n.find("pants") != std::string::npos ? c.pantsColor : n.find("shoes") != std::string::npos ? c.shoesColor : c.helmetColor;
         rs_->setTint(mannequin_[i], Vec4(col, 1.0f));
         if (n.find("helmet") != std::string::npos) o->visible = c.helmet != 0 && visible_;
+        if (display_ || !riderVisible_) o->visible = false;
     }
+}
+
+void PlayerVisual::setDisplay(bool on, const Transform& where) {
+    display_ = on;
+    displayXf_ = where;
+    if (!rs_) return;
+    for (auto h : mannequin_) rs_->setVisible(h, on ? false : (riderVisible_ && visible_));
+    applyCustomization(custom_);
 }
 
 void PlayerVisual::setRiderVisible(bool v) {
@@ -426,6 +435,24 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
 
 void PlayerVisual::update(float dt, float alpha, Player& player) {
     if (!rs_) return;
+    if (display_) {
+        // product display: straight bars, wheels still, no trick pose
+        const ScooterDims& d = kDims;
+        Mat4 root = displayXf_.matrix();
+        Vec3 fa = d.frontAxle();
+        rs_->setTransform(partHandles_[Deck], root);
+        rs_->setTransform(partHandles_[Grip], root);
+        rs_->setTransform(partHandles_[Brake], root);
+        for (int p : {int(Fork), int(Bars), int(Grips), int(Clamp)}) rs_->setTransform(partHandles_[p], root);
+        rs_->setTransform(partHandles_[TyreF], root * Mat4::translation(fa));
+        rs_->setTransform(partHandles_[CoreF], root * Mat4::translation(fa));
+        rs_->setTransform(partHandles_[TyreR], root * Mat4::translation(d.rearAxle()));
+        rs_->setTransform(partHandles_[CoreR], root * Mat4::translation(d.rearAxle()));
+        (void)dt;
+        (void)alpha;
+        (void)player;
+        return;
+    }
     bool bailed = player.state() == PlayerState::Bailed;
     Transform body = player.renderTransform(alpha);
     // visual carve lean around the travel direction

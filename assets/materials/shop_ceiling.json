@@ -1,0 +1,9 @@
+{
+  "_comment": "scooter shop: white painted ceiling",
+  "color": "#ecebe7",
+  "normal": "assets/textures/plaster_white_nrm.jpg",
+  "normalScale": 0.25,
+  "uvScale": 0.3,
+  "roughness": 0.9,
+  "surface": "concrete"
+}

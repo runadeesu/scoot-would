@@ -606,6 +606,96 @@ bool generateTextures(const std::string& root) {
                           },
                           3.0f),
          "skin_detail_normal", true);
+    // scooter shop graphics (fictional brands only)
+    {
+        // display panel: hexagon mark + wordmark on dark brushed board
+        const int W = 1536, Hh = 768;
+        Img im(W, Hh, Vec4(0.02f, 0.022f, 0.026f, 1.0f));
+        for (int y = 0; y < Hh; ++y)
+            for (int x = 0; x < W; ++x) {
+                float b = 0.018f + 0.01f * fbm(float(x) / 400.0f, float(y) / 3.0f, 4, 17, 3);
+                im.at(x, y) = Vec4(b, b * 1.05f, b * 1.12f, 1.0f);
+            }
+        Vec2 hc(float(W) * 0.26f, float(Hh) * 0.5f);
+        float R = float(Hh) * 0.28f;
+        for (int y = 0; y < Hh; ++y)
+            for (int x = 0; x < W; ++x) {
+                Vec2 p = Vec2(float(x), float(y)) - hc;
+                // hexagon distance (pointy top)
+                float ax = std::fabs(p.x), ay = std::fabs(p.y);
+                float d = std::max(ax * 0.866f + ay * 0.5f, ay) - R;
+                float ring = 1.0f - smoothstep(0.0f, 2.0f, std::fabs(d + R * 0.06f) - R * 0.06f);
+                // inner triangle mark
+                Vec2 q = p / (R * 0.55f);
+                float tri = std::max(std::fabs(q.x) * 0.866f + q.y * 0.5f, -q.y) - 0.5f;
+                float triA = 1.0f - smoothstep(-0.02f, 0.02f, tri);
+                float triB = 1.0f - smoothstep(-0.02f, 0.02f, std::max(std::fabs(q.x) * 0.866f + q.y * 0.5f, -q.y) - 0.3f);
+                float mark = std::max(ring, triA - triB);
+                if (mark > 0.0f) im.blend(x, y, Vec4(0.86f, 0.9f, 0.92f, mark));
+            }
+        std::vector<float> word = textMask(display, "SCOOT WOULD", W / 2, Hh / 3, 0.72f);
+        for (int y = 0; y < Hh / 3; ++y)
+            for (int x = 0; x < W / 2; ++x) {
+                float a = word[size_t(y) * size_t(W / 2) + size_t(x)];
+                if (a > 0.0f) im.blend(x + W * 44 / 100, y + Hh / 3, Vec4(0.9f, 0.92f, 0.93f, a));
+            }
+        save(im, "shop_panel");
+    }
+    save(panel(display, "FLOWLAB", 1024, 384, Vec3(0.95f, 0.95f, 0.94f), Vec3(0.03f), Vec3(0.95f), 0.62f, false), "shop_banner_1");
+    save(panel(display, "KDX PRO", 1024, 384, Vec3(0.97f, 0.97f, 0.96f), Vec3(0.75f, 0.06f, 0.05f), Vec3(0.97f), 0.62f, false), "shop_banner_2");
+    save(panel(bold, "AXLE CO.", 1024, 384, Vec3(0.05f, 0.06f, 0.08f), Vec3(0.2f, 0.85f, 0.4f), Vec3(0.05f), 0.55f, false), "shop_banner_3");
+    {
+        // laptop screen: a web shop grid of product tiles
+        const int W = 512, Hh = 320;
+        Img im(W, Hh, Vec4(0.93f, 0.94f, 0.95f, 1.0f));
+        Rng r{uint64_t(91)};
+        for (int y = 0; y < 22; ++y)
+            for (int x = 0; x < W; ++x) im.at(x, y) = Vec4(0.16f, 0.18f, 0.22f, 1.0f);
+        for (int ty = 0; ty < 3; ++ty)
+            for (int tx = 0; tx < 6; ++tx) {
+                int x0 = 18 + tx * 80, y0 = 40 + ty * 90;
+                Vec3 c(r.range(0.2f, 0.8f), r.range(0.3f, 0.7f), r.range(0.3f, 0.8f));
+                for (int y = y0; y < y0 + 62; ++y)
+                    for (int x = x0; x < x0 + 70; ++x) {
+                        float sky = float(y - y0) / 62.0f;
+                        im.at(x, y) = Vec4(lerp(c, c * 0.45f, sky), 1.0f);
+                    }
+                for (int y = y0 + 66; y < y0 + 72; ++y)
+                    for (int x = x0; x < x0 + 50; ++x) im.at(x, y) = Vec4(0.35f, 0.36f, 0.38f, 1.0f);
+            }
+        save(im, "shop_laptop");
+    }
+    {
+        // poster: rider silhouette over a sunset gradient (original artwork)
+        const int W = 512, Hh = 768;
+        Img im(W, Hh);
+        for (int y = 0; y < Hh; ++y)
+            for (int x = 0; x < W; ++x) {
+                float t = float(y) / float(Hh);
+                Vec3 c = lerp(Vec3(0.95f, 0.55f, 0.2f), Vec3(0.25f, 0.1f, 0.35f), t);
+                im.at(x, y) = Vec4(c, 1.0f);
+            }
+        // ground ramp + silhouette shapes (body, arms, bars, deck, wheels)
+        auto dark = Vec4(0.03f, 0.02f, 0.04f, 1.0f);
+        for (int y = int(float(Hh) * 0.78f); y < Hh; ++y)
+            for (int x = 0; x < W; ++x)
+                if (float(y) > float(Hh) * 0.78f + float(x) * 0.12f) im.at(x, y) = dark;
+        disc(im, 250, 250, 26, dark);                               // head
+        line(im, {250, 270}, {280, 420}, 30, 24, dark);              // torso
+        line(im, {262, 300}, {335, 360}, 11, 9, dark);               // arm
+        line(im, {280, 420}, {330, 520}, 20, 14, dark);              // leg
+        line(im, {280, 420}, {230, 500}, 18, 12, dark);              // leg
+        line(im, {335, 360}, {300, 560}, 6, 6, dark);                // bar stem
+        line(im, {310, 355}, {365, 365}, 6, 6, dark);                // bar
+        line(im, {215, 525}, {330, 560}, 7, 7, dark);                // deck
+        disc(im, 215, 540, 16, dark);
+        disc(im, 312, 570, 16, dark);
+        std::vector<float> word = textMask(display, "SEND IT", W, 160, 0.7f);
+        for (int y = 0; y < 160; ++y)
+            for (int x = 0; x < W; ++x)
+                if (word[size_t(y) * size_t(W) + size_t(x)] > 0.0f) im.blend(x, y + 40, Vec4(0.98f, 0.97f, 0.94f, word[size_t(y) * size_t(W) + size_t(x)]));
+        save(im, "shop_poster");
+    }
     // scooter griptape: silicon carbide grit (dense sharp grains on a black backing), slightly
     // worn / dusty in patches; tileable, ~5 cm per repeat
     {
