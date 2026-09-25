@@ -1,7 +1,8 @@
 {
-  "color": "#1c1c1f",
+  "color": "#e6e8eb",
   "metallic": 1.0,
   "roughness": 0.3,
   "tintable": true,
-  "surface": "metal"
+  "surface": "metal",
+  "_comment": "powder coated / anodised chromoly (tint = bar colour)"
 }

@@ -290,7 +290,7 @@ void MeshBuilder::tube(const std::vector<Vec3>& path, float radius, int segments
             ring.push_back(addVertex(p, dir, Vec2(float(s) / float(segments) * kTwoPi * radius * uvScale_ * 4.0f, along * uvScale_)));
         }
         if (!prevRing.empty())
-            for (int s = 0; s < segments; ++s) addQuad(prevRing[s], ring[s], ring[s + 1], prevRing[s + 1]);
+            for (int s = 0; s < segments; ++s) addQuad(prevRing[s], prevRing[s + 1], ring[s + 1], ring[s]);  // CCW seen from outside
         prevRing = ring;
     }
     if (caps) {
