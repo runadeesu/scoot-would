@@ -73,10 +73,9 @@ std::string Game::currentArea() const {
 }
 
 bool Game::init() {
-    auto defaults = loadJsonFile(fs::resolve("config/input.json"));
-    auto user = loadJsonFile(fs::userPath("input.json"));
-    if (defaults) input().loadBindings(*defaults, user ? &*user : nullptr);
     saves().init();
+    input().setScheme(ControlScheme(saves().settings().gameplay.controlScheme));
+    input().previewPadStyle(opts_.padPreview);
     bool scripted = !opts_.autotest.empty() || !opts_.screenshot.empty();
     audio().init(!scripted);
     music().init();
@@ -98,6 +97,7 @@ bool Game::init() {
             return true;
         }
         opts_.map = autotest_->map();
+        player_.tricks.setScheme(autotest_->flowScheme());  // tests state the layout they were written for
     }
     if (opts_.debugView) {
         RenderSettings rs = renderer().settings();
@@ -133,7 +133,11 @@ bool Game::init() {
             if (opts_.menuScreen.size() > 8) menus_->setShopCategory(std::atoi(opts_.menuScreen.c_str() + 8));
             menus_->open(Menus::Screen::Scooter);
         }
-        else if (opts_.menuScreen == "settings") menus_->open(Menus::Screen::Settings);
+        else if (opts_.menuScreen.rfind("settings", 0) == 0) {
+            // "settings" or "settings:<tab>"
+            if (opts_.menuScreen.size() > 9) menus_->setSettingsTab(std::atoi(opts_.menuScreen.c_str() + 9));
+            menus_->open(Menus::Screen::Settings);
+        }
         else if (opts_.menuScreen == "map") menus_->open(Menus::Screen::Map);
         else if (opts_.menuScreen == "play") menus_->open(Menus::Screen::Play);
         else if (opts_.menuScreen == "challenges") {
@@ -200,6 +204,8 @@ void Game::applySettings(bool video) {
     camera_.shakeSetting = s.gameplay.cameraShake;
     camera_.distanceScale = s.gameplay.cameraDistance;
     visual_.setGoofy(opts_.stance >= 0 ? opts_.stance == 1 : s.gameplay.stance == 1);
+    if (int(input().scheme()) != s.gameplay.controlScheme) input().setScheme(ControlScheme(s.gameplay.controlScheme));
+    player_.tricks.setScheme(autotest_ ? autotest_->flowScheme() : input().scheme() == ControlScheme::Flow);
     input().vibrationEnabled = s.gameplay.vibration;
     input().invertCameraY = s.gameplay.invertY;
     // audio
@@ -477,6 +483,22 @@ void Game::onEvent(const SDL_Event& e) {
     }
 }
 
+// Scooter Flow layout: pull the right stick down to compress (pump), flick it up to pop. With RT / LT held
+// the stick belongs to the tricks; in the air the bare stick rotates the rider
+void Game::applyFlowStick(PlayerInput& pi) {
+    if (!pi.flow) return;
+    bool mods = pi.grab > 0.3f || pi.trickMod > 0.3f;
+    Vec2 rs = pi.look;
+    bool rsDown = !mods && rs.y < -0.55f && std::fabs(rs.x) < 0.8f;
+    bool rsUp = !mods && rs.y > 0.75f && std::fabs(rs.x) < 0.65f;
+    pi.jumpDown = pi.jumpDown || rsDown;
+    pi.jumpPressed = pi.jumpPressed || (rsDown && !rsDownPrev_);
+    pi.jumpReleased = pi.jumpReleased || (rsUp && !rsUpPrev_);
+    rsDownPrev_ = rsDown;
+    rsUpPrev_ = rsUp;
+    pi.rotate = mods ? Vec2(0.0f, 0.0f) : rs;
+}
+
 PlayerInput Game::gatherInput() {
     Input& in = input();
     PlayerInput pi;
@@ -485,6 +507,8 @@ PlayerInput Game::gatherInput() {
     pi.jumpDown = in.down(Action::Jump);
     pi.jumpPressed = in.consumePressed(Action::Jump);
     pi.jumpReleased = in.consumeReleased(Action::Jump);
+    pi.flow = in.scheme() == ControlScheme::Flow;
+    pi.trickMod = in.axis(Axis::Trick);
     pi.pushPressed = in.consumePressed(Action::Push);
     pi.brake = in.axis(Axis::Brake);
     pi.spinLeft = in.down(Action::SpinLeft);
@@ -501,8 +525,10 @@ void Game::fixedUpdate(float dt) {
     PlayerInput pi;
     if (autotest_) {
         pi = autotest_->input(testTime_, input().flicks(), engine().time(), player_);
+        applyFlowStick(pi);
     } else if (state_ == AppState::Playing && !(modes_.state() == ModeState::Countdown) && !(debug_ && debug_->wantsKeyboard())) {
         pi = gatherInput();
+        applyFlowStick(pi);
     } else {
         input().flicks().clear();
         pi.brake = state_ == AppState::Menu ? 1.0f : 0.0f;

@@ -140,6 +140,7 @@ void Player::bail(const std::string& reason) {
 void Player::enterAir(bool popped) {
     state_ = PlayerState::Air;
     airTimer_ = 0.0f;
+    airRotateArmed_ = false;
     airStartY_ = scooter.position().y;
     airPeak_ = 0.0f;
     coyote_ = popped ? 0.0f : 0.12f;
@@ -284,6 +285,18 @@ void Player::fixedUpdate(float dt, const PlayerInput& in, std::deque<FlickEvent>
                 if (combo.active()) combo.addTrick("Revert", 150, "Revert");
                 emit(GameEventType::Revert);
             }
+            // pumping: staying compressed while the ground curves up under the wheels (the bottom of a
+            // transition) turns leg work into speed; the curvature is measured from the turning ground normal
+            if (scooter.grounded()) {
+                Vec3 n = scooter.groundNormal();
+                float bend = std::acos(clampf(dot(n, pumpNormal_), -1.0f, 1.0f)) / std::max(dt, 1e-4f);
+                pumpNormal_ = n;
+                float spd = scooter.speed();
+                if (crouch_ > 0.3f && bend > 0.25f && spd > 1.5f && spd < 11.0f) {
+                    Vec3 v = scooter.velocity();
+                    scooter.setVelocity(v + v.normalized() * (0.9f * crouch_ * std::min(bend, 3.0f) * dt));
+                }
+            }
             // manual
             bool landingNow = justLanded_ && landedTimer_ < 0.25f;
             if (manuals.tryEnter(dt, in.move.y, scooter.speed(), scooter.bothWheels() || landingNow, landingNow, manual)) {
@@ -333,10 +346,19 @@ void Player::fixedUpdate(float dt, const PlayerInput& in, std::deque<FlickEvent>
             }
             jumpLatch_ = false;
             float spinBtn = (in.spinRight ? 1.0f : 0.0f) - (in.spinLeft ? 1.0f : 0.0f);
-            c.spin = clampf(in.move.x + spinBtn, -1.0f, 1.0f);
-            c.flip = in.move.y;
-            c.roll = in.move.x * std::fabs(in.move.y) * 0.8f;
-            if (std::fabs(in.move.y) < 0.35f) c.flip = 0.0f;
+            if (in.flow) {
+                // Scooter Flow layout: right stick = rotations, left stick = body weight (small lean)
+                if (!airRotateArmed_ && in.rotate.length() < 0.3f) airRotateArmed_ = true;
+                Vec2 r = airRotateArmed_ ? in.rotate : Vec2(0.0f, 0.0f);
+                c.spin = clampf(r.x + spinBtn, -1.0f, 1.0f);
+                c.flip = std::fabs(r.y) >= 0.45f ? r.y : 0.0f;
+                c.roll = in.move.x * 0.3f;
+            } else {
+                c.spin = clampf(in.move.x + spinBtn, -1.0f, 1.0f);
+                c.flip = in.move.y;
+                c.roll = in.move.x * std::fabs(in.move.y) * 0.8f;
+                if (std::fabs(in.move.y) < 0.35f) c.flip = 0.0f;
+            }
             predictLanding();
             tricks.airUpdate(dt, flicks, time, in.grab, in.rightDir, scooter.angularVelocity(), scooter.right(), scooter.forward(), timeToLand_);
             if (tricks.startedThisStep) emit(GameEventType::TrickStart, 0, tricks.lastStarted);

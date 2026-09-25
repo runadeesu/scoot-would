@@ -1,4 +1,5 @@
 #include "input/input.h"
+#include "core/filesystem.h"
 #include "core/log.h"
 
 #include <cstring>
@@ -12,7 +13,7 @@ Input& input() {
 
 static const char* kActionNames[] = {"Push", "Brake", "Jump", "SpinLeft", "SpinRight", "Grab", "Revert", "Respawn", "Checkpoint",
                                      "Pause", "Debug", "CameraReset", "CameraMode", "Confirm", "Back", "NavUp", "NavDown", "NavLeft",
-                                     "NavRight", "TabLeft", "TabRight", "MenuExtra"};
+                                     "NavRight", "TabLeft", "TabRight", "MenuExtra", "TrickMod"};
 static_assert(sizeof(kActionNames) / sizeof(kActionNames[0]) == size_t(Action::Count), "action names");
 
 const char* Input::actionName(Action a) { return kActionNames[int(a)]; }
@@ -66,26 +67,68 @@ void Input::init() {
     int count = 0;
     SDL_JoystickID* ids = SDL_GetGamepads(&count);
     if (ids) {
-        for (int i = 0; i < count && !gamepad_; ++i) openGamepad(ids[i]);
+        for (int i = 0; i < count; ++i) openGamepad(ids[i]);
         SDL_free(ids);
     }
 }
 
 void Input::shutdown() {
-    if (gamepad_) SDL_CloseGamepad(gamepad_);
-    gamepad_ = nullptr;
+    for (SDL_Gamepad* p : pads_) SDL_CloseGamepad(p);
+    pads_.clear();
+    activePad_ = nullptr;
 }
 
 void Input::openGamepad(SDL_JoystickID id) {
-    if (gamepad_) return;
-    gamepad_ = SDL_OpenGamepad(id);
-    if (gamepad_) {
-        LOG_INFO("input: gamepad connected: %s", SDL_GetGamepadName(gamepad_));
-        lastDevice_ = InputDevice::Gamepad;
+    for (SDL_Gamepad* p : pads_)
+        if (SDL_GetGamepadID(p) == id) return;
+    SDL_Gamepad* pad = SDL_OpenGamepad(id);
+    if (!pad) return;
+    pads_.push_back(pad);
+    if (!activePad_) activePad_ = pad;
+    LOG_INFO("input: gamepad connected: %s", SDL_GetGamepadName(pad));
+    lastDevice_ = InputDevice::Gamepad;
+}
+
+void Input::closeGamepad(SDL_JoystickID id) {
+    for (size_t i = 0; i < pads_.size(); ++i) {
+        if (SDL_GetGamepadID(pads_[i]) != id) continue;
+        LOG_INFO("input: gamepad disconnected: %s", SDL_GetGamepadName(pads_[i]));
+        if (activePad_ == pads_[i]) activePad_ = nullptr;
+        SDL_CloseGamepad(pads_[i]);
+        pads_.erase(pads_.begin() + long(i));
+        break;
+    }
+    if (!activePad_ && !pads_.empty()) activePad_ = pads_.front();
+    if (pads_.empty()) lastDevice_ = InputDevice::Keyboard;
+}
+
+std::string Input::gamepadName() const { return activePad_ ? SDL_GetGamepadName(activePad_) : ""; }
+
+PadStyle Input::padStyle() const {
+    if (previewStyle_ >= 0) return PadStyle(previewStyle_);
+    if (!activePad_) return PadStyle::Xbox;
+    switch (SDL_GetGamepadType(activePad_)) {
+        case SDL_GAMEPAD_TYPE_PS3:
+        case SDL_GAMEPAD_TYPE_PS4:
+        case SDL_GAMEPAD_TYPE_PS5: return PadStyle::PlayStation;
+        case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_PRO:
+        case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_LEFT:
+        case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_RIGHT:
+        case SDL_GAMEPAD_TYPE_NINTENDO_SWITCH_JOYCON_PAIR: return PadStyle::Nintendo;
+        default: return PadStyle::Xbox;
     }
 }
 
-std::string Input::gamepadName() const { return gamepad_ ? SDL_GetGamepadName(gamepad_) : ""; }
+std::string Input::userBindingsFile() const { return scheme_ == ControlScheme::Flow ? "input_flow.json" : "input_classic.json"; }
+
+void Input::setScheme(ControlScheme s) {
+    scheme_ = s;
+    auto defaults = loadJsonFile(fs::resolve(s == ControlScheme::Flow ? "config/input.json" : "config/input_classic.json"));
+    auto user = loadJsonFile(fs::userPath(userBindingsFile()));
+    for (auto& b : bindings_) b = Binding{};
+    if (defaults) loadBindings(*defaults, user ? &*user : nullptr);
+    clearLatches();
+}
 
 void Input::loadBindings(const Json& defaults, const Json* user) {
     auto apply = [&](const Json& j) {
@@ -149,6 +192,17 @@ void Input::setGamepadBinding(Action a, SDL_GamepadButton b) {
     bindings_[int(a)].axisButtons.clear();
 }
 void Input::setKeyBinding(Action a, SDL_Scancode k) { bindings_[int(a)].keys = {k}; }
+void Input::setGamepadTrigger(Action a, SDL_GamepadAxis t) {
+    bindings_[int(a)].axisButtons = {t};
+    bindings_[int(a)].buttons.clear();
+}
+
+bool Input::captureNextTrigger(SDL_GamepadAxis& out) {
+    if (captureAxis_ == SDL_GAMEPAD_AXIS_INVALID) return false;
+    out = captureAxis_;
+    capturing_ = false;
+    return true;
+}
 
 bool Input::captureNextGamepadButton(SDL_GamepadButton& out) {
     if (captureButton_ == SDL_GAMEPAD_BUTTON_INVALID) return false;
@@ -172,21 +226,20 @@ void Input::beginFrame() {
 void Input::processEvent(const SDL_Event& e) {
     switch (e.type) {
         case SDL_EVENT_GAMEPAD_ADDED: openGamepad(e.gdevice.which); break;
-        case SDL_EVENT_GAMEPAD_REMOVED:
-            if (gamepad_ && SDL_GetGamepadID(gamepad_) == e.gdevice.which) {
-                LOG_INFO("input: gamepad disconnected");
-                SDL_CloseGamepad(gamepad_);
-                gamepad_ = nullptr;
-                // try another connected pad
-                init();
-            }
-            break;
+        case SDL_EVENT_GAMEPAD_REMOVED: closeGamepad(e.gdevice.which); break;
         case SDL_EVENT_GAMEPAD_BUTTON_DOWN:
             lastDevice_ = InputDevice::Gamepad;
+            if (SDL_Gamepad* p = SDL_GetGamepadFromID(e.gbutton.which)) activePad_ = p;
             if (capturing_) captureButton_ = SDL_GamepadButton(e.gbutton.button);
             break;
         case SDL_EVENT_GAMEPAD_AXIS_MOTION:
-            if (std::abs(e.gaxis.value) > 12000) lastDevice_ = InputDevice::Gamepad;
+            if (std::abs(e.gaxis.value) > 12000) {
+                lastDevice_ = InputDevice::Gamepad;
+                if (SDL_Gamepad* p = SDL_GetGamepadFromID(e.gaxis.which)) activePad_ = p;
+            }
+            if (capturing_ && e.gaxis.value > 22000 &&
+                (e.gaxis.axis == SDL_GAMEPAD_AXIS_LEFT_TRIGGER || e.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHT_TRIGGER))
+                captureAxis_ = SDL_GamepadAxis(e.gaxis.axis);
             break;
         case SDL_EVENT_KEY_DOWN:
             if (e.key.scancode < SDL_SCANCODE_COUNT && !textInputActive) keys_[e.key.scancode] = true;
@@ -202,6 +255,7 @@ void Input::processEvent(const SDL_Event& e) {
                 f.dir = quantize(v);
                 f.time = time_;
                 f.modifierGrab = down(Action::Grab);
+                f.modifierTrick = down(Action::TrickMod);
                 if (f.dir != StickDir::None) flicks_.push_back(f);
             }
             break;
@@ -231,8 +285,21 @@ bool Input::mouseDown(int button) const { return (mouseButtons_ & (1u << button)
 bool Input::mouseClicked(int button) const { return (mouseClicks_ & (1u << button)) != 0; }
 
 float Input::stickAxis(SDL_GamepadAxis a) const {
-    if (!gamepad_) return 0.0f;
-    return float(SDL_GetGamepadAxis(gamepad_, a)) / 32767.0f;
+    if (!activePad_) return 0.0f;
+    return float(SDL_GetGamepadAxis(activePad_, a)) / 32767.0f;
+}
+
+float Input::trigger(SDL_GamepadAxis a) const {
+    // triggers of every pad count (the strongest wins)
+    float v = 0.0f;
+    for (SDL_Gamepad* p : pads_) v = std::max(v, float(SDL_GetGamepadAxis(p, a)) / 32767.0f);
+    return v <= deadzones.trigger ? 0.0f : std::min(1.0f, (v - deadzones.trigger) / (1.0f - deadzones.trigger));
+}
+
+float Input::analog(Action a) const {
+    float v = down(a) ? 1.0f : 0.0f;
+    for (SDL_GamepadAxis ax : bindings_[int(a)].axisButtons) v = std::max(v, trigger(ax));
+    return v;
 }
 
 Vec2 Input::radialDeadzone(Vec2 v, float dz) const {
@@ -249,11 +316,11 @@ bool Input::rawDown(Action a) const {
             if (keys_[k]) return true;
     for (int mb : b.mouseButtons)
         if (mouseDown(mb)) return true;
-    if (gamepad_) {
+    for (SDL_Gamepad* p : pads_) {
         for (SDL_GamepadButton gb : b.buttons)
-            if (SDL_GetGamepadButton(gamepad_, gb)) return true;
+            if (SDL_GetGamepadButton(p, gb)) return true;
         for (SDL_GamepadAxis ax : b.axisButtons)
-            if (stickAxis(ax) > std::max(0.35f, deadzones.trigger)) return true;
+            if (float(SDL_GetGamepadAxis(p, ax)) / 32767.0f > std::max(0.35f, deadzones.trigger)) return true;
     }
     return false;
 }
@@ -287,15 +354,15 @@ void Input::update(double time, float dt) {
     axes_[int(Axis::MoveY)] = clampf(ls.y, -1, 1);
     axes_[int(Axis::LookX)] = rs.x;
     axes_[int(Axis::LookY)] = rs.y;
-    auto trig = [&](SDL_GamepadAxis a) {
-        float v = stickAxis(a);
-        return v <= deadzones.trigger ? 0.0f : std::min(1.0f, (v - deadzones.trigger) / (1.0f - deadzones.trigger));
-    };
-    axes_[int(Axis::Brake)] = std::max(trig(SDL_GAMEPAD_AXIS_LEFT_TRIGGER), down(Action::Brake) ? 1.0f : 0.0f);
-    axes_[int(Axis::Grab)] = std::max(trig(SDL_GAMEPAD_AXIS_RIGHT_TRIGGER), down(Action::Grab) ? 1.0f : 0.0f);
+    // analog actions: a trigger bound to the action gives its travel, keys / buttons give 1
+    axes_[int(Axis::Brake)] = analog(Action::Brake);
+    axes_[int(Axis::Grab)] = analog(Action::Grab);
+    axes_[int(Axis::Trick)] = analog(Action::TrickMod);
 
-    // right stick flick detection (gamepad): fast move from centre to the edge
-    if (gamepad_) {
+    // right stick flick detection (gamepad): fast move from centre to the edge. The Scooter Flow layout
+    // only registers a trick when the stick is pushed all the way
+    if (activePad_) {
+        const float edge = scheme_ == ControlScheme::Flow ? 0.93f : 0.8f;
         Vec2 raw = radialDeadzone(Vec2(stickAxis(SDL_GAMEPAD_AXIS_RIGHTX), -stickAxis(SDL_GAMEPAD_AXIS_RIGHTY)), deadzones.rightStick);
         float m = raw.length();
         if (m < 0.35f) {
@@ -303,12 +370,13 @@ void Input::update(double time, float dt) {
             lookPeakTime_ = 0.0f;
         } else if (flickArmed_) {
             lookPeakTime_ += dt;
-            if (m > 0.8f) {
+            if (m > edge) {
                 // accept both quick flicks and slower pushes (players do both); direction at the edge
                 FlickEvent f;
                 f.dir = quantize(raw);
                 f.time = time;
                 f.modifierGrab = axes_[int(Axis::Grab)] > 0.3f;
+                f.modifierTrick = axes_[int(Axis::Trick)] > 0.3f;
                 flicks_.push_back(f);
                 flickArmed_ = false;
             } else if (lookPeakTime_ > 0.35f) {
@@ -341,8 +409,8 @@ void Input::clearLatches() {
 }
 
 void Input::rumble(float low, float high, int ms) {
-    if (!gamepad_ || !vibrationEnabled) return;
-    SDL_RumbleGamepad(gamepad_, uint16_t(clampf(low, 0, 1) * 65535.0f), uint16_t(clampf(high, 0, 1) * 65535.0f), uint32_t(ms));
+    if (!activePad_ || !vibrationEnabled) return;
+    SDL_RumbleGamepad(activePad_, uint16_t(clampf(low, 0, 1) * 65535.0f), uint16_t(clampf(high, 0, 1) * 65535.0f), uint32_t(ms));
 }
 
 }  // namespace sw

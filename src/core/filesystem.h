@@ -29,6 +29,7 @@ bool writeBinary(const std::string& absPath, const void* data, size_t size);
 bool writeTextSafe(const std::string& absPath, const std::string& text);
 int64_t modifiedTime(const std::string& absPath);
 bool createDirectories(const std::string& absPath);
+bool removeFile(const std::string& absPath);
 std::vector<std::string> listFiles(const std::string& absDir, const std::string& extension = "");
 std::string fileName(const std::string& path);
 std::string stem(const std::string& path);

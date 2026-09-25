@@ -29,6 +29,7 @@ public:
     std::vector<float> screenshotTimes;
     const std::string& name() const { return name_; }
     std::string cameraMode;  // optional
+    bool flowScheme() const { return flow_; }  // "scheme": "flow" drives the Scooter Flow layout
 
 private:
     struct Step {
@@ -58,7 +59,8 @@ private:
     // held state
     Vec2 move_, look_;
     bool jumpHeld_ = false;
-    float brake_ = 0.0f, grab_ = 0.0f;
+    float brake_ = 0.0f, grab_ = 0.0f, trick_ = 0.0f;
+    bool flow_ = false;
     bool spinL_ = false, spinR_ = false;
     // pulses for this frame
     bool pushPulse_ = false, jumpPressPulse_ = false, jumpReleasePulse_ = false, revertPulse_ = false, respawnPulse_ = false;

@@ -15,6 +15,7 @@ bool Autotest::load(const std::string& absPath) {
     spawnVel_ = jvec3(*j, "velocity", Vec3(0));
     duration_ = jget<float>(*j, "duration", 5.0f);
     cameraMode = jget<std::string>(*j, "camera", "");
+    flow_ = jget<std::string>(*j, "scheme", "classic") == "flow";
     for (auto& s : (*j)["steps"]) {
         if (s.contains("when"))
             conditional_.push_back({s.value("t", 0.0f), s});
@@ -38,6 +39,7 @@ void Autotest::apply(const Json& c, std::deque<FlickEvent>& flicks, double gameT
     if (c.contains("look")) look_ = jvec2(c, "look");
     if (c.contains("brake")) brake_ = c["brake"].get<float>();
     if (c.contains("grab")) grab_ = c["grab"].get<float>();
+    if (c.contains("trick")) trick_ = c["trick"].get<float>();
     if (c.contains("spin")) {
         float s = c["spin"].get<float>();
         spinL_ = s < 0;
@@ -61,6 +63,7 @@ void Autotest::apply(const Json& c, std::deque<FlickEvent>& flicks, double gameT
         f.dir = stickDirFromName(c["flick"].get<std::string>());
         f.time = gameTime;
         f.modifierGrab = grab_ > 0.3f;
+        f.modifierTrick = trick_ > 0.3f;
         flicks.push_back(f);
     }
 }
@@ -108,6 +111,8 @@ PlayerInput Autotest::input(double t, std::deque<FlickEvent>& flicks, double gam
     in.spinRight = spinR_;
     in.revertPressed = revertPulse_;
     in.respawnPressed = respawnPulse_;
+    in.flow = flow_;
+    in.trickMod = trick_;
     return in;
 }
 

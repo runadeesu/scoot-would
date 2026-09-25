@@ -1,5 +1,6 @@
 // scoot would - input manager (gamepad first, keyboard + mouse fallback)
-// Actions are bound in config/input.json (defaults) and user overrides in <user>/input.json.
+// Actions are bound per control layout: config/input.json (Scooter Flow style, default) or
+// config/input_classic.json, with the user's overrides in <user>/input_flow.json / input_classic.json.
 #pragma once
 
 #include "core/json.h"
@@ -20,8 +21,8 @@ enum class Action : int {
     Jump,        // hold = crouch, release = pop
     SpinLeft,    // LB
     SpinRight,   // RB
-    Grab,        // RT (modifier)
-    Revert,      // Y: 180 revert / switch stance on the ground
+    Grab,        // grab modifier (Scooter Flow layout: LT, classic: RT)
+    Revert,      // 180 revert / switch stance on the ground
     Respawn,
     Checkpoint,
     Pause,
@@ -38,10 +39,18 @@ enum class Action : int {
     TabLeft,
     TabRight,
     MenuExtra,  // X: secondary menu action (save a setup, ...)
+    TrickMod,   // scooter trick modifier (Scooter Flow layout: RT + right stick)
     Count
 };
 
-enum class Axis : int { MoveX = 0, MoveY, LookX, LookY, Brake, Grab, Count };
+enum class Axis : int { MoveX = 0, MoveY, LookX, LookY, Brake, Grab, Trick, Count };
+
+// control layouts: Scooter Flow style twin stick (right stick pops and rotates, RT + right stick = scooter
+// tricks, LT + right stick = grabs) or the classic button layout (A pops, right stick flicks tricks)
+enum class ControlScheme : int { Flow = 0, Classic = 1 };
+
+// face button glyph family of the active controller
+enum class PadStyle : int { Xbox = 0, PlayStation, Nintendo };
 
 enum class InputDevice { Keyboard, Gamepad };
 
@@ -53,7 +62,8 @@ StickDir stickDirFromName(const std::string& s);
 struct FlickEvent {
     StickDir dir = StickDir::None;
     double time = 0.0;
-    bool modifierGrab = false;
+    bool modifierGrab = false;   // grab modifier held
+    bool modifierTrick = false;  // trick modifier held (Scooter Flow layout)
     bool consumed = false;
 };
 
@@ -111,9 +121,19 @@ public:
     float cameraSensitivity = 1.0f;
     bool invertCameraY = false;
 
-    bool gamepadConnected() const { return gamepad_ != nullptr; }
+    bool gamepadConnected() const { return !pads_.empty(); }
     std::string gamepadName() const;
+    PadStyle padStyle() const;
+    SDL_Gamepad* activePad() const { return activePad_; }
+    bool usingGamepad() const { return previewStyle_ >= 0 || (lastDevice_ == InputDevice::Gamepad && activePad_ != nullptr); }
+    // screenshots / docs: show the glyphs of a controller family without one connected (-1 = off)
+    void previewPadStyle(int style) { previewStyle_ = style; }
+    bool previewingPad() const { return previewStyle_ >= 0; }
     InputDevice lastDevice() const { return lastDevice_; }
+    ControlScheme scheme() const { return scheme_; }
+    // switches the layout and loads its bindings (config defaults + the user's overrides for that layout)
+    void setScheme(ControlScheme s);
+    std::string userBindingsFile() const;
     bool textInputActive = false;  // console / editor text entry swallows keys
 
     // rebinding
@@ -121,8 +141,15 @@ public:
     void setGamepadBinding(Action a, SDL_GamepadButton b);
     void setKeyBinding(Action a, SDL_Scancode k);
     bool captureNextGamepadButton(SDL_GamepadButton& out);  // used by the rebind UI
+    bool captureNextTrigger(SDL_GamepadAxis& out);
+    void setGamepadTrigger(Action a, SDL_GamepadAxis t);
     bool captureNextKey(SDL_Scancode& out);
-    void startCapture() { captureButton_ = SDL_GAMEPAD_BUTTON_INVALID; captureKey_ = SDL_SCANCODE_UNKNOWN; capturing_ = true; }
+    void startCapture() {
+        captureButton_ = SDL_GAMEPAD_BUTTON_INVALID;
+        captureKey_ = SDL_SCANCODE_UNKNOWN;
+        captureAxis_ = SDL_GAMEPAD_AXIS_INVALID;
+        capturing_ = true;
+    }
     void stopCapture() { capturing_ = false; }
 
     static const char* actionName(Action a);
@@ -135,14 +162,20 @@ private:
         float held = 0.0f;
     };
     void openGamepad(SDL_JoystickID id);
+    void closeGamepad(SDL_JoystickID id);
     float stickAxis(SDL_GamepadAxis a) const;
+    float trigger(SDL_GamepadAxis a) const;
+    float analog(Action a) const;  // 0..1: triggers bound to the action are analog
     Vec2 radialDeadzone(Vec2 v, float dz) const;
     bool rawDown(Action a) const;
 
     std::array<ActionState, size_t(Action::Count)> state_{};
     std::array<float, size_t(Axis::Count)> axes_{};
     std::array<Binding, size_t(Action::Count)> bindings_{};
-    SDL_Gamepad* gamepad_ = nullptr;
+    std::vector<SDL_Gamepad*> pads_;  // every connected controller drives the game
+    SDL_Gamepad* activePad_ = nullptr;  // the one used last: sticks + glyphs
+    ControlScheme scheme_ = ControlScheme::Flow;
+    int previewStyle_ = -1;
     bool keys_[SDL_SCANCODE_COUNT] = {};
     uint32_t mouseButtons_ = 0, mouseClicks_ = 0;
     Vec2 mouseDelta_, mousePos_;
@@ -156,6 +189,7 @@ private:
     bool capturing_ = false;
     SDL_GamepadButton captureButton_ = SDL_GAMEPAD_BUTTON_INVALID;
     SDL_Scancode captureKey_ = SDL_SCANCODE_UNKNOWN;
+    SDL_GamepadAxis captureAxis_ = SDL_GAMEPAD_AXIS_INVALID;
 };
 
 Input& input();

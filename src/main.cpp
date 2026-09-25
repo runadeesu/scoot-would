@@ -56,6 +56,10 @@ int main(int argc, char** argv) {
         else if (a == "--menu") opts.menuScreen = next();
         else if (a == "--challenge") opts.challenge = next();
         else if (a == "--no-rider") opts.hideRider = true;
+        else if (a == "--pad") {
+            std::string st = next();
+            opts.padPreview = st == "ps" ? 1 : st == "switch" ? 2 : 0;
+        }
         else if (a == "--bind-pose") opts.bindPose = true;
         else if (a == "--stance") opts.stance = next() == "goofy" ? 1 : 0;
         else if (a == "--help" || a == "-h") {

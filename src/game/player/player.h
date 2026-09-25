@@ -35,6 +35,10 @@ struct PlayerInput {
     bool respawnPressed = false;
     bool checkpointPressed = false;
     StickDir rightDir = StickDir::None;
+    // Scooter Flow layout: the bare right stick rotates the rider in the air (spin x, flip y)
+    bool flow = false;
+    Vec2 rotate;
+    float trickMod = 0.0f;  // RT held (Scooter Flow layout)
 };
 
 struct PlayerSettings {
@@ -114,6 +118,8 @@ private:
     bool jumpLatch_ = false;
     float coyote_ = 0.0f;
     float airTimer_ = 0.0f;
+    bool airRotateArmed_ = false;  // Scooter Flow layout: the pop flick must return before the stick rotates
+    Vec3 pumpNormal_{0, 1, 0};
     float airPeak_ = 0.0f;
     float airStartY_ = 0.0f;
     float bailTimer_ = 0.0f;

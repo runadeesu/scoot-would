@@ -1,0 +1,10 @@
+{ "name": "flow_rewind", "scheme": "flow", "spawn": [0, 0, 20], "yaw": 0, "duration": 8.0,
+  "_comment": "Scooter Flow layout whip rewind: RT + right stick right, then RT + right stick left",
+  "steps": [ {"t": 0.2, "push": true}, {"t": 0.75, "push": true}, {"t": 1.3, "push": true}, {"t": 1.85, "push": true}, {"t": 2.4, "push": true},
+    {"t": 2.9, "look": [0, -1]},
+    {"when": {"zBelow": -1.9}, "look": [0, 1]},
+    {"when": {"state": "Air", "airAbove": 0.02}, "look": [0, 0], "trick": 1.0},
+    {"when": {"state": "Air", "airAbove": 0.06}, "flick": "right"},
+    {"when": {"state": "Air", "airAbove": 0.16}, "flick": "left"},
+    {"when": {"state": "Air", "airAbove": 0.3}, "trick": 0.0} ],
+  "expect": [ {"trick": "Rewind", "noBail": true} ] }

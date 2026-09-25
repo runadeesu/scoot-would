@@ -39,6 +39,8 @@ struct GraphicsSettings {
 
 struct GameplaySettings {
     int stance = 0;              // 0 regular (left foot forward), 1 goofy (right foot forward)
+    int controlScheme = 0;       // 0 Scooter Flow style twin stick, 1 classic buttons
+    int language = -1;           // -1 = follow the system language, 0 English, 1 Japanese
     int landingAssist = 1;       // 0 off, 1 low, 2 normal
     float cameraSensitivity = 1.0f;
     bool invertY = false;

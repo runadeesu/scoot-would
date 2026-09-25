@@ -1,14 +1,22 @@
 {
-  "_comment": "scoot would default control layout: Scooter Flow style twin stick. Left stick = body weight / carving (back = manual, forward = nose manual). Right stick: pull down = compress (pump through transitions), flick up = pop; in the air it spins / flips. Hold RT (F) + push the right stick all the way = scooter tricks (right tailwhip, left heelwhip, up barspin, RT right then RT left = whip rewind). Hold LT (G) + right stick = grabs. Keyboard: WASD = left stick, arrow keys = right stick, Space = pop. Gamepad names: A B X Y LB RB LT RT Start Back LS RS DpadUp DpadDown DpadLeft DpadRight. User overrides are saved to <user>/input_flow.json.",
+  "_comment": "scoot would CLASSIC control layout (SETTINGS > GAMEPLAY > Control Layout). A pops (hold to crouch), right stick flicks scooter tricks, RT + right stick grabs. User overrides are saved to <user>/input_classic.json.",
   "deadzones": {
     "leftStick": 0.15,
     "rightStick": 0.2,
     "trigger": 0.1
   },
   "actions": {
-    "Push": {
+    "Jump": {
       "gamepad": [
         "A"
+      ],
+      "keyboard": [
+        "Space"
+      ]
+    },
+    "Push": {
+      "gamepad": [
+        "X"
       ],
       "keyboard": [
         "Left Shift"
@@ -16,21 +24,16 @@
     },
     "Brake": {
       "gamepad": [
-        "B"
+        "B",
+        "LT"
       ],
       "keyboard": [
         "Left Ctrl"
       ]
     },
-    "Jump": {
-      "gamepad": [],
-      "keyboard": [
-        "Space"
-      ]
-    },
     "Revert": {
       "gamepad": [
-        "X"
+        "Y"
       ],
       "keyboard": [
         "V"
@@ -52,20 +55,12 @@
         "E"
       ]
     },
-    "TrickMod": {
+    "Grab": {
       "gamepad": [
         "RT"
       ],
       "keyboard": [
         "F"
-      ]
-    },
-    "Grab": {
-      "gamepad": [
-        "LT"
-      ],
-      "keyboard": [
-        "G"
       ]
     },
     "Respawn": {
@@ -109,7 +104,7 @@
     },
     "CameraMode": {
       "gamepad": [
-        "Y"
+        "DpadRight"
       ],
       "keyboard": [
         "Tab"
@@ -192,6 +187,10 @@
       "keyboard": [
         "X"
       ]
+    },
+    "TrickMod": {
+      "gamepad": [],
+      "keyboard": []
     }
   }
 }

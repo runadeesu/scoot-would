@@ -22,7 +22,10 @@ public:
     void reset();
 
 private:
+    float hintAge_ = 0.0f;   // control hints fade out after the first seconds of a ride / first tricks
+    int hintTricks_ = 0;
     void drawCombo(ui::Context& ui);
+    void drawControlHints(ui::Context& ui, float dt);
     void drawTrickPopup(ui::Context& ui);
     void drawSpeed(ui::Context& ui);
     void drawBalance(ui::Context& ui, const RenderView& view);

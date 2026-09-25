@@ -123,6 +123,11 @@ int64_t modifiedTime(const std::string& absPath) {
     return int64_t(t.time_since_epoch().count());
 }
 
+bool removeFile(const std::string& absPath) {
+    std::error_code ec;
+    return stdfs::remove(stdfs::u8path(absPath), ec);
+}
+
 bool createDirectories(const std::string& absPath) {
     if (absPath.empty()) return false;
     std::error_code ec;

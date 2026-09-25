@@ -1,4 +1,6 @@
 #include "game/ui/hud.h"
+#include "game/ui/glyphs.h"
+#include "input/input.h"
 
 #include "audio/music.h"
 #include "game/game.h"
@@ -40,6 +42,8 @@ const char* kLandNames[4] = {"CLEAN", "", "SKETCHY", "BAIL"};
 
 void Hud::reset() {
     popups_.clear();
+    hintAge_ = 0.0f;
+    hintTricks_ = 0;
     bannerAge_ = 10.0f;
     toastAge_ = 10.0f;
     lastCountdown_ = -1;
@@ -54,6 +58,7 @@ void Hud::toast(const std::string& text, float seconds) {
 void Hud::onEvent(const GameEvent& e) {
     switch (e.type) {
         case GameEventType::TrickLanded: {
+            ++hintTricks_;
             Popup p;
             p.text = e.text;
             p.score = e.score;
@@ -117,6 +122,29 @@ void Hud::draw(Context& ui, float dt, const RenderView& view) {
     if (gs.showTrickNames) drawTrickPopup(ui);
     drawSpeed(ui);
     drawToasts(ui);
+    drawControlHints(ui, dt);
+}
+
+// the essentials of the active layout, bottom left, for the first seconds of a ride (until a few tricks landed)
+void Hud::drawControlHints(Context& ui, float dt) {
+    hintAge_ += dt;
+    float a = 1.0f - saturate((hintAge_ - 16.0f) / 1.5f);
+    if (hintTricks_ >= 3) a = std::min(a, 0.0f);
+    if (a <= 0.01f) return;
+    using glyphs::Hint;
+    bool flow = input().scheme() == ControlScheme::Flow;
+    std::vector<Hint> rows;
+    if (flow)
+        rows = {Hint::act(Action::Push, "PUSH"), Hint::rs("COMPRESS", StickDir::Down), Hint::rs("POP", StickDir::Up), Hint::act(Action::TrickMod, "+ RIGHT STICK  TRICKS"),
+                Hint::act(Action::Grab, "+ RIGHT STICK  GRABS")};
+    else
+        rows = {Hint::act(Action::Push, "PUSH"), Hint::act(Action::Jump, "POP"), Hint::rs("TRICKS"), Hint::act(Action::Grab, "+ RIGHT STICK  GRABS")};
+    float y = 700;
+    ui.rect(Rect(36, y - 30, 380, float(rows.size()) * 48.0f + 12.0f), Vec4(0, 0, 0, 0.32f * a), 10);
+    for (const Hint& h : rows) {
+        glyphs::hint(ui, h, 52, y, 32.0f);
+        y += 48;
+    }
 }
 
 void Hud::drawCombo(Context& ui) {

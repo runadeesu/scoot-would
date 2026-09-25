@@ -73,7 +73,7 @@ Json SaveSystem::toJson(const Settings& s) {
                      {"sharpen", g.sharpen},         {"drawDistance", g.drawDistance}, {"lodBias", g.lodBias},
                      {"fov", g.fov},                 {"brightness", g.brightness}, {"anisotropy", g.anisotropy},
                      {"particles", g.particles}};
-    j["gameplay"] = {{"stance", p.stance}, {"landingAssist", p.landingAssist}, {"cameraSensitivity", p.cameraSensitivity}, {"invertY", p.invertY},
+    j["gameplay"] = {{"stance", p.stance}, {"controlScheme", p.controlScheme}, {"language", p.language}, {"landingAssist", p.landingAssist}, {"cameraSensitivity", p.cameraSensitivity}, {"invertY", p.invertY},
                      {"cameraShake", p.cameraShake},     {"cameraDistance", p.cameraDistance},       {"vibration", p.vibration},
                      {"showHud", p.showHud},             {"showTrickNames", p.showTrickNames},       {"metric", p.metric},
                      {"balanceDifficulty", p.balanceDifficulty}};
@@ -109,6 +109,8 @@ Settings SaveSystem::settingsFromJson(const Json& j) {
     G.particles = jget<bool>(g, "particles", G.particles);
     auto& P = s.gameplay;
     P.stance = std::clamp(jget<int>(p, "stance", P.stance), 0, 1);
+    P.controlScheme = std::clamp(jget<int>(p, "controlScheme", P.controlScheme), 0, 1);
+    P.language = std::clamp(jget<int>(p, "language", P.language), -1, 1);
     P.landingAssist = std::clamp(jget<int>(p, "landingAssist", P.landingAssist), 0, 2);
     P.cameraSensitivity = clampf(jget<float>(p, "cameraSensitivity", P.cameraSensitivity), 0.2f, 3.0f);
     P.invertY = jget<bool>(p, "invertY", P.invertY);

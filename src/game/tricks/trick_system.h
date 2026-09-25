@@ -27,7 +27,8 @@ struct TrickDefinition {
     TrickChannel channel = TrickChannel::Deck;
     // input
     std::string inputType = "flick";  // flick | sequence | grab
-    std::vector<StickDir> dirs;       // one for flick, several for sequence
+    std::vector<StickDir> dirs;       // one for flick, several for sequence (classic layout)
+    std::vector<StickDir> flowDirs;   // Scooter Flow layout: right stick directions while RT (LT for grabs) is held
     bool modifierGrab = false;
     // rules
     float minAirtime = 0.3f;  // expected remaining air time needed to finish
@@ -80,6 +81,9 @@ struct ScooterPose {
 class TrickSystem {
 public:
     bool loadDefinitions(const std::string& absPath);
+    // Scooter Flow layout: tricks need the trick / grab modifier and use flowDirs
+    void setScheme(bool flow) { flow_ = flow; }
+    bool flowScheme() const { return flow_; }
     const std::vector<TrickDefinition>& definitions() const { return defs_; }
     const TrickDefinition* find(const std::string& id) const;
 
@@ -113,6 +117,7 @@ private:
     std::vector<ActiveTrick> finished_;  // completed during this air
     ScooterPose pose_;
     bool inAir_ = false;
+    bool flow_ = true;
     bool startFakie_ = false;
     float spin_ = 0.0f, flip_ = 0.0f, roll_ = 0.0f;
     float airTime_ = 0.0f;

@@ -1,0 +1,9 @@
+{ "name": "flow_tailwhip", "scheme": "flow", "spawn": [0, 0, 20], "yaw": 0, "duration": 8.0,
+  "_comment": "Scooter Flow layout: right stick down (compress), flick up (pop), then hold RT and push the right stick right = tailwhip",
+  "steps": [ {"t": 0.2, "push": true}, {"t": 0.75, "push": true}, {"t": 1.3, "push": true}, {"t": 1.85, "push": true}, {"t": 2.4, "push": true},
+    {"t": 2.9, "look": [0, -1]},
+    {"when": {"zBelow": -1.9}, "look": [0, 1]},
+    {"when": {"state": "Air", "airAbove": 0.02}, "look": [0, 0], "trick": 1.0},
+    {"when": {"state": "Air", "airAbove": 0.06}, "flick": "right"},
+    {"when": {"state": "Air", "airAbove": 0.3}, "trick": 0.0} ],
+  "expect": [ {"trick": "Tailwhip", "noBail": true} ] }

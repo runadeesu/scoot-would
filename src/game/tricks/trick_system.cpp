@@ -54,6 +54,8 @@ bool TrickSystem::loadDefinitions(const std::string& absPath) {
             const Json& in = t["input"];
             d.inputType = jget<std::string>(in, "type", "flick");
             for (auto& s : in.value("dirs", Json::array())) d.dirs.push_back(stickDirFromName(s.get<std::string>()));
+            for (auto& s : in.value("flow_dirs", Json::array())) d.flowDirs.push_back(stickDirFromName(s.get<std::string>()));
+            if (d.flowDirs.empty()) d.flowDirs = d.dirs;
             d.modifierGrab = jget<std::string>(in, "modifier", "none") == "grab";
         }
         d.minAirtime = jget<float>(t, "airtime", 0.3f);
@@ -129,20 +131,31 @@ void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now
     flip_ += dot(angVel, bodyRight) * dt;
     roll_ += dot(angVel, bodyForward) * dt;
 
+    auto dirsOf = [&](const TrickDefinition& d) -> const std::vector<StickDir>& { return flow_ ? d.flowDirs : d.dirs; };
     // buffered flicks -> trick starts
     for (size_t fi = 0; fi < flicks.size(); ++fi) {
         FlickEvent& f = flicks[fi];
         if (f.consumed || now - f.time > 0.25) continue;
         bool grabMod = f.modifierGrab || grabAxis > 0.3f;
+        if (flow_) {
+            // Scooter Flow layout: a bare right stick rotates the rider, tricks need RT (scooter) or LT (grabs)
+            if (!f.modifierTrick && !f.modifierGrab) {
+                f.consumed = true;
+                continue;
+            }
+            grabMod = f.modifierGrab && !f.modifierTrick;
+        }
         // 1) sequences (rewind): previous flick + this one
         const TrickDefinition* seqMatch = nullptr;
         for (auto& d : defs_) {
-            if (d.inputType != "sequence" || d.dirs.size() != 2 || d.modifierGrab != grabMod) continue;
-            if (d.dirs[1] != f.dir) continue;
+            const auto& dd = dirsOf(d);
+            if (d.inputType != "sequence" || dd.size() != 2 || d.modifierGrab != grabMod) continue;
+            if (dd[1] != f.dir) continue;
             // the first flick of the sequence started a trick shortly before
             for (auto& a : active_) {
+                const auto& ad = dirsOf(*a.def);
                 if (a.time < 0.28f && a.def->channel == d.channel && a.def->inputType != "sequence" &&
-                    std::find(a.def->dirs.begin(), a.def->dirs.end(), d.dirs[0]) != a.def->dirs.end()) {
+                    std::find(ad.begin(), ad.end(), dd[0]) != ad.end()) {
                     seqMatch = &d;
                     a.def = &d;  // convert in place (keeps timing)
                     a.progress = a.time / d.duration;
@@ -158,8 +171,9 @@ void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now
         // 2) chaining: same input while the trick is running upgrades it (double / triple)
         bool chained = false;
         for (auto& a : active_) {
-            if (a.done || a.def->chainTo.empty() || a.def->dirs.empty()) continue;
-            bool sameInput = std::find(a.def->dirs.begin(), a.def->dirs.end(), f.dir) != a.def->dirs.end() && a.def->modifierGrab == grabMod;
+            const auto& ad = dirsOf(*a.def);
+            if (a.done || a.def->chainTo.empty() || ad.empty()) continue;
+            bool sameInput = std::find(ad.begin(), ad.end(), f.dir) != ad.end() && a.def->modifierGrab == grabMod;
             if (!sameInput) continue;
             const TrickDefinition* up = find(a.def->chainTo);
             if (!up) continue;
@@ -178,10 +192,13 @@ void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now
         for (auto& d : defs_) {
             if (d.inputType == "sequence" || d.inputType == "chain") continue;
             if (d.modifierGrab != grabMod) continue;
-            auto it = std::find(d.dirs.begin(), d.dirs.end(), f.dir);
-            if (it == d.dirs.end()) continue;
-            // left side inputs spin the trick the other way
-            int dir = (f.dir == StickDir::Left || f.dir == StickDir::UpLeft || f.dir == StickDir::DownLeft) ? -d.direction : d.direction;
+            const auto& dd = dirsOf(d);
+            auto it = std::find(dd.begin(), dd.end(), f.dir);
+            if (it == dd.end()) continue;
+            // classic: left side inputs spin the trick the other way (the Scooter Flow layout gives each side its
+            // own trick, e.g. right = tailwhip, left = heelwhip)
+            bool leftSide = f.dir == StickDir::Left || f.dir == StickDir::UpLeft || f.dir == StickDir::DownLeft;
+            int dir = (!flow_ && leftSide) ? -d.direction : d.direction;
             if (tryStart(d, dir, now)) f.consumed = true;
             break;
         }
@@ -196,7 +213,8 @@ void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now
         if (!riderBusy && grabCooldown_ <= 0.0f) {
             for (auto& d : defs_) {
                 if (d.inputType != "grab") continue;
-                if (std::find(d.dirs.begin(), d.dirs.end(), rightDir) == d.dirs.end()) continue;
+                const auto& dd = dirsOf(d);
+                if (std::find(dd.begin(), dd.end(), rightDir) == dd.end()) continue;
                 if (tryStart(d, 1, now)) grabCooldown_ = 0.3f;
                 break;
             }

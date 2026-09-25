@@ -13,6 +13,7 @@
 namespace sw {
 
 using namespace ui;
+using glyphs::Hint;
 
 namespace {
 
@@ -206,10 +207,11 @@ void Menus::header(Context& ui, const std::string& title, const std::string& sub
     if (!subtitle.empty()) ui.text(subtitle, Vec2(122, 138), 26.0f, ui.theme().text, FontStyle::SemiBold, Align::Left, 0.9f);
 }
 
-void Menus::footer(Context& ui, const std::string& hints) {
-    ui.rectGradient(Rect(0, 1000, ui.width(), 80), Vec4(0, 0, 0, 0.0f), Vec4(0, 0, 0, 0.7f));
-    ui.text(hints, Vec2(ui.width() - 60, 1030), 24.0f, ui.theme().textDim, FontStyle::SemiBold, Align::Right);
-    if (toastTime_ < 3.0f && !toast_.empty()) ui.text(toast_, Vec2(60, 1030), 24.0f, ui.theme().accent, FontStyle::Bold);
+void Menus::footer(Context& ui, const std::vector<glyphs::Hint>& hints, const std::string& note) {
+    ui.rectGradient(Rect(0, 990, ui.width(), 90), Vec4(0, 0, 0, 0.0f), Vec4(0, 0, 0, 0.7f));
+    if (!note.empty()) ui.text(note, Vec2(ui.width() - 60, 1026), 24.0f, ui.theme().text, FontStyle::Bold, Align::Right);
+    else glyphs::hintRow(ui, hints, ui.width() - 56, 1041);
+    if (toastTime_ < 3.0f && !toast_.empty()) ui.text(toast_, Vec2(60, 1026), 24.0f, ui.theme().accent, FontStyle::Bold);
 }
 
 void Menus::medal(Context& ui, Vec2 c, float r, int m) {
@@ -349,7 +351,7 @@ void Menus::drawPlay(Context& ui) {
         }
         y += 92;
     }
-    footer(ui, "A / Enter  Select      B / Esc  Back");
+    footer(ui, {Hint::act(Action::Confirm, "SELECT"), Hint::act(Action::Back, "BACK")});
 }
 
 void Menus::drawChallenges(Context& ui) {
@@ -360,7 +362,7 @@ void Menus::drawChallenges(Context& ui) {
     ui.rectGradient(Rect(0, 170, 900, 910), Vec4(0, 0, 0, 0.6f), Vec4(0, 0, 0, 0.3f));
     if (list.empty()) {
         ui.text("No challenges of this type yet.", Vec2(100, 260), 30.0f, ui.theme().textDim);
-        footer(ui, "B / Esc  Back");
+        footer(ui, {Hint::act(Action::Back, "BACK")});
         return;
     }
     float y = 220;
@@ -419,7 +421,7 @@ void Menus::drawChallenges(Context& ui) {
         }
         y += 88;
     }
-    footer(ui, "A / Enter  Start      B / Esc  Back");
+    footer(ui, {Hint::act(Action::Confirm, "START"), Hint::act(Action::Back, "BACK")});
 }
 
 void Menus::drawMap(Context& ui) {
@@ -466,7 +468,7 @@ void Menus::drawMap(Context& ui) {
         ui.text(focused->description, Vec2(info.x + 28, info.y + 54), 24.0f, ui.theme().text, FontStyle::SemiBold);
         (void)focusedMap;
     }
-    footer(ui, "A / Enter  Ride here      B / Esc  Back");
+    footer(ui, {Hint::ls("NAVIGATION"), Hint::act(Action::Confirm, "RIDE HERE"), Hint::act(Action::Back, "BACK")});
 }
 
 void Menus::drawRider(Context& ui) {
@@ -504,7 +506,7 @@ void Menus::drawRider(Context& ui) {
         saves().data().custom = c;
         customizationChanged();
     }
-    footer(ui, "Left / Right  Change      B / Esc  Back");
+    footer(ui, {Hint::ls("CHANGE", StickDir::Right), Hint::act(Action::Back, "BACK")});
 }
 
 // --- scooter shop -----------------------------------------------------------------------------------
@@ -593,28 +595,9 @@ void brandMark(Context& ui, int brand, Vec2 c) {
 void Menus::shopHints(Context& ui) {
     float W = ui.width();
     ui.rectGradient(Rect(0, 990, W, 90), Vec4(0, 0, 0, 0.0f), Vec4(0, 0, 0, 0.62f));
-    bool pad = input().lastDevice() == InputDevice::Gamepad;
-    struct Hint {
-        const char* pad;
-        const char* key;
-        const char* label;
-    };
-    const Hint hints[5] = {{"LS", "WASD", "NAVIGATION"}, {"RS", "DRAG", "ROTATE CAMERA"}, {"X", "X", "SAVE"}, {"A", "ENTER", "SELECT"},
-                           {"B", "ESC", "BACK"}};
-    float x = W - 56;
-    for (int i = 4; i >= 0; --i) {
-        const Hint& h = hints[i];
-        float lw = ui.measure(h.label, 24.0f, FontStyle::Bold);
-        x -= lw;
-        ui.text(h.label, Vec2(x, 1026), 24.0f, ui.theme().text, FontStyle::Bold);
-        const char* glyph = pad ? h.pad : h.key;
-        float gw = std::max(36.0f, ui.measure(glyph, 18.0f, FontStyle::Bold) + 20.0f);
-        x -= gw + 12;
-        Rect g(x, 1024, gw, 34);
-        ui.rect(g, Vec4(0.95f, 0.95f, 0.95f, 0.92f), 17);
-        ui.textBox(glyph, g, 18.0f, Vec4(0.06f, 0.06f, 0.07f, 1), FontStyle::Bold, Align::Center);
-        x -= 40;
-    }
+    glyphs::hintRow(ui, {Hint::ls("NAVIGATION"), Hint::rs("ROTATE CAMERA"), Hint::act(Action::MenuExtra, "SAVE"), Hint::act(Action::Confirm, "SELECT"),
+                         Hint::act(Action::Back, "BACK")},
+                    W - 56, 1041);
     if (toastTime_ < 2.5f && !toast_.empty()) {
         float a = saturate((2.5f - toastTime_) * 3.0f);
         float tw = ui.measure(toast_, 26.0f, FontStyle::Bold) + 48;
@@ -659,13 +642,17 @@ void Menus::drawScooter(Context& ui) {
     ui.rectOutline(P, Vec4(1, 1, 1, 0.45f), 1.5f, 18);
     const Vec4 ink(0.07f, 0.075f, 0.09f, 1.0f), inkDim(0.3f, 0.32f, 0.36f, 1.0f);
     // header: LB  TITLE  RB + page dots
-    bool pad = input().lastDevice() == InputDevice::Gamepad;
+    bool pad = input().usingGamepad();
     Rect lb(P.x + 24, P.y + 30, 62, 44), rb(P.x + P.w - 24 - 62, P.y + 30, 62, 44);
     for (int i = 0; i < 2; ++i) {
         Rect r = i == 0 ? lb : rb;
         bool hover = r.contains(ui.mouse());
         ui.rect(r, Vec4(0.08f, 0.085f, 0.1f, hover ? 1.0f : 0.88f), 10);
-        ui.textBox(i == 0 ? (pad ? "LB" : "Q") : (pad ? "RB" : "E"), r, 22.0f, Vec4(1, 1, 1, 1), FontStyle::Bold, Align::Center);
+        // the glyph of the bound button / key, centred in the chip
+        Action a = i == 0 ? Action::TabLeft : Action::TabRight;
+        const Binding& bnd = input().binding(a);
+        std::string gl = pad ? (!bnd.buttons.empty() ? glyphs::buttonName(bnd.buttons.front()) : "") : (!bnd.keys.empty() ? SDL_GetScancodeName(bnd.keys.front()) : "");
+        ui.textBox(gl, r, 22.0f, Vec4(1, 1, 1, 1), FontStyle::Bold, Align::Center);
         if (hover && nav.click) {
             shopCat_ = (shopCat_ + (i == 0 ? 5 : 1)) % 6;
             shopFocus_ = -1;
@@ -791,7 +778,13 @@ void Menus::drawSettings(Context& ui) {
         }
         tx += tw + 12;
     }
-    ui.text("LB / RB  or  Q / E  switch tab", Vec2(tx + 20, 162), 22.0f, ui.theme().text, FontStyle::SemiBold, Align::Left, 0.9f);
+    {
+        bool pad = input().usingGamepad();
+        float gx = tx + 20;
+        gx += glyphs::action(ui, Action::TabLeft, gx, 175, 34, pad) + 6;
+        gx += glyphs::action(ui, Action::TabRight, gx, 175, 34, pad) + 12;
+        ui.text("SWITCH TAB", Vec2(gx, 162), 22.0f, ui.theme().text, FontStyle::SemiBold, Align::Left, 0.9f);
+    }
 
     Rect panel(100, 230, std::min(1100.0f, W - 200), 760);
     ui.rect(panel, ui.theme().panel, 14);
@@ -893,23 +886,42 @@ void Menus::drawSettings(Context& ui) {
         std::string np = music().current() ? music().current()->title : "-";
         if (ui.choice("Now Playing", np, R()) != 0) music().next();
     } else {
-        // controls: each row shows gamepad + keyboard; A rebinds the gamepad button, X / Enter the key
-        const Action acts[] = {Action::Push, Action::Jump, Action::Brake, Action::SpinLeft, Action::SpinRight, Action::Grab, Action::Revert,
-                               Action::Respawn, Action::Checkpoint, Action::Pause, Action::CameraMode, Action::CameraReset};
-        const char* labels[] = {"Push", "Jump / Pop (hold to crouch)", "Brake", "Spin Left", "Spin Right", "Grab (modifier)", "Revert",
-                                "Respawn", "Set Checkpoint", "Pause", "Camera Mode", "Camera Reset"};
-        for (int i = 0; i < 12; ++i) {
+        // controls: layout choice, then one row per action (gamepad glyph + key); confirm rebinds the action to
+        // the next button, trigger or key pressed
+        bool flow = input().scheme() == ControlScheme::Flow;
+        const char* layouts[] = {"Scooter Flow style (twin stick)", "Classic (buttons)"};
+        if (ui.choice("Control Layout", layouts[flow ? 0 : 1], R())) {
+            P.controlScheme = flow ? 1 : 0;
+            input().setScheme(ControlScheme(P.controlScheme));
+            rebindAction_ = -1;
+            other = true;
+            flow = !flow;
+        }
+        std::vector<std::pair<Action, const char*>> rows;
+        if (flow)
+            rows = {{Action::Push, "Push"}, {Action::Brake, "Brake"}, {Action::TrickMod, "Trick (hold + right stick)"}, {Action::Grab, "Grab (hold + right stick)"},
+                    {Action::SpinLeft, "Spin Left"}, {Action::SpinRight, "Spin Right"}, {Action::Revert, "Revert"}, {Action::Jump, "Pop (keyboard, hold to crouch)"},
+                    {Action::Respawn, "Respawn"}, {Action::Checkpoint, "Set Checkpoint"}, {Action::Pause, "Pause"}, {Action::CameraMode, "Camera Mode"},
+                    {Action::CameraReset, "Camera Reset"}};
+        else
+            rows = {{Action::Push, "Push"}, {Action::Jump, "Jump / Pop (hold to crouch)"}, {Action::Brake, "Brake"}, {Action::SpinLeft, "Spin Left"},
+                    {Action::SpinRight, "Spin Right"}, {Action::Grab, "Grab (modifier)"}, {Action::Revert, "Revert"}, {Action::Respawn, "Respawn"},
+                    {Action::Checkpoint, "Set Checkpoint"}, {Action::Pause, "Pause"}, {Action::CameraMode, "Camera Mode"}, {Action::CameraReset, "Camera Reset"}};
+        for (int i = 0; i < int(rows.size()); ++i) {
             Rect r = R();
             bool act = ui.button("", r);
             bool f = ui.lastFocused();
             Vec4 tc = f ? ui.theme().accentText : ui.theme().text;
-            ui.textBox(labels[i], Rect(r.x + 24, r.y, r.w * 0.45f, r.h), 26.0f, tc, FontStyle::SemiBold, Align::Left);
-            const Binding& b = input().binding(acts[i]);
+            ui.textBox(rows[size_t(i)].second, Rect(r.x + 24, r.y, r.w * 0.5f, r.h), 26.0f, tc, FontStyle::SemiBold, Align::Left);
+            const Binding& b = input().binding(rows[size_t(i)].first);
             if (rebindAction_ == i) {
                 ui.textBox("Press a button or key...  (Esc cancels)", Rect(r.x + r.w * 0.45f, r.y, r.w * 0.53f, r.h), 24.0f, tc, FontStyle::Bold, Align::Right);
             } else {
-                ui.textBox(bindingText(b, true), Rect(r.x + r.w * 0.45f, r.y, r.w * 0.25f, r.h), 26.0f, tc, FontStyle::Bold, Align::Center);
-                ui.textBox(bindingText(b, false), Rect(r.x + r.w * 0.7f, r.y, r.w * 0.28f, r.h), 26.0f, tc, FontStyle::Bold, Align::Center);
+                float cy = r.y + r.h * 0.5f;
+                if (!b.buttons.empty() || !b.axisButtons.empty()) glyphs::action(ui, rows[size_t(i)].first, r.x + r.w * 0.6f, cy, 40, true);
+                else ui.textBox("-", Rect(r.x + r.w * 0.6f, r.y, 40, r.h), 26.0f, tc, FontStyle::Bold, Align::Center);
+                if (!b.keys.empty() || !b.mouseButtons.empty()) glyphs::action(ui, rows[size_t(i)].first, r.x + r.w * 0.78f, cy, 40, false);
+                else ui.textBox("-", Rect(r.x + r.w * 0.78f, r.y, 40, r.h), 26.0f, tc, FontStyle::Bold, Align::Center);
             }
             if (act && rebindAction_ < 0) {
                 rebindAction_ = i;
@@ -919,13 +931,19 @@ void Menus::drawSettings(Context& ui) {
             if (rebindAction_ == i) {
                 rebindTime_ += 1.0f / 60.0f;
                 SDL_GamepadButton gb;
+                SDL_GamepadAxis ax;
                 SDL_Scancode sc;
+                Action target = rows[size_t(i)].first;
                 if (rebindTime_ > 0.25f && input().captureNextGamepadButton(gb)) {
-                    input().setGamepadBinding(acts[i], gb);
+                    input().setGamepadBinding(target, gb);
+                    rebindAction_ = -1;
+                    other = true;
+                } else if (rebindTime_ > 0.25f && input().captureNextTrigger(ax)) {
+                    input().setGamepadTrigger(target, ax);
                     rebindAction_ = -1;
                     other = true;
                 } else if (rebindTime_ > 0.25f && input().captureNextKey(sc)) {
-                    if (sc != SDL_SCANCODE_ESCAPE) input().setKeyBinding(acts[i], sc);
+                    if (sc != SDL_SCANCODE_ESCAPE) input().setKeyBinding(target, sc);
                     input().stopCapture();
                     rebindAction_ = -1;
                     other = true;
@@ -933,17 +951,86 @@ void Menus::drawSettings(Context& ui) {
             }
         }
         if (ui.button("RESET TO DEFAULTS", R())) {
-            auto defaults = loadJsonFile(fs::resolve("config/input.json"));
-            if (defaults) input().loadBindings(*defaults, nullptr);
-            other = true;
+            fs::removeFile(fs::userPath(input().userBindingsFile()));
+            input().setScheme(input().scheme());
             toast_ = "Controls reset";
             toastTime_ = 0.0f;
+        } else if (other) {
+            saveJsonFile(fs::userPath(input().userBindingsFile()), input().saveBindings(), true);
         }
-        if (other) saveJsonFile(fs::userPath("input.json"), input().saveBindings(), true);
     }
     ui.popClip();
+    if (settingsTab_ == 3 && W - (panel.x + panel.w) > 560) drawMoveList(ui, Rect(panel.x + panel.w + 30, 230, W - (panel.x + panel.w) - 90, 760));
     if (video || other) settingsChanged(video);
-    footer(ui, rebindAction_ >= 0 ? "Press the new button or key" : "Left / Right  Change      B / Esc  Back (saves)");
+    footer(ui, {Hint::act(Action::TabRight, "SWITCH TAB"), Hint::ls("CHANGE", StickDir::Right), Hint::act(Action::Back, "BACK")},
+           rebindAction_ >= 0 ? "Press the new button or key  (Esc cancels)" : "");
+}
+
+// move list of the active layout: each line is a glyph combo and what it does
+void Menus::drawMoveList(Context& ui, const Rect& area) {
+    ui.rect(area, ui.theme().panel, 14);
+    bool pad = input().usingGamepad();
+    bool flow = input().scheme() == ControlScheme::Flow;
+    ui.text(flow ? "HOW TO RIDE  -  SCOOTER FLOW STYLE" : "HOW TO RIDE  -  CLASSIC", Vec2(area.x + 28, area.y + 22), 28.0f, ui.theme().accent, FontStyle::Bold);
+    float y = area.y + 88;
+    const float gh = 32.0f, gap = 41.5f;
+    auto row = [&](const std::string& label, auto drawGlyphs) {
+        float x = area.x + 28;
+        x = drawGlyphs(x, y);
+        ui.text(label, Vec2(std::max(x + 16, area.x + 236), y - 14), 22.0f, ui.theme().text, FontStyle::SemiBold);
+        y += gap;
+    };
+    auto act = [&](Action a) { return [=, &ui](float x, float yy) { return x + glyphs::action(ui, a, x, yy, gh, pad); }; };
+    auto stickDir = [&](bool right, StickDir d) { return [=, &ui](float x, float yy) { return x + glyphs::stick(ui, right, d, x, yy, gh, pad); }; };
+    auto combo = [&](Action a, StickDir d) {
+        return [=, &ui](float x, float yy) {
+            x += glyphs::action(ui, a, x, yy, gh, pad);
+            x += glyphs::plus(ui, x, yy, gh);
+            return x + glyphs::stick(ui, true, d, x, yy, gh, pad);
+        };
+    };
+    row("Carve / lean", stickDir(false, StickDir::None));
+    row("Manual  /  nose manual", [&](float x, float yy) {
+        x += glyphs::stick(ui, false, StickDir::Down, x, yy, gh, pad) + 6;
+        return x + glyphs::stick(ui, false, StickDir::Up, x, yy, gh, pad);
+    });
+    row("Push", act(Action::Push));
+    row("Brake", act(Action::Brake));
+    if (flow) {
+        row("Compress / pump (hold)", stickDir(true, StickDir::Down));
+        row("Pop (flick up)", stickDir(true, StickDir::Up));
+        row("Spin / flip in the air", [&](float x, float yy) {
+            x += glyphs::stick(ui, true, StickDir::None, x, yy, gh, pad) + 6;
+            x += glyphs::action(ui, Action::SpinLeft, x, yy, gh, pad) + 4;
+            return x + glyphs::action(ui, Action::SpinRight, x, yy, gh, pad);
+        });
+        row("Tailwhip", combo(Action::TrickMod, StickDir::Right));
+        row("Heelwhip", combo(Action::TrickMod, StickDir::Left));
+        row("Barspin", combo(Action::TrickMod, StickDir::Up));
+        row("Fingerwhip", combo(Action::TrickMod, StickDir::Down));
+        row("Whip rewind (right, then left)", [&](float x, float yy) {
+            x = combo(Action::TrickMod, StickDir::Right)(x, yy) + 6;
+            return x + glyphs::stick(ui, true, StickDir::Left, x, yy, gh, pad);
+        });
+        row("Scooter flip  /  bri flip  /  kickless", [&](float x, float yy) {
+            x = combo(Action::TrickMod, StickDir::UpRight)(x, yy) + 6;
+            x += glyphs::stick(ui, true, StickDir::UpLeft, x, yy, gh, pad) + 6;
+            return x + glyphs::stick(ui, true, StickDir::DownRight, x, yy, gh, pad);
+        });
+        row("Grabs: no hander / one hand / can can", combo(Action::Grab, StickDir::Up));
+    } else {
+        row("Crouch (hold)  /  pop (release)", act(Action::Jump));
+        row("Spin / flip in the air", stickDir(false, StickDir::None));
+        row("Tailwhip", stickDir(true, StickDir::Right));
+        row("Heelwhip", stickDir(true, StickDir::Down));
+        row("Barspin", stickDir(true, StickDir::Up));
+        row("Grabs", combo(Action::Grab, StickDir::Up));
+    }
+    row("Revert", act(Action::Revert));
+    if (y + 40 < area.y + area.h)
+        ui.paragraph(flow ? "Push the right stick all the way for tricks to register. Repeat the input during a whip or barspin to double it."
+                          : "Flick the right stick in the air for scooter tricks, hold the grab trigger for grabs.",
+                     Rect(area.x + 28, y - 8, area.w - 56, area.y + area.h - y), 20.0f, ui.theme().textDim);
 }
 
 void Menus::drawPause(Context& ui) {

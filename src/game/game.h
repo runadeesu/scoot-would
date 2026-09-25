@@ -40,6 +40,7 @@ struct GameOptions {
     bool hideRider = false;   // render the scooter alone (screenshots / photo mode)
     int stance = -1;          // -1 = from the settings, 0 regular, 1 goofy
     bool bindPose = false;    // debug: show the rider in its rest pose (asset inspection)
+    int padPreview = -1;      // show controller glyphs without a controller (0 xbox, 1 playstation, 2 switch)
 };
 
 struct DistrictInfo {
@@ -104,6 +105,7 @@ public:
 
 private:
     PlayerInput gatherInput();
+    void applyFlowStick(PlayerInput& pi);
     void processEvents();
     void updateLamps();
     void updateMenuCamera(float dt);
@@ -138,6 +140,7 @@ private:
     float menuTime_ = 0.0f;
     RenderView menuView_;
     bool inputFrozen_ = false;
+    bool rsDownPrev_ = false, rsUpPrev_ = false;  // Scooter Flow layout: right stick pop edges
     std::string lastArea_;
     // scooter shop (customization backdrop)
     ShopScene shop_;
