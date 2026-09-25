@@ -122,8 +122,8 @@ shots = [
          {"type": "fixed", "pos": [-21.5, 1.3, -1.8], "look": [0, 0.7, 0], "fov": 44, "smooth": 6}, preroll=0.2),
     # 54-60: end card at sunset
     shot("end", MG, (4.0, 0, 20.0), (1, 0), 0.0, 6.0, [], preroll=0.6, env="sunset", fadeOut=1.6,
-         camera={"type": "orbit", "center": [4.0, 0.0, 20.0], "radius": 3.6, "height": 1.3, "start": 120, "speed": 10, "look": [0, 0.8, 0], "fov": 44},
-         texts=[text(0.6, 5.2, "scoot would", "PC  |  WINDOWS 10 / 11", "center", big=True)]),
+         camera={"type": "orbit", "center": [4.0, 0.0, 20.0], "radius": 4.2, "height": 1.1, "start": 120, "speed": 10, "look": [0, 1.35, 0], "fov": 44},
+         texts=[text(0.6, 5.2, "scoot would", "PC  |  WINDOWS 10 / 11", "upper", big=True)]),
 ]
 
 
