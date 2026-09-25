@@ -1,5 +1,9 @@
 {
-  "color": "#2a1c12",
-  "roughness": 0.7,
+  "_comment": "short crop: baked strand colour + alpha in the body UV layout",
+  "baseColor": "assets/textures/rider/hair.png",
+  "alpha": "mask",
+  "alphaCutoff": 0.4,
+  "doubleSided": true,
+  "roughness": 0.5,
   "surface": "concrete"
 }

@@ -1,0 +1,14 @@
+{
+  "_comment": "hoodie fleece (neutral, tint = top colour), cloth shading",
+  "baseColor": "assets/textures/rider/fabric_fleece_lum.png",
+  "normal": "assets/textures/fabric_fleece_nrm.jpg",
+  "orm": "assets/textures/fabric_fleece_arm.jpg",
+  "uvScale": 12.0,
+  "normalScale": 0.9,
+  "metallic": 0.0,
+  "roughness": 1.0,
+  "shading": "cloth",
+  "doubleSided": true,
+  "tintable": true,
+  "surface": "concrete"
+}

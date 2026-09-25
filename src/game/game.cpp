@@ -209,6 +209,7 @@ void Game::applySettings(bool video) {
 
 void Game::applyCustomization() {
     visual_.setRiderVisible(!opts_.hideRider);
+    visual_.setBindPose(opts_.bindPose);
     visual_.applyCustomization(saves().data().custom);
 }
 

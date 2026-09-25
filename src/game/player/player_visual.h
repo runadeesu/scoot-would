@@ -55,6 +55,7 @@ public:
     void setVisible(bool v);
     void setRiderVisible(bool v);  // scooter only (photo mode, showroom shots)
     void setGoofy(bool g) { goofy_ = g; }
+    void setBindPose(bool b) { bindPose_ = b; }
     bool goofy() const { return goofy_; }
     bool usingModel() const { return model_ != nullptr; }
     const std::vector<Transform>& jointsModel() const { return jointsModel_; }
@@ -90,6 +91,7 @@ private:
     bool visible_ = true;
     bool riderVisible_ = true;
     bool goofy_ = false;
+    bool bindPose_ = false;
 };
 
 }  // namespace sw

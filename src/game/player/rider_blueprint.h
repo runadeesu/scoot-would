@@ -37,24 +37,25 @@ struct RiderJointDef {
 // left side = -X (the rider faces -Z)
 inline const RiderJointDef* riderJoints() {
     static const RiderJointDef defs[RJ_Count] = {
+        // measured from the MakeHuman based rider (tools/assetgen/human_gen.cpp, 1.77 m)
         {"root", -1, {0.0f, 0.0f, 0.0f}},
-        {"pelvis", RJ_Root, {0.0f, 0.98f, 0.0f}},
-        {"spine", RJ_Pelvis, {0.0f, 1.12f, 0.01f}},
-        {"chest", RJ_Spine, {0.0f, 1.3f, 0.0f}},
-        {"neck", RJ_Chest, {0.0f, 1.52f, 0.0f}},
-        {"head", RJ_Neck, {0.0f, 1.62f, -0.01f}},
-        {"upperarm_l", RJ_Chest, {-0.19f, 1.45f, 0.0f}},
-        {"lowerarm_l", RJ_UpperArmL, {-0.25f, 1.17f, -0.03f}},
-        {"hand_l", RJ_LowerArmL, {-0.29f, 0.93f, -0.08f}},
-        {"upperarm_r", RJ_Chest, {0.19f, 1.45f, 0.0f}},
-        {"lowerarm_r", RJ_UpperArmR, {0.25f, 1.17f, -0.03f}},
-        {"hand_r", RJ_LowerArmR, {0.29f, 0.93f, -0.08f}},
-        {"thigh_l", RJ_Pelvis, {-0.1f, 0.94f, 0.0f}},
-        {"shin_l", RJ_ThighL, {-0.1f, 0.52f, -0.025f}},
-        {"foot_l", RJ_ShinL, {-0.1f, 0.09f, 0.02f}},
-        {"thigh_r", RJ_Pelvis, {0.1f, 0.94f, 0.0f}},
-        {"shin_r", RJ_ThighR, {0.1f, 0.52f, -0.025f}},
-        {"foot_r", RJ_ShinR, {0.1f, 0.09f, 0.02f}},
+        {"pelvis", RJ_Root, {0.0f, 0.959f, 0.0f}},
+        {"spine", RJ_Pelvis, {0.0f, 1.053f, -0.034f}},
+        {"chest", RJ_Spine, {0.0f, 1.181f, -0.036f}},
+        {"neck", RJ_Chest, {0.0f, 1.525f, -0.074f}},
+        {"head", RJ_Neck, {0.0f, 1.622f, -0.107f}},
+        {"upperarm_l", RJ_Chest, {-0.205f, 1.422f, -0.081f}},
+        {"lowerarm_l", RJ_UpperArmL, {-0.259f, 1.169f, -0.108f}},
+        {"hand_l", RJ_LowerArmL, {-0.302f, 0.91f, -0.162f}},
+        {"upperarm_r", RJ_Chest, {0.205f, 1.422f, -0.081f}},
+        {"lowerarm_r", RJ_UpperArmR, {0.259f, 1.169f, -0.108f}},
+        {"hand_r", RJ_LowerArmR, {0.302f, 0.91f, -0.162f}},
+        {"thigh_l", RJ_Pelvis, {-0.108f, 0.962f, -0.055f}},
+        {"shin_l", RJ_ThighL, {-0.108f, 0.521f, -0.082f}},
+        {"foot_l", RJ_ShinL, {-0.108f, 0.071f, -0.034f}},
+        {"thigh_r", RJ_Pelvis, {0.108f, 0.962f, -0.055f}},
+        {"shin_r", RJ_ThighR, {0.108f, 0.521f, -0.082f}},
+        {"foot_r", RJ_ShinR, {0.108f, 0.071f, -0.034f}},
     };
     return defs;
 }

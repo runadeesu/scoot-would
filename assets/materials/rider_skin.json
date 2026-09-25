@@ -1,6 +1,14 @@
 {
-  "color": "#ffffff",
-  "roughness": 0.55,
+  "_comment": "rider skin: baked albedo multiplier (tint = skin tone), baked AO + roughness, pore detail normal, skin shading",
+  "baseColor": "assets/textures/rider/skin_albedo.png",
+  "orm": "assets/textures/rider/skin_orm.png",
+  "detail": "assets/textures/gen/skin_detail_normal.png",
+  "detailScale": 0.0035,
+  "detailStrength": 0.55,
+  "roughness": 1.0,
+  "metallic": 0.0,
+  "aoStrength": 1.0,
+  "shading": "skin",
   "tintable": true,
   "surface": "concrete"
 }

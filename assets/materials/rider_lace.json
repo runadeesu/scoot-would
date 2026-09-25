@@ -1,6 +1,6 @@
 {
-  "color": "#111114",
-  "roughness": 0.75,
+  "color": "#e8e6e0",
+  "roughness": 0.85,
   "shading": "cloth",
   "surface": "concrete"
 }

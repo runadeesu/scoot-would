@@ -1,5 +1,6 @@
 {
-  "color": "#08080a",
-  "roughness": 0.08,
+  "_comment": "MakeHuman brown eye texture (CC0), wet glossy cornea",
+  "baseColor": "assets/textures/rider/eye_brown.png",
+  "roughness": 0.04,
   "surface": "concrete"
 }

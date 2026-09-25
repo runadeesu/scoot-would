@@ -1,6 +1,14 @@
 {
-  "color": "#ffffff",
-  "roughness": 0.85,
+  "_comment": "cotton jersey (neutral weave, tint = top colour), cloth shading",
+  "baseColor": "assets/textures/rider/fabric_jersey_lum.png",
+  "normal": "assets/textures/fabric_jersey_nrm.jpg",
+  "orm": "assets/textures/fabric_jersey_arm.jpg",
+  "uvScale": 18.0,
+  "normalScale": 0.8,
+  "metallic": 0.0,
+  "roughness": 1.0,
+  "shading": "cloth",
+  "doubleSided": true,
   "tintable": true,
   "surface": "concrete"
 }

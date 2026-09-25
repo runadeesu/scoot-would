@@ -3,6 +3,8 @@ add_executable(scoot_assetgen
     assetgen/main.cpp
     assetgen/gltf_writer.cpp
     assetgen/rider_gen.cpp
+    assetgen/rider_clips.cpp
+    assetgen/human_gen.cpp
     assetgen/audio_gen.cpp
     assetgen/texture_gen.cpp)
 target_link_libraries(scoot_assetgen PRIVATE scoot_runtime)

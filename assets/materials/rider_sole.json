@@ -1,5 +1,7 @@
 {
-  "color": "#e8e4dc",
-  "roughness": 0.8,
+  "_comment": "vulcanised rubber sole",
+  "color": "#e9e5dc",
+  "roughness": 0.72,
+  "wear": 0.5,
   "surface": "concrete"
 }

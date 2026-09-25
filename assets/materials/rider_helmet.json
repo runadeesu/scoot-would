@@ -1,7 +1,9 @@
 {
+  "_comment": "skate helmet ABS shell, satin paint (tint = headwear colour)",
   "color": "#ffffff",
-  "roughness": 0.3,
+  "roughness": 0.34,
   "metallic": 0.0,
   "tintable": true,
+  "wear": 0.25,
   "surface": "concrete"
 }

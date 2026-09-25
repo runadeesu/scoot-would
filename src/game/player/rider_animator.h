@@ -51,6 +51,9 @@ public:
 private:
     void applyIK(const RiderRig& rig, float dt, bool goofy);
     void mirrorPose(Pose& p) const;
+    void applyFingers(float dt);
+    void applyFace(float dt, float speed);
+    Quat gripRotation(int side) const;
     void setModelRotation(int j, const Quat& modelRot);
 
     SkeletonPtr skel_;
@@ -61,6 +64,21 @@ private:
     float feetW_ = 1.0f, handLW_ = 1.0f, handRW_ = 1.0f, backFootW_ = 1.0f;
     float crouchS_ = 0.0f, lookS_ = 0.0f, leanS_ = 0.0f;
     std::vector<int> mirror_;  // left <-> right joint partner (self for centre joints)
+    // hands: rest frame (finger direction, palm normal) + finger joints with their bend axes
+    struct Finger {
+        int joint[3] = {-1, -1, -1};
+        Vec3 axis;       // rest space bend axis (curl towards the palm)
+        bool thumb = false;
+    };
+    Finger fingers_[2][5];
+    Vec3 restFingerDir_[2], restPalm_[2];
+    bool handRig_ = false;
+    float gripCurl_[2] = {1.0f, 1.0f};
+    // face
+    int eye_[2] = {-1, -1}, lidUp_[2] = {-1, -1}, lidLo_[2] = {-1, -1}, jaw_ = -1, clav_[2] = {-1, -1};
+    float time_ = 0.0f, blinkT_ = 0.0f, nextBlink_ = 2.5f, saccadeT_ = 0.0f;
+    Vec2 eyeLook_, eyeTarget_;
+    uint32_t rng_ = 12345u;
     std::string lastTrickPose_;
     float trickW_ = 0.0f;
 };

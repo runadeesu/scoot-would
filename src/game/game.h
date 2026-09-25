@@ -38,6 +38,7 @@ struct GameOptions {
     std::string challenge;    // start this challenge directly
     bool hideRider = false;   // render the scooter alone (screenshots / photo mode)
     int stance = -1;          // -1 = from the settings, 0 regular, 1 goofy
+    bool bindPose = false;    // debug: show the rider in its rest pose (asset inspection)
 };
 
 struct DistrictInfo {

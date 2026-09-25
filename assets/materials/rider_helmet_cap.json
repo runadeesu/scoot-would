@@ -1,14 +1,12 @@
 {
-  "_comment": "heavy twill / denim (neutral, tint = pants colour), cloth shading",
+  "_comment": "cotton twill cap (tint = headwear colour)",
   "baseColor": "assets/textures/rider/fabric_denim_lum.png",
   "normal": "assets/textures/fabric_denim_nrm.jpg",
-  "orm": "assets/textures/fabric_denim_arm.jpg",
-  "uvScale": 14.0,
+  "uvScale": 3.0,
   "metallic": 0.0,
-  "roughness": 1.0,
+  "roughness": 0.9,
   "shading": "cloth",
   "doubleSided": true,
   "tintable": true,
-  "wear": 0.2,
   "surface": "concrete"
 }

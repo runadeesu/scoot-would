@@ -128,7 +128,7 @@ bool riderPartVisible(const std::string& n, const Customization& c) {
     if (variant("top_", c.top, m) || variant("pants_", c.pants, m) || variant("shoes_", c.shoes, m) || variant("helmet_", c.helmet, m)) return m;
     if (n == "arms_skin") return c.top != 1;
     if (n == "legs_skin") return c.pants == 1;
-    if (n == "hair") return c.helmet != 1;
+    if (n == "hair") return true;  // short crop: shows under the helmet at the back and sides
     return true;
 }
 
@@ -350,6 +350,11 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
     }
     animator_->update(dt, ap, rig);
     animator_->modelSpace(jointsModel_);
+    if (bindPose_) {
+        Pose bind;
+        bind.setBind(animator_->skeleton());
+        bind.modelSpace(animator_->skeleton(), jointsModel_);
+    }
     // publish the pose for the ragdoll (bail starts from the animated pose)
     std::vector<Transform> jointsBp(RJ_Count);
     const RiderJointDef* rj = riderJoints();

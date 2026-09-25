@@ -39,6 +39,129 @@ void RiderAnimator::init(SkeletonPtr skel, const std::vector<AnimationClipPtr>& 
         }
     }
     sm_.play(sm_.has("ride") ? "ride" : "idle", 0.0f);
+
+    // hand rig from the rest pose (identity rest orientations: rest space = local space)
+    std::vector<Transform> rest;
+    pose_.modelSpace(*skel_, rest);
+    auto rp = [&](const std::string& n) { int j = joint(n); return j >= 0 ? rest[size_t(j)].position : Vec3(0); };
+    handRig_ = joint("middle1_l") >= 0 && joint("index1_r") >= 0;
+    const char* fnames[5] = {"thumb", "index", "middle", "ring", "pinky"};
+    for (int s = 0; s < 2 && handRig_; ++s) {
+        std::string sfx = s == 0 ? "_l" : "_r";
+        Vec3 hand = rp("hand" + sfx), idx = rp("index1" + sfx), pky = rp("pinky1" + sfx), mid = rp("middle1" + sfx), mid3 = rp("middle3" + sfx);
+        Vec3 fdir = (mid3 - hand).normalized();
+        Vec3 palm = cross(idx - pky, fdir).normalized();
+        if (dot(palm, Vec3(-hand.x, 0, 0)) < 0.0f) palm = -palm;  // at rest the palms face the thighs
+        restFingerDir_[s] = fdir;
+        restPalm_[s] = (palm - fdir * dot(palm, fdir)).normalized();
+        (void)mid;
+        for (int f = 0; f < 5; ++f) {
+            Finger& F = fingers_[s][f];
+            F.thumb = f == 0;
+            for (int k = 0; k < 3; ++k) F.joint[k] = joint(std::string(fnames[f]) + std::to_string(k + 1) + sfx);
+            Vec3 a = rp(std::string(fnames[f]) + "1" + sfx), b = rp(std::string(fnames[f]) + "3" + sfx);
+            Vec3 d = (b - a).normalized();
+            Vec3 axis = cross(d, restPalm_[s]).normalized();
+            // sign: a positive rotation must move the finger tip towards the palm
+            Vec3 moved = Quat::angleAxis(0.3f, axis) * (b - a);
+            if (dot(moved - (b - a), restPalm_[s]) < 0.0f) axis = -axis;
+            if (F.thumb) axis = (axis + d * 0.35f).normalized();  // thumb folds across the palm
+            F.axis = axis;
+        }
+    }
+    const char* sides[2] = {"_l", "_r"};
+    for (int s = 0; s < 2; ++s) {
+        eye_[s] = joint(std::string("eye") + sides[s]);
+        lidUp_[s] = joint(std::string("lid_upper") + sides[s]);
+        lidLo_[s] = joint(std::string("lid_lower") + sides[s]);
+        clav_[s] = joint(std::string("clavicle") + sides[s]);
+    }
+    jaw_ = joint("jaw");
+}
+
+// hand orientation for an overhand grip: fingers point forward and a little down over the grip, the
+// palm rests on top of it facing down / forward
+Quat RiderAnimator::gripRotation(int s) const {
+    Vec3 a = restFingerDir_[s], b = restPalm_[s];
+    Vec3 A = Vec3(0.0f, -0.42f, -1.0f).normalized();
+    Vec3 B = Vec3(0.0f, -1.0f, 0.3f);
+    B = (B - A * dot(B, A)).normalized();
+    // basis change rest (a, b, a x b) -> target (A, B, A x B)
+    Vec3 c = cross(a, b), C = cross(A, B);
+    Mat4 R = Mat4::identity(), S = Mat4::identity();
+    auto setCols = [](Mat4& m, Vec3 x, Vec3 y, Vec3 z) {
+        m.m[0] = x.x; m.m[1] = x.y; m.m[2] = x.z;
+        m.m[4] = y.x; m.m[5] = y.y; m.m[6] = y.z;
+        m.m[8] = z.x; m.m[9] = z.y; m.m[10] = z.z;
+    };
+    setCols(R, A, B, C);
+    setCols(S, a, b, c);
+    Mat4 M = R * S.transposed();
+    return Quat::fromMat(M).normalized();
+}
+
+void RiderAnimator::applyFingers(float dt) {
+    if (!handRig_) return;
+    for (int s = 0; s < 2; ++s) {
+        float want = s == 0 ? handLW_ : handRW_;  // on the grip: full curl; off: relaxed half curl
+        gripCurl_[s] = dampf(gripCurl_[s], want, 14.0f, dt);
+        float g = gripCurl_[s];
+        for (int f = 0; f < 5; ++f) {
+            const Finger& F = fingers_[s][f];
+            // degrees per joint: relaxed .. wrapped around a 32 mm grip
+            const float relaxed[3] = {F.thumb ? 8.0f : 10.0f, F.thumb ? 8.0f : 14.0f, F.thumb ? 6.0f : 8.0f};
+            const float grip[3] = {F.thumb ? 26.0f : 62.0f + float(f) * 3.0f, F.thumb ? 24.0f : 72.0f, F.thumb ? 18.0f : 44.0f};
+            for (int k = 0; k < 3; ++k) {
+                int j = F.joint[k];
+                if (j < 0) continue;
+                float ang = lerpf(relaxed[k], grip[k], g) * kDeg2Rad;
+                pose_.local[size_t(j)].rotation = (Quat::angleAxis(ang, F.axis) * pose_.local[size_t(j)].rotation).normalized();
+            }
+        }
+    }
+}
+
+void RiderAnimator::applyFace(float dt, float speed) {
+    time_ += dt;
+    auto rnd = [&]() {
+        rng_ = rng_ * 1664525u + 1013904223u;
+        return float((rng_ >> 8) & 0xFFFF) / 65535.0f;
+    };
+    // blinks every 2-6 s (quicker when riding fast), 0.14 s close/open
+    blinkT_ += dt;
+    if (blinkT_ > nextBlink_) {
+        blinkT_ = 0.0f;
+        nextBlink_ = lerpf(2.0f, 6.0f, rnd()) * (speed > 6.0f ? 0.7f : 1.0f);
+    }
+    float blink = blinkT_ < 0.16f ? std::sin(blinkT_ / 0.16f * kPi) : 0.0f;
+    // eyes: small saccades around the look direction
+    saccadeT_ -= dt;
+    if (saccadeT_ <= 0.0f) {
+        saccadeT_ = lerpf(0.4f, 1.8f, rnd());
+        eyeTarget_ = Vec2((rnd() - 0.5f) * 0.22f, (rnd() - 0.5f) * 0.1f - 0.05f);
+    }
+    eyeLook_ = Vec2(dampf(eyeLook_.x, eyeTarget_.x, 25.0f, dt), dampf(eyeLook_.y, eyeTarget_.y, 25.0f, dt));
+    for (int s = 0; s < 2; ++s) {
+        if (eye_[s] >= 0)
+            pose_.local[size_t(eye_[s])].rotation =
+                (Quat::angleAxis(eyeLook_.x, Vec3(0, 1, 0)) * Quat::angleAxis(eyeLook_.y, Vec3(1, 0, 0)) * pose_.local[size_t(eye_[s])].rotation).normalized();
+        // upper lid follows the eye's pitch a little and closes on a blink
+        if (lidUp_[s] >= 0)
+            pose_.local[size_t(lidUp_[s])].rotation =
+                (Quat::angleAxis(blink * 0.62f + eyeLook_.y * 0.4f, Vec3(1, 0, 0)) * pose_.local[size_t(lidUp_[s])].rotation).normalized();
+        if (lidLo_[s] >= 0)
+            pose_.local[size_t(lidLo_[s])].rotation = (Quat::angleAxis(-blink * 0.12f, Vec3(1, 0, 0)) * pose_.local[size_t(lidLo_[s])].rotation).normalized();
+        // breathing lifts the shoulders slightly
+        if (clav_[s] >= 0) {
+            float br = std::sin(time_ * kTwoPi / 3.6f) * 0.012f;
+            pose_.local[size_t(clav_[s])].rotation = (Quat::angleAxis(br * (s == 0 ? 1.0f : -1.0f), Vec3(0, 0, 1)) * pose_.local[size_t(clav_[s])].rotation).normalized();
+        }
+    }
+    if (chest_ >= 0) {
+        float br = std::sin(time_ * kTwoPi / 3.6f) * 0.01f;
+        pose_.local[size_t(chest_)].rotation = (Quat::angleAxis(-br, Vec3(1, 0, 0)) * pose_.local[size_t(chest_)].rotation).normalized();
+    }
+    if (jaw_ >= 0) pose_.local[size_t(jaw_)].rotation = (Quat::angleAxis(0.02f + 0.01f * std::sin(time_ * 0.7f), Vec3(1, 0, 0)) * pose_.local[size_t(jaw_)].rotation).normalized();
 }
 
 // mirror across the rider's sagittal plane (x -> -x): partners swap, rotations about x keep their
@@ -138,6 +261,8 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     float pushLeg = 0.0f;
     if (p.pushing && sm_.current() == "push") pushLeg = std::sin(saturate(sm_.currentNormalizedTime()) * kPi);
     backFootW_ = dampf(backFootW_, 1.0f - pushLeg, 25.0f, dt);
+    applyFace(dt, p.speed);
+    applyFingers(dt);
     applyIK(rig, dt, p.goofy);
 }
 
@@ -174,12 +299,19 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
         pose_.modelSpace(*skel_, ms);
         Vec3 shoulder = ms[size_t(ch[0])].position;
         Vec3 pole = shoulder + Vec3(sideSign * 0.5f, -0.25f, 0.35f);
+        int s = sideSign < 0.0f ? 0 : 1;
+        Quat gripRot = Quat::angleAxis(-sideSign * 0.3f, Vec3(0, 0, 1)) * Quat::angleAxis(0.5f, Vec3(1, 0, 0));
         Vec3 wrist = grip + Vec3(0, 0.035f, 0.03f);
+        if (handRig_) {
+            gripRot = gripRotation(s);
+            // palm centre over the grip: wrist sits behind the knuckles and above the bar
+            Vec3 fwd = gripRot * restFingerDir_[s], palm = gripRot * restPalm_[s];
+            wrist = grip - fwd * 0.062f - palm * 0.03f;
+        }
         solveTwoBoneIK(*skel_, pose_, ch[0], ch[1], ch[2], wrist, pole, w);
         std::vector<Transform> ms2;
         pose_.modelSpace(*skel_, ms2);
         Quat cur = ms2[size_t(ch[2])].rotation;
-        Quat gripRot = Quat::angleAxis(-sideSign * 0.3f, Vec3(0, 0, 1)) * Quat::angleAxis(0.5f, Vec3(1, 0, 0));
         setModelRotation(ch[2], nlerp(cur, gripRot, w));
     };
     arm(armL_, rig.gripL, handLW_, -1.0f);

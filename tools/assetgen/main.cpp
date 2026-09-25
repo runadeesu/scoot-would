@@ -30,7 +30,11 @@ int main(int argc, char** argv) {
     bool ok = true;
     if (rider) {
         fs::create_directories(fs::path(root) / "assets/models");
-        ok &= sw::tools::generateRider((fs::path(root) / "assets/models/rider.glb").string());
+        std::string out = (fs::path(root) / "assets/models/rider.glb").string();
+        if (fs::exists(fs::path(root) / "third_party/makehuman/base.obj"))
+            ok &= sw::tools::generateHumanRider(root, out);
+        else
+            ok &= sw::tools::generateRider(out);
     }
     if (audio) {
         fs::create_directories(fs::path(root) / "assets/audio");

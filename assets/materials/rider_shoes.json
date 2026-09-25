@@ -1,6 +1,14 @@
 {
-  "color": "#ffffff",
-  "roughness": 0.7,
+  "_comment": "suede / canvas upper (neutral, tint = shoe colour)",
+  "baseColor": "assets/textures/rider/fabric_leather_lum.png",
+  "normal": "assets/textures/fabric_leather_nrm.jpg",
+  "orm": "assets/textures/fabric_leather_arm.jpg",
+  "uvScale": 22.0,
+  "metallic": 0.0,
+  "roughness": 1.0,
+  "shading": "cloth",
+  "doubleSided": true,
   "tintable": true,
+  "wear": 0.3,
   "surface": "concrete"
 }
