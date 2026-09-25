@@ -1028,7 +1028,7 @@ void Game::startTrailerShot(size_t i) {
     cameraCut_ = true;
     trailer_->resetCamera();
     renderer().resetHistory();
-    LOG_INFO("trailer: shot %zu / %zu (%s)", i + 1, trailer_->shots().size(), jget<std::string>(s.test, "name", "").c_str());
+    LOG_INFO("trailer: shot %d / %d (%s)", int(i + 1), int(trailer_->shots().size()), jget<std::string>(s.test, "name", "").c_str());
 }
 
 void Game::finishTrailer() {

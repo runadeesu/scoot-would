@@ -68,7 +68,7 @@ bool Trailer::load(const std::string& absPath) {
         sh.test["duration"] = sh.preroll + sh.length + 1.0f;
         shots_.push_back(sh);
     }
-    LOG_INFO("trailer: %zu shots, %.1f s, %dx%d at %d fps", shots_.size(), double(totalLength()), width_, height_, fps_);
+    LOG_INFO("trailer: %d shots, %.1f s, %dx%d at %d fps", int(shots_.size()), double(totalLength()), width_, height_, fps_);
     return !shots_.empty();
 }
 
