@@ -1,4 +1,5 @@
 #include "game/modes/mode_manager.h"
+#include "core/i18n.h"
 
 #include "assets/asset_manager.h"
 #include "core/filesystem.h"
@@ -190,14 +191,14 @@ std::string ModeManager::objectiveText() const {
             if (!def_->trickList.empty()) {
                 int done = 0;
                 for (bool b : tricksDone_) done += b ? 1 : 0;
-                std::snprintf(buf, sizeof(buf), "Tricks %d / %zu", done, def_->trickList.size());
+                std::snprintf(buf, sizeof(buf), T("Tricks %d / %zu").c_str(), done, def_->trickList.size());
                 return buf;
             }
-            std::snprintf(buf, sizeof(buf), "Gold %d", def_->targets[2]);
+            std::snprintf(buf, sizeof(buf), T("Gold %d").c_str(), def_->targets[2]);
             return buf;
-        case ModeType::BestTrick: std::snprintf(buf, sizeof(buf), "Best combo  %d", bestCombo_); return buf;
+        case ModeType::BestTrick: std::snprintf(buf, sizeof(buf), T("Best combo  %d").c_str(), bestCombo_); return buf;
         case ModeType::Line:
-        case ModeType::TimeAttack: std::snprintf(buf, sizeof(buf), "Gate %d / %zu", std::min(nextGate_ + 1, int(def_->gates.size())), def_->gates.size()); return buf;
+        case ModeType::TimeAttack: std::snprintf(buf, sizeof(buf), T("Gate %d / %zu").c_str(), std::min(nextGate_ + 1, int(def_->gates.size())), def_->gates.size()); return buf;
         default: return "";
     }
 }

@@ -81,6 +81,10 @@ public:
     // word wrapped paragraph; returns the height used
     float paragraph(const std::string& s, const Rect& r, float size, const Vec4& color, FontStyle style = FontStyle::Regular, float lineSpacing = 1.3f);
     float measure(const std::string& s, float size, FontStyle style = FontStyle::SemiBold);
+    // text is translated to the active language when drawn / measured (English source text is the key);
+    // glyph captions (button names, key caps) switch it off
+    void setTranslate(bool on) { translate_ = on; }
+    bool translating() const { return translate_; }
     void pushClip(const Rect& r);
     void popClip();
 
@@ -115,6 +119,8 @@ private:
         bool backdrop = false;
     };
     void setBatch(Texture* tex, bool image, float softness, bool backdrop = false);
+    const std::string& localized(const std::string& s) const;
+    float drawText(const std::string& s, Vec2 pos, float size, const Vec4& color, FontStyle style, Align align, float shadowAlpha);
     uint32_t vtx(Vec2 canvasPos, Vec2 uv, uint32_t color);
     Vec2 px(Vec2 c) const { return c * scale_; }
     void fillConvexAA(const std::vector<Vec2>& pts, const Vec4& color, const Vec4* colors = nullptr);
@@ -128,6 +134,7 @@ private:
     NavInput nav_;
     float scale_ = 1.0f, canvasW_ = 1920.0f, dt_ = 0.0f, time_ = 0.0f;
     Vec2 pixelSize_{1920.0f, 1080.0f};
+    bool translate_ = true;
     Vec2 mouseCanvas_;
     int focus_ = 0, count_ = 0, prevCount_ = 0;
     bool lastFocused_ = false, movedFocus_ = false, activatedAny_ = false;

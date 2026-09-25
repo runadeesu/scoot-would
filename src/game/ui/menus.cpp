@@ -3,6 +3,7 @@
 #include "audio/music.h"
 #include "core/engine.h"
 #include "core/filesystem.h"
+#include "core/i18n.h"
 #include "core/log.h"
 #include "game/game.h"
 #include "input/input.h"
@@ -293,9 +294,9 @@ void Menus::drawMain(Context& ui) {
     }
     // location + progress
     const SaveData& sd = saves().data();
-    std::string where = game_.currentMap() ? game_.currentMap()->name : "";
+    std::string where = game_.currentMap() ? T(game_.currentMap()->name) : "";
     std::string area = game_.currentArea();
-    if (!area.empty()) where += "  /  " + area;
+    if (!area.empty()) where += "  /  " + T(area);
     ui.text(where, Vec2(100, 960), 26.0f, ui.theme().textDim, FontStyle::SemiBold);
     float mx = 100;
     for (int m = 3; m >= 1; --m) {
@@ -304,13 +305,13 @@ void Menus::drawMain(Context& ui) {
         mx += 90;
     }
     if (const TrackInfo* t = music().current())
-        ui.text(std::string("Now playing: ") + t->title, Vec2(W - 60, 960), 24.0f, ui.theme().textDim, FontStyle::SemiBold, Align::Right, 0.6f);
+        ui.text(T("Now playing: ") + t->title, Vec2(W - 60, 960), 24.0f, ui.theme().textDim, FontStyle::SemiBold, Align::Right, 0.6f);
     ui.text("v" SCOOT_VERSION, Vec2(W - 60, 1010), 22.0f, ui.theme().textDim * Vec4(1, 1, 1, 0.6f), FontStyle::Regular, Align::Right);
     if (ui.nav().back && screenTime_ > 0.2f) open(Screen::Quit);
 }
 
 void Menus::drawPlay(Context& ui) {
-    header(ui, "PLAY", game_.currentMap() ? game_.currentMap()->name + "  /  " + game_.currentArea() : "");
+    header(ui, "PLAY", game_.currentMap() ? T(game_.currentMap()->name) + "  /  " + T(game_.currentArea()) : "");
     ui.rectGradient(Rect(0, 170, 900, 910), Vec4(0, 0, 0, 0.6f), Vec4(0, 0, 0, 0.3f));
     const ModeType types[] = {ModeType::FreeRide, ModeType::Trick, ModeType::Line, ModeType::BestTrick, ModeType::TimeAttack};
     float y = 230;
@@ -335,7 +336,7 @@ void Menus::drawPlay(Context& ui) {
                     }
                 }
                 char b[96];
-                std::snprintf(b, sizeof(b), "%zu challenges   %d completed   %d gold", list.size(), any, gold);
+                std::snprintf(b, sizeof(b), T("%zu challenges   %d completed   %d gold").c_str(), list.size(), any, gold);
                 ui.text(b, Vec2(info.x + 38, info.y + info.h - 64), 26.0f, ui.theme().textDim, FontStyle::SemiBold);
             }
         }
@@ -386,19 +387,19 @@ void Menus::drawChallenges(Context& ui) {
             std::string where;
             for (auto& m : game_.maps())
                 for (auto& dist : m.districts)
-                    if (m.scene == d.map && dist.spawn == d.spawn) where = m.name + "  /  " + dist.name;
+                    if (m.scene == d.map && dist.spawn == d.spawn) where = T(m.name) + "  /  " + T(dist.name);
             ui.text(where, Vec2(info.x + 38, info.y + 100), 24.0f, ui.theme().textDim, FontStyle::SemiBold);
             float py = info.y + 150;
             py += ui.paragraph(d.description, Rect(info.x + 38, py, info.w - 76, 200), 28.0f, ui.theme().text) + 20;
             if (d.timeLimit > 0) {
                 char b[64];
-                std::snprintf(b, sizeof(b), "Time limit  %d:%02d", int(d.timeLimit) / 60, int(d.timeLimit) % 60);
+                std::snprintf(b, sizeof(b), T("Time limit  %d:%02d").c_str(), int(d.timeLimit) / 60, int(d.timeLimit) % 60);
                 ui.text(b, Vec2(info.x + 38, py), 26.0f, ui.theme().textDim, FontStyle::SemiBold);
                 py += 44;
             }
             if (!d.trickList.empty()) {
-                std::string tl = "Land: ";
-                for (size_t k = 0; k < d.trickList.size(); ++k) tl += (k ? ", " : "") + d.trickList[k];
+                std::string tl = T("Land: ");
+                for (size_t k = 0; k < d.trickList.size(); ++k) tl += (k ? ", " : "") + i18n::trPhrase(d.trickList[k]);
                 py += ui.paragraph(tl, Rect(info.x + 38, py, info.w - 76, 120), 26.0f, ui.theme().text) + 10;
             }
             const char* names[3] = {"BRONZE", "SILVER", "GOLD"};
@@ -411,7 +412,7 @@ void Menus::drawChallenges(Context& ui) {
             }
             if (rec) {
                 char b[96];
-                std::snprintf(b, sizeof(b), "Best %s   Attempts %d", valueText(d, rec->best).c_str(), rec->attempts);
+                std::snprintf(b, sizeof(b), T("Best %s   Attempts %d").c_str(), valueText(d, rec->best).c_str(), rec->attempts);
                 ui.text(b, Vec2(info.x + 38, info.y + info.h + 20), 26.0f, ui.theme().text, FontStyle::SemiBold, Align::Left, 0.6f);
             }
         }
@@ -672,8 +673,8 @@ void Menus::drawScooter(Context& ui) {
     Vec3 sw(std::pow(fc.x, 1.0f / 2.2f), std::pow(fc.y, 1.0f / 2.2f), std::pow(fc.z, 1.0f / 2.2f));
     ui.circle(Vec2(P.x + 38, P.y + 222), 10, Vec4(sw, 1), 24);
     ui.arc(Vec2(P.x + 38, P.y + 222), 10, 1.5f, 0, kTwoPi, ink * Vec4(1, 1, 1, 0.35f));
-    std::string colLine = pal[size_t(focusC)].name;
-    if (shopFocus_ == eqIndex) colLine += "   -   EQUIPPED";
+    std::string colLine = T(pal[size_t(focusC)].name);
+    if (shopFocus_ == eqIndex) colLine += T("   -   EQUIPPED");
     ui.text(colLine, Vec2(P.x + 58, P.y + 208), 24.0f, ink, FontStyle::SemiBold);
     ui.text(cat.specs[focusV], Vec2(P.x + 28, P.y + 242), 20.0f, inkDim, FontStyle::SemiBold);
 
@@ -742,7 +743,7 @@ void Menus::drawScooter(Context& ui) {
         saves().data().custom = shopApply(equipped, shopCat_, v, c);
         customizationChanged();
         shopPreviewKey_ = -1;
-        toast_ = std::string(cat.names[v]) + "  /  " + pal[size_t(c)].name;
+        toast_ = T(cat.names[v]) + "  /  " + T(pal[size_t(c)].name);
         toastTime_ = 0.0f;
         game_.sound().ui("ui_select");
     }
@@ -860,6 +861,17 @@ void Menus::drawSettings(Context& ui) {
         if (ui.slider("Brightness", G.brightness, 0.5f, 1.8f, 0.05f, R())) video = true;
         if (ui.toggle("Particles", G.particles, R())) video = true;
     } else if (settingsTab_ == 1) {
+        {
+            // language: follow the system, or pick one (names are shown in their own language)
+            std::string cur = P.language < 0 ? T("System") + " (" + i18n::languageName(i18n::systemLanguage()) + ")" : i18n::languageName(Language(P.language));
+            ui.setTranslate(false);
+            int d = ui.choice(i18n::language() == Language::Japanese ? "言語 / Language" : "Language / 言語", cur, R());
+            ui.setTranslate(true);
+            if (d) {
+                P.language = (P.language + 1 + d + 3) % 3 - 1;  // -1 system, 0 English, 1 Japanese
+                other = true;
+            }
+        }
         const char* stance[] = {"Regular (left foot forward)", "Goofy (right foot forward)"};
         if (int d = ui.choice("Stance", stance[P.stance], R())) { (void)d; P.stance = 1 - P.stance; other = true; }
         const char* assist[] = {"Off", "Low", "Normal"};
@@ -977,7 +989,8 @@ void Menus::drawMoveList(Context& ui, const Rect& area) {
     auto row = [&](const std::string& label, auto drawGlyphs) {
         float x = area.x + 28;
         x = drawGlyphs(x, y);
-        ui.text(label, Vec2(std::max(x + 16, area.x + 236), y - 14), 22.0f, ui.theme().text, FontStyle::SemiBold);
+        float lx = std::max(x + 16, area.x + 236);
+        ui.textBox(label, Rect(lx, y - 20, area.x + area.w - 20 - lx, 40), 22.0f, ui.theme().text, FontStyle::SemiBold, Align::Left);
         y += gap;
     };
     auto act = [&](Action a) { return [=, &ui](float x, float yy) { return x + glyphs::action(ui, a, x, yy, gh, pad); }; };
@@ -1030,7 +1043,7 @@ void Menus::drawMoveList(Context& ui, const Rect& area) {
     if (y + 40 < area.y + area.h)
         ui.paragraph(flow ? "Push the right stick all the way for tricks to register. Repeat the input during a whip or barspin to double it."
                           : "Flick the right stick in the air for scooter tricks, hold the grab trigger for grabs.",
-                     Rect(area.x + 28, y - 8, area.w - 56, area.y + area.h - y), 20.0f, ui.theme().textDim);
+                     Rect(area.x + 28, y - 8, area.w - 56, area.y + area.h - y), 18.0f, ui.theme().textDim);
 }
 
 void Menus::drawPause(Context& ui) {
@@ -1147,12 +1160,14 @@ void Menus::drawLoading(Context& ui) {
     std::string what;
     for (auto& m : game_.maps())
         if (m.scene == pendingMap_) {
-            what = m.name;
+            what = T(m.name);
             for (auto& d : m.districts)
-                if (d.spawn == pendingSpawn_) what += "  /  " + d.name;
+                if (d.spawn == pendingSpawn_) what += "  /  " + T(d.name);
         }
     ui.text(what, Vec2(W - 84, 900), 28.0f, ui.theme().accent, FontStyle::Bold, Align::Right);
-    ui.text("Tip: flick the right stick in the air for whips and bar spins, hold RT + flick for grabs.", Vec2(80, 980), 26.0f, ui.theme().textDim,
+    ui.text(input().scheme() == ControlScheme::Flow ? "Tip: hold RT and push the right stick all the way for whips and barspins, hold LT for grabs."
+                                                    : "Tip: flick the right stick in the air for whips and bar spins, hold RT + flick for grabs.",
+            Vec2(80, 980), 26.0f, ui.theme().textDim,
             FontStyle::SemiBold);
 }
 

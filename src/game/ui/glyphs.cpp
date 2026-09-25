@@ -15,6 +15,14 @@ const Vec4 kRing(1.0f, 1.0f, 1.0f, 0.85f);
 
 PadStyle style() { return input().padStyle(); }
 
+// glyph captions (button names, key caps) are never translated
+struct Raw {
+    Context& ui;
+    bool prev;
+    explicit Raw(Context& u) : ui(u), prev(u.translating()) { ui.setTranslate(false); }
+    ~Raw() { ui.setTranslate(prev); }
+};
+
 void disc(Context& ui, Vec2 c, float r, float h) {
     ui.circle(c, r, kPadDark, 32);
     ui.arc(c, r - h * 0.035f, h * 0.07f, 0.0f, kTwoPi, Vec4(0.92f, 0.92f, 0.94f, 0.95f));
@@ -116,6 +124,7 @@ std::string triggerName(SDL_GamepadAxis a) {
 }
 
 float button(Context& ui, SDL_GamepadButton b, float x, float y, float h) {
+    Raw raw(ui);
     std::string name = buttonName(b);
     float r = h * 0.5f;
     Vec2 c(x + r, y);
@@ -168,10 +177,12 @@ float button(Context& ui, SDL_GamepadButton b, float x, float y, float h) {
 }
 
 float trigger(Context& ui, SDL_GamepadAxis a, float x, float y, float h) {
+    Raw raw(ui);
     return capText(ui, triggerName(a), x, y, h, kCap, kCapInk, h * 0.2f);
 }
 
 float key(Context& ui, const std::string& name, float x, float y, float h) {
+    Raw raw(ui);
     if (name == "Up" || name == "Down" || name == "Left" || name == "Right") {
         Rect r(x, y - h * 0.5f, h, h);
         ui.rect(r, kCap, h * 0.18f);
@@ -183,12 +194,14 @@ float key(Context& ui, const std::string& name, float x, float y, float h) {
 }
 
 float plus(Context& ui, float x, float y, float h) {
+    Raw raw(ui);
     float w = h * 0.55f;
     ui.textBox("+", Rect(x, y - h * 0.5f, w, h), h * 0.6f, Vec4(1, 1, 1, 0.9f), FontStyle::Bold, Align::Center);
     return w;
 }
 
 float stick(Context& ui, bool right, StickDir dir, float x, float y, float h, bool gamepad) {
+    Raw raw(ui);
     if (!gamepad) {
         // keyboard: WASD / arrow keys (a single key when a direction is given)
         if (dir != StickDir::None) {
@@ -258,6 +271,7 @@ void hintRow(Context& ui, const std::vector<Hint>& hints, float right, float y, 
         x -= 12.0f;
         // measure the glyph by drawing it off screen first would double the geometry: estimate instead
         float gw;
+        Raw raw(ui);
         if (hnt.kind == Hint::ActionHint) {
             const Binding& b = input().binding(hnt.action);
             if (pad) {

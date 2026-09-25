@@ -1,6 +1,7 @@
 #include "ui/ui.h"
 
 #include "assets/asset_manager.h"
+#include "core/i18n.h"
 #include "core/log.h"
 
 #include <cmath>
@@ -17,9 +18,14 @@ void Context::init() {
     fontAtlas().init();
     const char* files[int(FontStyle::Count)] = {"assets/fonts/Barlow-Regular.ttf", "assets/fonts/Barlow-SemiBold.ttf", "assets/fonts/Barlow-Bold.ttf",
                                                 "assets/fonts/BarlowCondensed-ExtraBoldItalic.ttf"};
+    // Japanese (and every other glyph the Latin faces lack) falls back to M PLUS 1p of a matching weight
+    const char* fallbacks[int(FontStyle::Count)] = {"assets/fonts/MPLUS1p-Regular.ttf", "assets/fonts/MPLUS1p-Bold.ttf", "assets/fonts/MPLUS1p-Bold.ttf",
+                                                    "assets/fonts/MPLUS1p-Black.ttf"};
     for (int i = 0; i < int(FontStyle::Count); ++i) {
         fonts_[i] = assets().font(files[i], 0);
         if (!fonts_[i]) LOG_ERROR("ui: missing font %s", files[i]);
+        FontPtr fb = assets().font(fallbacks[i], 0);
+        if (fonts_[i] && fb) fonts_[i]->setFallback(fb);
     }
     // warm the atlas with the printable ASCII range of every face
     for (auto& f : fonts_)
@@ -272,12 +278,22 @@ void Context::frosted(const Rect& r, float radius, const Vec4& tint, float tintA
     }
 }
 
-float Context::measure(const std::string& s, float size, FontStyle style) {
-    FontPtr f = fonts_[int(style)];
-    return f ? f->measure(s, size) : 0.0f;
+const std::string& Context::localized(const std::string& s) const {
+    if (!translate_) return s;
+    const std::string* t = i18n::find(s);
+    return t ? *t : s;
 }
 
-float Context::text(const std::string& s, Vec2 pos, float size, const Vec4& color, FontStyle style, Align align, float shadowAlpha) {
+float Context::measure(const std::string& src, float size, FontStyle style) {
+    FontPtr f = fonts_[int(style)];
+    return f ? f->measure(localized(src), size) : 0.0f;
+}
+
+float Context::text(const std::string& src, Vec2 pos, float size, const Vec4& color, FontStyle style, Align align, float shadowAlpha) {
+    return drawText(localized(src), pos, size, color, style, align, shadowAlpha);
+}
+
+float Context::drawText(const std::string& s, Vec2 pos, float size, const Vec4& color, FontStyle style, Align align, float shadowAlpha) {
     FontPtr f = fonts_[int(style)];
     if (!dl_ || !f || s.empty() || color.w <= 0.001f) return 0.0f;
     float w = f->measure(s, size);
@@ -344,6 +360,9 @@ float Context::text(const std::string& s, Vec2 pos, float size, const Vec4& colo
 void Context::textBox(const std::string& s, const Rect& r, float size, const Vec4& color, FontStyle style, Align h, float shadowAlpha) {
     FontPtr f = fonts_[int(style)];
     if (!f) return;
+    // text wider than its box (long translations) is scaled down to fit
+    float w = measure(s, size, style);
+    if (w > r.w && r.w > 1.0f) size *= std::max(0.55f, r.w / w);
     float sc = size / Font::kBakeSize;
     float baseline = r.y + r.h * 0.5f + size * 0.34f;
     float top = baseline - f->ascent() * sc;
@@ -351,30 +370,79 @@ void Context::textBox(const std::string& s, const Rect& r, float size, const Vec
     text(s, Vec2(x, top), size, color, style, h, shadowAlpha);
 }
 
-float Context::paragraph(const std::string& s, const Rect& r, float size, const Vec4& color, FontStyle style, float spacing) {
+namespace {
+// CJK text has no spaces: every character is a break opportunity, closing punctuation stays on its line
+bool isCjk(uint32_t cp) { return cp >= 0x2E80 && cp < 0xFFF0; }
+bool isClosing(uint32_t cp) {
+    switch (cp) {
+        case 0x3001: case 0x3002: case 0xFF0C: case 0xFF0E: case 0x300D: case 0x300F: case 0xFF09: case 0xFF01: case 0xFF1F:
+        case 0x30FC: case 0x2026: case 0x3063: case 0x30C3: case 0x3083: case 0x3085: case 0x3087: case 0x30E3: case 0x30E5: case 0x30E7:
+        case 0x3041: case 0x3043: case 0x3045: case 0x3047: case 0x3049: case 0x30A1: case 0x30A3: case 0x30A5: case 0x30A7: case 0x30A9:
+        case 0xFF1A: case 0x30FB:
+            return true;
+        default: return false;
+    }
+}
+}  // namespace
+
+float Context::paragraph(const std::string& src, const Rect& r, float size, const Vec4& color, FontStyle style, float spacing) {
     FontPtr f = fonts_[int(style)];
     if (!f) return 0.0f;
+    const std::string& s = localized(src);
     float lineH = size * spacing, y = r.y;
-    std::string line, word;
+    // tokens: Latin words (space separated) and single CJK characters
+    struct Tok {
+        std::string text;
+        bool spaceBefore = false;
+        bool newline = false;
+    };
+    std::vector<Tok> toks;
+    std::string word;
+    bool pendingSpace = false;
+    auto flushWord = [&]() {
+        if (word.empty()) return;
+        toks.push_back({word, pendingSpace && !toks.empty(), false});
+        word.clear();
+        pendingSpace = false;
+    };
+    for (size_t i = 0; i < s.size();) {
+        size_t st = i;
+        uint32_t cp = utf8Next(s, i);
+        std::string ch = s.substr(st, i - st);
+        if (cp == ' ') {
+            flushWord();
+            pendingSpace = true;
+        } else if (cp == '\n') {
+            flushWord();
+            toks.push_back({"", false, true});
+            pendingSpace = false;
+        } else if (isCjk(cp)) {
+            flushWord();
+            if (isClosing(cp) && !toks.empty() && !toks.back().newline) toks.back().text += ch;
+            else toks.push_back({ch, pendingSpace && !toks.empty(), false});
+            pendingSpace = false;
+        } else {
+            word += ch;
+        }
+    }
+    flushWord();
+    std::string line;
     auto flushLine = [&]() {
-        text(line, Vec2(r.x, y), size, color, style);
+        drawText(line, Vec2(r.x, y), size, color, style, Align::Left, 0.0f);
         y += lineH;
         line.clear();
     };
-    for (size_t i = 0; i <= s.size(); ++i) {
-        char c = i < s.size() ? s[i] : ' ';
-        if (c == ' ' || c == '\n') {
-            std::string cand = line.empty() ? word : line + " " + word;
-            if (!line.empty() && f->measure(cand, size) > r.w) {
-                flushLine();
-                line = word;
-            } else {
-                line = cand;
-            }
-            word.clear();
-            if (c == '\n') flushLine();
+    for (const Tok& t : toks) {
+        if (t.newline) {
+            flushLine();
+            continue;
+        }
+        std::string cand = line.empty() ? t.text : line + (t.spaceBefore ? " " : "") + t.text;
+        if (!line.empty() && f->measure(cand, size) > r.w) {
+            flushLine();
+            line = t.text;
         } else {
-            word += c;
+            line = cand;
         }
     }
     if (!line.empty()) flushLine();
@@ -424,7 +492,7 @@ int Context::choice(const std::string& label, const std::string& value, const Re
     if (a > 0.01f) rect(Rect(r.x, r.y, 6.0f, r.h), theme_.accent * Vec4(1, 1, 1, a), 3.0f);
     textBox(label, Rect(r.x + 26, r.y, r.w * 0.5f, r.h), 28.0f, theme_.text, FontStyle::SemiBold, Align::Left);
     Rect vr(r.x + r.w * 0.52f, r.y, r.w * 0.46f, r.h);
-    textBox(value, vr, 28.0f, lastFocused_ ? theme_.accent : theme_.textDim, FontStyle::Bold, Align::Center);
+    textBox(value, Rect(vr.x + 34, vr.y, vr.w - 68, vr.h), 28.0f, lastFocused_ ? theme_.accent : theme_.textDim, FontStyle::Bold, Align::Center);
     float cy = r.y + r.h * 0.5f, s = 9.0f;
     Vec4 ac = lastFocused_ ? theme_.text : theme_.textDim * Vec4(1, 1, 1, 0.6f);
     polygon({{vr.x + 12, cy}, {vr.x + 12 + s, cy - s}, {vr.x + 12 + s, cy + s}}, ac);

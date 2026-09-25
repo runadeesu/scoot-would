@@ -3,6 +3,7 @@
 #include "audio/audio.h"
 #include "audio/music.h"
 #include "core/filesystem.h"
+#include "core/i18n.h"
 #include "core/log.h"
 #include "core/timer.h"
 #include "debug/debug_ui.h"
@@ -205,6 +206,9 @@ void Game::applySettings(bool video) {
     camera_.distanceScale = s.gameplay.cameraDistance;
     visual_.setGoofy(opts_.stance >= 0 ? opts_.stance == 1 : s.gameplay.stance == 1);
     if (int(input().scheme()) != s.gameplay.controlScheme) input().setScheme(ControlScheme(s.gameplay.controlScheme));
+    // language: command line > setting > system language
+    Language lang = opts_.language >= 0 ? Language(opts_.language) : s.gameplay.language >= 0 ? Language(s.gameplay.language) : i18n::systemLanguage();
+    i18n::setLanguage(lang);
     player_.tricks.setScheme(autotest_ ? autotest_->flowScheme() : input().scheme() == ControlScheme::Flow);
     input().vibrationEnabled = s.gameplay.vibration;
     input().invertCameraY = s.gameplay.invertY;

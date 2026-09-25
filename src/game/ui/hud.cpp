@@ -1,4 +1,5 @@
 #include "game/ui/hud.h"
+#include "core/i18n.h"
 #include "game/ui/glyphs.h"
 #include "input/input.h"
 
@@ -156,7 +157,7 @@ void Hud::drawCombo(Context& ui) {
         const auto& es = c.entries();
         size_t start = es.size() > 5 ? es.size() - 5 : 0;
         if (start > 0) chain = "... + ";
-        for (size_t i = start; i < es.size(); ++i) chain += (i > start ? " + " : "") + es[i].name;
+        for (size_t i = start; i < es.size(); ++i) chain += (i > start ? " + " : "") + i18n::trPhrase(es[i].name);
         float cw = ui.measure(chain, 30.0f, FontStyle::Bold);
         float boxW = std::max(420.0f, cw + 60.0f);
         Rect box(W * 0.5f - boxW * 0.5f, 858, boxW, 150);
@@ -202,12 +203,12 @@ void Hud::drawTrickPopup(Context& ui) {
         float in = saturate(p.age * 8.0f), out = saturate((2.6f - p.age) * 3.0f);
         float a = in * out * (i == 0 ? 1.0f : 0.55f);
         float size = i == 0 ? 64.0f * (1.0f + 0.25f * (1.0f - in)) : 40.0f;
-        ui.text(p.text, Vec2(W * 0.5f, y), size, ui.theme().text * Vec4(1, 1, 1, a), FontStyle::Display, Align::Center, 0.7f);
+        ui.text(i18n::trPhrase(p.text), Vec2(W * 0.5f, y), size, ui.theme().text * Vec4(1, 1, 1, a), FontStyle::Display, Align::Center, 0.7f);
         y += size + 4;
         if (i == 0) {
             char b[64];
             int li = std::clamp(p.landing, 0, 3);
-            if (kLandNames[li][0]) std::snprintf(b, sizeof(b), "%s  +%s", kLandNames[li], formatScore(p.score).c_str());
+            if (kLandNames[li][0]) std::snprintf(b, sizeof(b), "%s  +%s", T(kLandNames[li]).c_str(), formatScore(p.score).c_str());
             else std::snprintf(b, sizeof(b), "+%s", formatScore(p.score).c_str());
             ui.text(b, Vec2(W * 0.5f, y), 30.0f, kLandColors[li] * Vec4(1, 1, 1, a), FontStyle::Bold, Align::Center, 0.6f);
             y += 44;
@@ -237,7 +238,7 @@ void Hud::drawSpeed(Context& ui) {
     const Player& p = game_.player();
     if (p.state() == PlayerState::Air && p.airTime() > 0.6f) {
         char a[32];
-        std::snprintf(a, sizeof(a), "AIR %.1fs", p.airTime());
+        std::snprintf(a, sizeof(a), T("AIR %.1fs").c_str(), p.airTime());
         ui.text(a, Vec2(c.x, c.y + 60), 24.0f, ui.theme().info, FontStyle::Bold, Align::Center, 0.6f);
     }
 }
@@ -284,7 +285,7 @@ void Hud::drawMode(Context& ui, const RenderView& view) {
         }
         int best = game_.player().combo.bestCombo();
         if (best > 0) {
-            ui.text("BEST COMBO  " + formatScore(best), Vec2(W - 60, 140), 24.0f, ui.theme().textDim, FontStyle::Bold, Align::Right, 0.6f);
+            ui.text(T("BEST COMBO  ") + formatScore(best), Vec2(W - 60, 140), 24.0f, ui.theme().textDim, FontStyle::Bold, Align::Right, 0.6f);
         }
         return;
     }

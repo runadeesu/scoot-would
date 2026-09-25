@@ -52,9 +52,12 @@ bool Font::load(const std::string& relPath) {
     return true;
 }
 
+bool Font::hasGlyph(uint32_t cp) const { return info_ && stbtt_FindGlyphIndex(&info_->f, int(cp)) != 0; }
+
 const Glyph& Font::glyph(uint32_t cp) {
     auto it = glyphs_.find(cp);
     if (it != glyphs_.end()) return it->second;
+    if (cp > 0x7F && fallback_ && !hasGlyph(cp) && fallback_->hasGlyph(cp)) return glyphs_[cp] = fallback_->glyph(cp);
     Glyph g;
     if (info_) {
         int gi = stbtt_FindGlyphIndex(&info_->f, int(cp));

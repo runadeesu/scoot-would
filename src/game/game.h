@@ -40,7 +40,8 @@ struct GameOptions {
     bool hideRider = false;   // render the scooter alone (screenshots / photo mode)
     int stance = -1;          // -1 = from the settings, 0 regular, 1 goofy
     bool bindPose = false;    // debug: show the rider in its rest pose (asset inspection)
-    int padPreview = -1;      // show controller glyphs without a controller (0 xbox, 1 playstation, 2 switch)
+    int padPreview = -1;
+    int language = -1;        // --lang en / ja overrides the setting      // show controller glyphs without a controller (0 xbox, 1 playstation, 2 switch)
 };
 
 struct DistrictInfo {

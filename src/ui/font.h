@@ -35,6 +35,9 @@ public:
     float lineGap() const { return lineGap_; }
     // width of a string at a pixel size (UTF-8)
     float measure(const std::string& text, float px);
+    // code points this face does not have come from the fallback (Japanese text in the Latin UI faces)
+    void setFallback(FontPtr f) { fallback_ = std::move(f); }
+    bool hasGlyph(uint32_t codepoint) const;
 
 private:
     friend class FontAtlas;
@@ -44,12 +47,13 @@ private:
     std::shared_ptr<Info> info_;
     float scale_ = 1.0f, ascent_ = 0, descent_ = 0, lineGap_ = 0;
     std::unordered_map<uint32_t, Glyph> glyphs_;
+    FontPtr fallback_;
 };
 
 // shared R8 SDF atlas (value 0.5 = glyph edge); a solid white block serves untextured shapes
 class FontAtlas {
 public:
-    static constexpr int kSize = 2048;
+    static constexpr int kSize = 4096;  // room for the Latin faces plus a few thousand Japanese glyphs
     static constexpr int kPad = 5;
     void init();
     void shutdown();
