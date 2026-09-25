@@ -502,7 +502,7 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
         Vec3 shoulder = ms[size_t(ch[0])].position;
         // elbows out to the side (photos: riders' elbows flare out, more so when the bars are pulled up to the chest)
         float high = saturate((grip.y - (shoulder.y - 0.45f)) / 0.3f);
-        Vec3 pole = shoulder + Vec3(sideSign * lerpf(0.5f, 0.6f, high), -0.25f, lerpf(0.35f, 0.12f, high));
+        Vec3 pole = shoulder + Vec3(sideSign * lerpf(0.5f, 0.7f, high), lerpf(-0.25f, -0.16f, high), lerpf(0.35f, 0.1f, high));
         int s = sideSign < 0.0f ? 0 : 1;
         Quat gripRot = Quat::angleAxis(-sideSign * 0.3f, Vec3(0, 0, 1)) * Quat::angleAxis(0.5f, Vec3(1, 0, 0));
         Vec3 wrist = grip + Vec3(0, 0.035f, 0.03f);

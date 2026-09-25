@@ -153,8 +153,8 @@ std::vector<ClipDef> clipDefs() {
         auto tight = [&](float thigh, float shin) {
             PoseDef p = T;
             p.hips(0, -0.1f, 0.02f).set(RJ_Pelvis, -4, -12, 0).set(RJ_Spine, -8, 4, 0).set(RJ_Chest, -3, 2, 0).set(RJ_Neck, -14).set(RJ_Head, -8);
-            p.pair(RJ_ThighL, RJ_ThighR, thigh, 0, 20).pair(RJ_ShinL, RJ_ShinR, shin).pair(RJ_FootL, RJ_FootR, 22);
-            p.pair(RJ_UpperArmL, RJ_UpperArmR, 12, 0, 28).pair(RJ_LowerArmL, RJ_LowerArmR, 100);
+            p.pair(RJ_ThighL, RJ_ThighR, thigh + 8.0f, 0, 20).pair(RJ_ShinL, RJ_ShinR, shin - 8.0f).pair(RJ_FootL, RJ_FootR, 22);
+            p.pair(RJ_UpperArmL, RJ_UpperArmR, 12, 0, 50).pair(RJ_LowerArmL, RJ_LowerArmR, 100);
             return p;
         };
         // front foot reaches down first and stops the deck, back foot still up

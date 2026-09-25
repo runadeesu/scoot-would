@@ -374,7 +374,7 @@ void PlayerVisual::updateScooterParts(const Transform& body, const Player& playe
     // bent, torso upright), and let it back down under the feet just before the landing
     float pullTarget = 0.0f;
     if (!bailed && player.state() == PlayerState::Air)
-        pullTarget = 0.2f * saturate(player.airTime() / 0.18f) * saturate((player.timeToLand() - 0.06f) / 0.22f);
+        pullTarget = 0.26f * saturate(player.airTime() / 0.18f) * saturate((player.timeToLand() - 0.06f) / 0.22f);
     airPull_ = dampf(airPull_, pullTarget, 14.0f, dt);
     pose.offset.y += airPull_;
     // held out of the way while it goes round: lifted to the body, pushed out to the side, thrown forward
