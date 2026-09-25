@@ -103,6 +103,11 @@ bool Game::init() {
         }
         opts_.map = autotest_->map();
         player_.tricks.setScheme(autotest_->flowScheme());  // tests state the layout they were written for
+        if (opts_.cameraView.empty()) opts_.cameraView = autotest_->cameraMode.empty() ? "third" : autotest_->cameraMode;
+    }
+    if (!opts_.cameraView.empty()) {
+        const std::string& v = opts_.cameraView;
+        camera_.setMode(v == "first" ? CameraMode::FirstPerson : v == "close" ? CameraMode::Close : v == "far" ? CameraMode::Far : CameraMode::Follow);
     }
     if (opts_.debugView) {
         RenderSettings rs = renderer().settings();
@@ -214,6 +219,7 @@ void Game::applySettings(bool video) {
     camera_.invertY = s.gameplay.invertY;
     camera_.shakeSetting = s.gameplay.cameraShake;
     camera_.distanceScale = s.gameplay.cameraDistance;
+    if (camera_.mode() != CameraMode::Free && opts_.cameraView.empty()) camera_.setMode(CameraMode(s.gameplay.cameraMode));
     visual_.setGoofy(opts_.stance >= 0 ? opts_.stance == 1 : s.gameplay.stance == 1);
     if (int(input().scheme()) != s.gameplay.controlScheme) input().setScheme(ControlScheme(s.gameplay.controlScheme));
     // language: command line > setting > system language
@@ -772,7 +778,20 @@ void Game::updatePlayCamera(float dt, float alpha) {
     ct.speed = player_.speed();
     bool lookActive = player_.state() != PlayerState::Air;
     Vec2 mouse = engine().window().mouseCaptured() ? in.mouseDelta() * 0.02f : Vec2(0);
-    camera_.update(dt, ct, in.lookStick() + mouse, lookActive, in.pressed(Action::CameraReset));
+    bool firstPerson = camera_.mode() == CameraMode::FirstPerson && player_.state() != PlayerState::Bailed;
+    if (firstPerson) {
+        bool snap = cameraCut_ || fpWasOff_;
+        // the Scooter Flow layout uses the right stick for pumping / popping: there only the mouse looks around
+        Vec2 fpLook = input().scheme() == ControlScheme::Flow ? mouse : in.lookStick() + mouse;
+        camera_.updateFirstPerson(dt, visual_.povCameraPosition(), body.rotation, player_.speed(), ct.grounded, fpLook, lookActive,
+                                  in.pressed(Action::CameraReset), snap);
+    } else {
+        if (cameraCut_ || !fpWasOff_) camera_.reset(ct);
+        camera_.update(dt, ct, in.lookStick() + mouse, lookActive, in.pressed(Action::CameraReset));
+    }
+    if (cameraCut_ || fpWasOff_ == firstPerson) renderer().resetHistory();
+    fpWasOff_ = !firstPerson;
+    cameraCut_ = false;
 }
 
 void Game::update(float dt, float alpha) {
@@ -783,7 +802,13 @@ void Game::update(float dt, float alpha) {
 
     // state transitions from input
     if (state_ == AppState::Playing && in.pressed(Action::Pause) && modes_.state() != ModeState::Finished && !autotest_) setPaused(true);
-    if (state_ == AppState::Playing && in.pressed(Action::CameraMode)) camera_.cycleMode();
+    if (state_ == AppState::Playing && in.pressed(Action::CameraMode)) {
+        camera_.cycleMode();
+        cameraCut_ = true;
+        saves().settings().gameplay.cameraMode = int(camera_.mode());
+        saves().saveSettings();
+        if (hud_) hud_->toast(T(cameraModeName(camera_.mode())), 1.2f);
+    }
     if (state_ == AppState::Playing && modes_.state() == ModeState::Finished && modes_.finishedTime() > 1.2f && menus_->screen() != Menus::Screen::Results) {
         menus_->open(Menus::Screen::Results, false);
         audio().play(modes_.result().medal > 0 ? "challenge_complete" : "combo_fail", Bus::Ui);
@@ -793,6 +818,7 @@ void Game::update(float dt, float alpha) {
     if (wantCapture != engine().window().mouseCaptured()) engine().window().setMouseCaptured(wantCapture);
 
     setShop(state_ == AppState::Menu && menus_->screen() == Menus::Screen::Scooter);
+    visual_.setFirstPerson(state_ == AppState::Playing && camera_.mode() == CameraMode::FirstPerson && player_.state() != PlayerState::Bailed);
     Profiler::begin(ProfileSection::Animation);
     visual_.update(dt, alpha, player_);
     Profiler::end(ProfileSection::Animation);

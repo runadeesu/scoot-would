@@ -63,8 +63,10 @@ dynamic objects (player, props, the shop) are culled individually.
 - `grind/`, `manual/`, `combo/`, `landing`: rails from the scene, 7 grind types, manual balance, combo
   multiplier, landing quality (clean / sketchy / bail), ragdoll bails.
 - `player_visual`: scooter parts with separate transforms for tricks, the skinned rider (MakeHuman based glTF)
-  driven by `rider_animator`: clips + procedural layers (crouch, lean, push cycle, look), two bone IK for
-  hands and feet, finger grips, stance mirroring (goofy), face (blinks, saccades, breathing).
+  driven by `rider_animator`: clips + procedural layers (crouch, lean, push cycle with the foot planted on the
+  ground, look), two bone IK for hands and feet, finger grips, stance mirroring (goofy), face (blinks,
+  saccades, breathing). First person: the camera's copy of the rider folds the head and upper body away
+  (skinning matrices), a shadow-only copy (`LayerShadowOnly`) keeps the full body in the shadow maps.
 
 ## UI and localisation
 

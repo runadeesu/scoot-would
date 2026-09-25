@@ -76,7 +76,7 @@ Json SaveSystem::toJson(const Settings& s) {
                      {"fov", g.fov},                 {"brightness", g.brightness}, {"anisotropy", g.anisotropy},
                      {"particles", g.particles}};
     j["gameplay"] = {{"stance", p.stance}, {"controlScheme", p.controlScheme}, {"language", p.language}, {"landingAssist", p.landingAssist}, {"cameraSensitivity", p.cameraSensitivity}, {"invertY", p.invertY},
-                     {"cameraShake", p.cameraShake},     {"cameraDistance", p.cameraDistance},       {"vibration", p.vibration},
+                     {"cameraShake", p.cameraShake}, {"cameraMode", p.cameraMode},     {"cameraDistance", p.cameraDistance},       {"vibration", p.vibration},
                      {"showHud", p.showHud},             {"showTrickNames", p.showTrickNames},       {"metric", p.metric},
                      {"balanceDifficulty", p.balanceDifficulty}};
     j["audio"] = {{"master", a.master}, {"music", a.music}, {"sfx", a.sfx}, {"environment", a.environment}, {"ui", a.ui}, {"musicEnabled", a.musicEnabled}};
@@ -121,6 +121,7 @@ Settings SaveSystem::settingsFromJson(const Json& j) {
     P.invertY = jget<bool>(p, "invertY", P.invertY);
     P.cameraShake = std::clamp(jget<int>(p, "cameraShake", P.cameraShake), 0, 2);
     P.cameraDistance = clampf(jget<float>(p, "cameraDistance", P.cameraDistance), 0.7f, 1.5f);
+    P.cameraMode = std::clamp(jget<int>(p, "cameraMode", P.cameraMode), 0, 3);
     P.vibration = jget<bool>(p, "vibration", P.vibration);
     P.showHud = jget<bool>(p, "showHud", P.showHud);
     P.showTrickNames = jget<bool>(p, "showTrickNames", P.showTrickNames);

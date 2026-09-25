@@ -361,5 +361,11 @@
  "one piece over the headset  /  4 bolts  /  SCS": "ヘッドセット上の一体型  /  4ボルト  /  SCS",
  "110 x 24 mm  /  hollow core  /  608 ABEC 9": "110 x 24 mm  /  ホローコア  /  608 ABEC 9",
  "110 x 24 mm  /  12 spoke core  /  608 ABEC 9": "110 x 24 mm  /  12本スポークコア  /  608 ABEC 9",
- "110 x 24 mm  /  solid core  /  608 ABEC 9": "110 x 24 mm  /  ソリッドコア  /  608 ABEC 9"
+ "110 x 24 mm  /  solid core  /  608 ABEC 9": "110 x 24 mm  /  ソリッドコア  /  608 ABEC 9",
+ "Third Person": "三人称",
+ "Third Person (Close)": "三人称（近）",
+ "Third Person (Far)": "三人称（遠）",
+ "First Person": "一人称",
+ "Free Camera": "フリーカメラ",
+ "Camera": "カメラ"
 }

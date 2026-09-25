@@ -348,11 +348,12 @@ void ScooterPhysics::step(float dt, const Controls& c) {
         pushTimer_ = std::max(0.0f, pushTimer_ - dt);
         if (pushQueued_ && pushTimer_ <= 0.0f && bothWheels() && !wheelie_) {
             pushTimer_ = tuning.pushCooldown;
-            pushActive_ = tuning.pushDuration;
             pushQueued_ = false;
         }
+        // the foot is on the ground between pushReach and pushReach + pushDuration of the cycle
+        float pushT = tuning.pushCooldown - pushTimer_;
+        pushActive_ = pushTimer_ > 0.0f && pushT >= tuning.pushReach && pushT < tuning.pushReach + tuning.pushDuration ? 1.0f : 0.0f;
         if (pushActive_ > 0.0f) {
-            pushActive_ -= dt;
             float gain = std::pow(saturate(1.0f - s / tuning.maxPushSpeed), 0.6f) + 0.04f;
             float dv = tuning.pushImpulse * gain * dt / tuning.pushDuration;
             Vec3 dir = projectOnPlane(f * (fakie_ ? -1.0f : 1.0f), groundNormal_).normalized();

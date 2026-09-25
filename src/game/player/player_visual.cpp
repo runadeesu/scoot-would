@@ -97,6 +97,25 @@ void PlayerVisual::create(RenderScene& rs) {
     if (model_ && model_->skeleton && !model_->meshes.empty()) {
         animator_->init(model_->skeleton, model_->clips);
         boneOffset_ = rs.allocateBones(model_->skeleton->size());
+        const Skeleton& sk = *model_->skeleton;
+        headJoint_ = animator_->joint("head");
+        eyeJoint_[0] = animator_->joint("eye_l");
+        eyeJoint_[1] = animator_->joint("eye_r");
+        // first person hides the upper body from the camera at the eyes (spine, chest, clavicles, upper arms, neck,
+        // head and the face under it); the forearms and hands reach into the view from the bottom corners like
+        // in a POV clip
+        povHidden_.assign(sk.size(), 0);
+        pelvisJoint_ = animator_->joint("pelvis");
+        std::vector<int> roots = {animator_->joint("spine"), animator_->joint("chest"), animator_->joint("neck"), headJoint_,
+                                  animator_->joint("clavicle_l"), animator_->joint("clavicle_r"), animator_->joint("upperarm_l"),
+                                  animator_->joint("upperarm_r")};
+        for (size_t j = 0; j < sk.size(); ++j) {
+            for (int r : roots)
+                if (int(j) == r) povHidden_[j] = 1;
+            for (int a = int(j); a >= 0; a = sk.joints[size_t(a)].parent)
+                if (a == headJoint_) povHidden_[j] = 1;
+        }
+        shadowBoneOffset_ = rs.allocateBones(sk.size());
         for (auto& mm : model_->meshes) {
             RenderObject o;
             o.mesh = mm.gpu;
@@ -107,6 +126,11 @@ void PlayerVisual::create(RenderScene& rs) {
             o.lodBias = 3.0f;
             riderHandles_.push_back(rs.add(o));
             riderMeshVariant_.push_back(mm.name);
+            RenderObject so = o;
+            so.layer = LayerShadowOnly;
+            so.boneOffset = shadowBoneOffset_;
+            so.visible = false;
+            shadowProxies_.push_back(rs.add(so));
         }
         LOG_INFO("player: rider model with %zu joints, %zu clips", model_->skeleton->size(), model_->clips.size());
     } else {
@@ -191,8 +215,10 @@ void PlayerVisual::destroy() {
         h = RenderScene::kInvalid;
     }
     for (auto h : riderHandles_) rs_->remove(h);
+    for (auto h : shadowProxies_) rs_->remove(h);
     for (auto h : mannequin_) rs_->remove(h);
     riderHandles_.clear();
+    shadowProxies_.clear();
     mannequin_.clear();
     mannequinBones_.clear();
     riderMeshVariant_.clear();
@@ -278,6 +304,25 @@ void PlayerVisual::setVisible(bool v) {
     applyCustomization(custom_);
 }
 
+Vec3 PlayerVisual::eyePosition() const {
+    if (eyeJoint_[0] >= 0 && eyeJoint_[1] >= 0 && size_t(std::max(eyeJoint_[0], eyeJoint_[1])) < jointsModel_.size()) {
+        Vec3 m = (jointsModel_[size_t(eyeJoint_[0])].position + jointsModel_[size_t(eyeJoint_[1])].position) * 0.5f;
+        return riderWorld_.transformPoint(m);
+    }
+    if (headJoint_ >= 0 && size_t(headJoint_) < jointsModel_.size()) {
+        const Transform& h = jointsModel_[size_t(headJoint_)];
+        return riderWorld_.transformPoint(h.position + h.rotation * Vec3(0, 0.1f, -0.08f));
+    }
+    return headPosition() + Vec3(0, 0.1f, 0);
+}
+
+Vec3 PlayerVisual::povCameraPosition() const {
+    // at the eyes, never closer than 18 cm behind the bar (a lens needs the bars in front of it)
+    Vec3 eye = riderWorld_.inverse().transformPoint(eyePosition());
+    Vec3 cam(eye.x * 0.5f, eye.y + 0.05f, std::max(eye.z - 0.03f, barCenterModel_.z + 0.18f));
+    return riderWorld_.transformPoint(cam);
+}
+
 Vec3 PlayerVisual::headPosition() const {
     if (jointsModel_.size() > size_t(RJ_Head)) return riderWorld_.transformPoint(jointsModel_[RJ_Head].position);
     return riderWorld_.position + Vec3(0, 1.7f, 0);
@@ -340,6 +385,9 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
     ap.speed = player.speed();
     ap.pushing = !bailed && player.scooter.pushing();
     ap.pushPhase = bailed ? 0.0f : player.scooter.pushPhase();
+    ap.pushCycle = player.scooter.tuning.pushCooldown;
+    ap.pushPlant = player.scooter.pushPlantFraction();
+    ap.pushLift = player.scooter.pushLiftFraction();
     const ScooterPose& tp = player.tricks.pose();
     ap.trickPose = tp.riderPose;
     ap.trickWeight = player.state() == PlayerState::Air ? tp.riderPoseWeight : 0.0f;
@@ -351,10 +399,12 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
     ap.steer = bailed ? 0.0f : player.scooter.steerAngle() / 0.5f;
     ap.goofy = goofy_;
     ap.footDown = !bailed && player.stoppedTime() > 0.45f && !ap.pushing;
+    ap.firstPerson = firstPerson_ && !bailed;
     RiderRig rig;
     ScooterDims bars = d;  // hands on the grips of the fitted bars
     bars.barHeight = barHeight_;
     bars.barWidth = barWidth_;
+    barCenterModel_ = bars.barCenter() - modelToBody.position;
     rig.gripL = bars.gripL() - modelToBody.position;
     rig.gripR = bars.gripR() - modelToBody.position;
     rig.footFront = d.frontFoot() - modelToBody.position;
@@ -429,6 +479,26 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
         const Skeleton& sk = animator_->skeleton();
         for (size_t j = 0; j < jointsModel_.size() && boneOffset_ >= 0; ++j)
             bones[size_t(boneOffset_) + j] = jointsModel_[j].matrix() * sk.joints[j].inverseBind;
+        bool pov = firstPerson_ && !bailed && boneOffset_ >= 0 && shadowBoneOffset_ >= 0;
+        if (pov) {
+            // the shadow proxies keep the whole body; in the camera's copy the hidden joints shrink to a point
+            // at their own joint (skin weighted to them vanishes, shared vertices at the shoulders tuck in)
+            for (size_t j = 0; j < jointsModel_.size(); ++j) bones[size_t(shadowBoneOffset_) + j] = bones[size_t(boneOffset_) + j];
+            // everything hidden folds into one point at the hips: below the view, and vertices shared with visible
+            // joints (elbows, waist) lean away from the lens instead of stretching into thin spikes
+            Vec3 c = pelvisJoint_ >= 0 ? jointsModel_[size_t(pelvisJoint_)].position : Vec3(0, 0.9f, 0);
+            Mat4 fold = Mat4::translation(c) * Mat4::scale(Vec3(0.001f)) * Mat4::translation(-c);
+            for (size_t j = 0; j < jointsModel_.size() && j < povHidden_.size(); ++j)
+                if (povHidden_[j]) bones[size_t(boneOffset_) + j] = fold * bones[size_t(boneOffset_) + j];
+        }
+        for (size_t i = 0; i < shadowProxies_.size() && i < riderHandles_.size(); ++i) {
+            RenderObject* o = rs_->get(riderHandles_[i]);
+            RenderObject* so = rs_->get(shadowProxies_[i]);
+            if (!o || !so) continue;
+            so->visible = pov && o->visible;
+            o->castShadows = !pov;
+            if (pov) rs_->setTransform(shadowProxies_[i], riderWorld_.matrix());
+        }
         for (auto h : riderHandles_) rs_->setTransform(h, riderWorld_.matrix());
     } else {
         for (size_t i = 0; i < mannequin_.size(); ++i) {

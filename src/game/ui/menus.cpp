@@ -882,6 +882,8 @@ void Menus::drawSettings(Context& ui) {
         if (int d = ui.choice("Balance Difficulty", bal[bi], R())) { P.balanceDifficulty = 0.75f + 0.25f * float(std::clamp(bi + d, 0, 2)); other = true; }
         if (ui.slider("Camera Sensitivity", P.cameraSensitivity, 0.2f, 3.0f, 0.1f, R())) other = true;
         if (ui.toggle("Invert Camera Y", P.invertY, R())) other = true;
+        const char* cams[] = {"Third Person", "Third Person (Close)", "Third Person (Far)", "First Person"};
+        if (int d = ui.choice("Camera", cams[P.cameraMode], R())) { P.cameraMode = (P.cameraMode + d + 4) % 4; other = true; }
         if (ui.slider("Camera Distance", P.cameraDistance, 0.7f, 1.5f, 0.05f, R())) other = true;
         const char* sh[] = {"Off", "Low", "Normal"};
         if (int d = ui.choice("Camera Shake", sh[P.cameraShake], R())) { P.cameraShake = std::clamp(P.cameraShake + d, 0, 2); other = true; }

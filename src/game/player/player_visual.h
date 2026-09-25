@@ -66,6 +66,11 @@ public:
     const std::vector<Transform>& jointsModel() const { return jointsModel_; }
     Transform riderModelToWorld() const { return riderWorld_; }
     Vec3 headPosition() const;
+    // first person: point between the eyes (world); the POV camera point (eye height, behind the bars like a
+    // helmet / chest camera); hiding the head and torso from the camera (the shadow keeps the whole body)
+    Vec3 eyePosition() const;
+    Vec3 povCameraPosition() const;
+    void setFirstPerson(bool fp) { firstPerson_ = fp; }
     RiderAnimator* animator() { return animator_.get(); }
 
 private:
@@ -99,6 +104,12 @@ private:
     bool goofy_ = false;
     bool bindPose_ = false;
     bool display_ = false;
+    bool firstPerson_ = false;
+    std::vector<uint8_t> povHidden_;  // joints hidden from the first person camera (spine, chest, neck, head, face)
+    int headJoint_ = -1, eyeJoint_[2] = {-1, -1}, pelvisJoint_ = -1;
+    std::vector<RenderScene::Handle> shadowProxies_;  // full body, shadow only, while in first person
+    int shadowBoneOffset_ = -1;
+    Vec3 barCenterModel_{0, 0.8f, -0.18f};  // bar centre in rider model space
     Transform displayXf_;
 };
 

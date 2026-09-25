@@ -37,10 +37,13 @@ struct ScooterTuning {
     float snapRange = 0.14f;
     float maxCompression = 0.08f;
     // riding
-    float pushImpulse = 1.8f;       // m/s gained per push at low speed
+    float pushImpulse = 2.1f;       // m/s gained per push at low speed
     float maxPushSpeed = 9.5f;      // pushing stops helping around here
-    float pushDuration = 0.14f;
-    float pushCooldown = 0.42f;
+    // one push: the foot reaches the ground (pushReach), drives (pushDuration), returns to the tail; a new push
+    // can start after pushCooldown (the whole cycle)
+    float pushReach = 0.15f;
+    float pushDuration = 0.2f;
+    float pushCooldown = 0.6f;
     float brakeDecel = 4.5f;        // m/s^2 at full brake
     float airDrag = 0.0045f;        // per (m/s)^2
     float maxSteerLow = 0.52f;      // rad at walking speed
@@ -113,6 +116,8 @@ public:
     float steerAngle() const { return steerAngle_; }
     float lean() const { return lean_; }             // visual lean angle (rad, + = right)
     float pushPhase() const { return pushTimer_ > 0 ? 1.0f - pushTimer_ / tuning.pushCooldown : 0.0f; }
+    float pushPlantFraction() const { return tuning.pushReach / tuning.pushCooldown; }
+    float pushLiftFraction() const { return (tuning.pushReach + tuning.pushDuration) / tuning.pushCooldown; }
     bool pushing() const { return pushTimer_ > 0.0f; }
     bool fakie() const { return fakie_; }
     Vec3 lastLaunchVelocity() const { return launchVel_; }

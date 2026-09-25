@@ -10,6 +10,16 @@ static Vec3 dirFromYawPitch(float yaw, float pitch) {
     return Vec3(-std::sin(yaw) * std::cos(pitch), -std::sin(pitch), -std::cos(yaw) * std::cos(pitch));
 }
 
+const char* cameraModeName(CameraMode m) {
+    switch (m) {
+        case CameraMode::Follow: return "Third Person";
+        case CameraMode::Close: return "Third Person (Close)";
+        case CameraMode::Far: return "Third Person (Far)";
+        case CameraMode::FirstPerson: return "First Person";
+        default: return "Free Camera";
+    }
+}
+
 void CameraController::reset(const CameraTarget& t) {
     yaw_ = headingOf(t.forward);
     pitch_ = 0.2f;
@@ -20,6 +30,7 @@ void CameraController::reset(const CameraTarget& t) {
     lookAt_ = t.position;
     fov_ = baseFov;
     shake_ = 0.0f;
+    nearZ_ = 0.08f;
 }
 
 void CameraController::cycleMode() {
@@ -35,6 +46,7 @@ void CameraController::addShake(float amount) {
 
 void CameraController::update(float dt, const CameraTarget& t, const Vec2& look, bool lookActive, bool resetPressed) {
     if (mode_ == CameraMode::Free) return;
+    nearZ_ = 0.08f;
     float distBase = mode_ == CameraMode::Close ? 2.5f : mode_ == CameraMode::Far ? 4.8f : 3.4f;
     float heightBase = mode_ == CameraMode::Close ? 0.35f : mode_ == CameraMode::Far ? 0.9f : 0.55f;
 
@@ -125,6 +137,47 @@ void CameraController::updateFree(float dt, const Vec3& move, const Vec2& mouse,
     fov_ = baseFov;
 }
 
+void CameraController::updateFirstPerson(float dt, const Vec3& eye, const Quat& body, float speed, bool grounded, const Vec2& look,
+                                         bool lookActive, bool resetPressed, bool snap) {
+    // the view turns with the rider (the body carries every spin and flip), looking down past the bars at the
+    // line ahead; the head's own motion (push, landings, crouch) moves the eye point
+    if (lookActive && look.lengthSq() > 0.01f) {
+        fpLookYaw_ = clampf(fpLookYaw_ - look.x * 2.4f * sensitivity * dt, -1.4f, 1.4f);
+        fpLookPitch_ = clampf(fpLookPitch_ + look.y * 1.5f * sensitivity * dt * (invertY ? -1.0f : 1.0f), -0.6f, 0.8f);
+        fpLookTimer_ = 1.2f;
+    } else {
+        fpLookTimer_ -= dt;
+        if (fpLookTimer_ <= 0.0f) {
+            fpLookYaw_ = dampf(fpLookYaw_, 0.0f, 3.0f, dt);
+            fpLookPitch_ = dampf(fpLookPitch_, 0.0f, 3.0f, dt);
+        }
+    }
+    if (resetPressed) fpLookYaw_ = fpLookPitch_ = 0.0f;
+    // riders look further ahead when fast and at the landing when airborne
+    // (like a helmet camera: a wide lens pitched down so the bars and hands sit at the bottom of the frame)
+    float pitchDown = grounded ? lerpf(0.74f, 0.62f, saturate(speed / 10.0f)) : 0.7f;
+    Quat target = (body * Quat::angleAxis(fpLookYaw_, Vec3(0, 1, 0)) * Quat::angleAxis(-(pitchDown + fpLookPitch_), Vec3(1, 0, 0))).normalized();
+    if (snap || fpRot_.lengthSq() < 0.5f) fpRot_ = target;
+    fpRot_ = slerp(fpRot_, target, damp(grounded ? 16.0f : 22.0f, dt));
+    // on the ground riders keep their head level through carves: no horizon roll (in the air the view turns
+    // with every spin and flip)
+    fpLevel_ = dampf(fpLevel_, grounded ? 1.0f : 0.0f, grounded ? 6.0f : 12.0f, dt);
+    if (fpLevel_ > 0.001f) {
+        Vec3 f = fpRot_ * Vec3(0, 0, -1);
+        if (std::fabs(f.y) < 0.98f) fpRot_ = slerp(fpRot_, Quat::lookRotation(f, Vec3(0, 1, 0)), fpLevel_);
+    }
+    Vec3 f = fpRot_ * Vec3(0, 0, -1);
+    Vec3 want = eye;
+    pos_ = snap ? want : dampv(pos_, want, 45.0f, dt);
+    lookAt_ = pos_ + f;
+    fovUp_ = fpRot_ * Vec3(0, 1, 0);
+    float targetFov = 92.0f + (baseFov - 72.0f) * 0.5f + saturate((speed - 5.0f) / 12.0f) * 5.0f;
+    fov_ = snap ? targetFov : dampf(fov_, targetFov, 3.0f, dt);
+    nearZ_ = 0.03f;
+    shakeTime_ += dt;
+    shake_ = std::max(0.0f, shake_ - dt * 2.2f);
+}
+
 Quat CameraController::rotation() const { return Quat::lookRotation((lookAt_ - pos_).normalized(), Vec3(0, 1, 0)); }
 
 RenderView CameraController::view(float aspect) const {
@@ -136,7 +189,8 @@ RenderView CameraController::view(float aspect) const {
         p += n * (0.06f * s);
         target += n * (0.03f * s);
     }
-    return RenderView::lookAt(p, target, Vec3(0, 1, 0), fov_ * kDeg2Rad, aspect, 0.08f);
+    Vec3 up = mode_ == CameraMode::FirstPerson ? fovUp_ : Vec3(0, 1, 0);
+    return RenderView::lookAt(p, target, up, fov_ * kDeg2Rad, aspect, nearZ_);
 }
 
 }  // namespace sw

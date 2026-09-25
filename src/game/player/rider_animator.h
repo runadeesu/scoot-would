@@ -22,7 +22,9 @@ struct RiderAnimParams {
     float lean = 0.0f;
     float speed = 0.0f;
     bool pushing = false;
-    float pushPhase = 0.0f;
+    float pushPhase = 0.0f;   // 0..1 over one push cycle
+    float pushCycle = 0.62f;  // seconds; the foot is on the ground between pushPlant and pushLift (fractions)
+    float pushPlant = 0.26f, pushLift = 0.58f;
     std::string trickPose;
     float trickWeight = 0.0f;
     bool manualNose = false;
@@ -34,6 +36,7 @@ struct RiderAnimParams {
     float lookYaw = 0.0f;    // radians, head look relative to the body
     bool goofy = false;      // right foot forward: clips (authored regular) are mirrored
     bool footDown = false;   // stopped: the back foot comes off the deck and stands on the ground
+    bool firstPerson = false;  // first person camera: taller stance, head behind the bars (they sit in view)
 };
 
 class RiderAnimator {
@@ -64,6 +67,9 @@ private:
     int armL_[3] = {-1, -1, -1}, armR_[3] = {-1, -1, -1}, legL_[3] = {-1, -1, -1}, legR_[3] = {-1, -1, -1};
     float feetW_ = 1.0f, handLW_ = 1.0f, handRW_ = 1.0f, backFootW_ = 1.0f;
     float crouchS_ = 0.0f, lookS_ = 0.0f, leanS_ = 0.0f;
+    float pushW_ = 0.0f, fpW_ = 0.0f;
+    Vec3 pushFoot_;     // pushing foot sole target (rider model space, regular stance)
+    float pushToe_ = 0.0f;  // heel lift at the end of the drive
     float footDownW_ = 0.0f, groundFoot_ = 0.0f;  // 0 = back foot on the tail, 1 = standing on the ground next to the deck
     std::vector<int> mirror_;  // left <-> right joint partner (self for centre joints)
     // hands: rest frame (finger direction, palm normal) + finger joints with their bend axes

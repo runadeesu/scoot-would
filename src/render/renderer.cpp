@@ -859,7 +859,7 @@ void Renderer::buildBatches(RenderScene& scene, const std::vector<uint32_t>& obj
 void Renderer::cullAndBatch(RenderScene& scene, const RenderView& view) {
     visibleIndices_.clear();
     Frustum fr = Frustum::fromMatrix(view.viewProj);
-    collectView(scene, fr, view.position, settings_.drawDistance, false, 0xffffffffu, scratchObjs_);
+    collectView(scene, fr, view.position, settings_.drawDistance, false, ~uint32_t(LayerShadowOnly), scratchObjs_);
     Profiler::renderStats().visibleObjects = uint32_t(scratchObjs_.size());
     buildBatches(scene, scratchObjs_, view.position, false, mainBatches_, &transparentBatches_);
     for (int c = 0; c < 4; ++c) {

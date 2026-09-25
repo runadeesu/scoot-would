@@ -24,7 +24,7 @@ bindings (`<user folder>/input_flow.json`, `input_classic.json`). Defaults: `con
 | LT + right stick | - | grabs (held while the trigger is held) |
 | LB / RB | - | spin left / right |
 | X | revert (180 on the ground) | - |
-| Y | camera mode | camera mode |
+| Y | camera: third person / close / far / first person | camera |
 | RS click | camera reset | camera reset |
 | D-pad up / D-pad down, View | set checkpoint / respawn | |
 | Menu (Start) | pause | pause |
@@ -61,7 +61,7 @@ R = respawn, Esc = pause.
 | LT＋右スティック | - | グラブ（トリガーを押している間） |
 | LB / RB | - | 左 / 右スピン |
 | X | リバート | - |
-| Y | カメラ切替 | カメラ切替 |
+| Y | カメラ切替（三人称 / 近 / 遠 / 一人称） | カメラ切替 |
 
 RT＋右スティック: 右＝テールウィップ（途中でもう一度右でダブル・トリプル）、左＝ヒールウィップ、
 右→左＝ウィップリワインド、上＝バースピン、下＝フィンガーウィップ、右上 / 左上 / 右下＝スクーターフリップ /

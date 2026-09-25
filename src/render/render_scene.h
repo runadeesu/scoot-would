@@ -16,6 +16,7 @@ enum RenderLayer : uint32_t {
     LayerPlayer = 1u << 1,
     LayerEditor = 1u << 2,
     LayerProps = 1u << 3,
+    LayerShadowOnly = 1u << 4,  // casts shadows, never drawn in the camera view (first person body)
 };
 
 struct RenderObject {

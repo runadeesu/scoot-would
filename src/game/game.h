@@ -43,6 +43,7 @@ struct GameOptions {
     int padPreview = -1;      // show controller glyphs without a controller (0 xbox, 1 playstation, 2 switch)
     int language = -1;        // --lang en / ja overrides the setting
     int antiAliasing = -1;    // --aa off / fxaa / taa overrides the setting (image comparisons)
+    std::string cameraView;   // --view third / close / far / first overrides the camera setting
 };
 
 struct DistrictInfo {
@@ -122,6 +123,7 @@ private:
     Player player_;
     PlayerVisual visual_;
     CameraController camera_;
+    bool cameraCut_ = false, fpWasOff_ = true;  // switching views: snap the camera, drop temporal history
     ModeManager modes_;
     GameAudio audio_;
     std::unique_ptr<Menus> menus_;

@@ -45,6 +45,7 @@ struct GameplaySettings {
     float cameraSensitivity = 1.0f;
     bool invertY = false;
     int cameraShake = 2;         // 0 off, 1 low, 2 normal
+    int cameraMode = 0;          // 0 third person, 1 close, 2 far, 3 first person (Y / Tab cycles, remembered)
     float cameraDistance = 1.0f;
     bool vibration = true;
     bool showHud = true;

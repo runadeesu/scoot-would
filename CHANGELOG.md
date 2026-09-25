@@ -11,6 +11,18 @@
   rebinding; move list in SETTINGS > CONTROLS; control hints during the first ride.
 - Pumping: staying compressed through transitions adds speed.
 
+### Camera
+- First person view (Y / Tab cycles: third person, close, far, first person; also SETTINGS > GAMEPLAY >
+  Camera, remembered): a wide POV lens at the rider's eyes, forearms and hands on the grips at the bottom of
+  the frame, the view turns with every spin and flip in the air and stays level through carves. The head and
+  upper body are hidden from the lens only; the shadow keeps the whole rider.
+
+### Riding
+- New push: the pushing foot reaches off the tail, plants beside the deck and stays planted on the ground while
+  the scooter rolls on (the leg extends far behind, heel lifting at the end), then swings back to the tail;
+  hips drop and turn, the front knee bends deep and the chest leans over the bars. The push force is applied
+  while the foot is on the ground.
+
 ### Language
 - Japanese and English. Follows the system language, selectable in SETTINGS > GAMEPLAY. Japanese text uses
   M PLUS 1p (OFL).
