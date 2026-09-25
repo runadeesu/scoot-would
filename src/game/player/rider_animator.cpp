@@ -260,6 +260,8 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     float handLTarget = (rig.handsOff || bailed) ? 0.0f : 1.0f;
     float handRTarget = (rig.handsOff || rig.oneHand || bailed) ? 0.0f : 1.0f;
     feetW_ = dampf(feetW_, feetTarget, 20.0f, dt);
+    frontOffW_ = dampf(frontOffW_, rig.frontFootOff && !bailed ? 1.0f : 0.0f, 18.0f, dt);
+    backOffW_ = dampf(backOffW_, rig.backFootOff && !bailed ? 1.0f : 0.0f, 18.0f, dt);
     handLW_ = dampf(handLW_, handLTarget, 22.0f, dt);
     handRW_ = dampf(handRW_, handRTarget, 22.0f, dt);
     backFootW_ = 1.0f;
@@ -383,13 +385,14 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
         back = lerp(rig.footBack, pushFoot_, pushW_);
         toe = 0.7f * pushToe_ * pushW_;
     }
+    float frontW = feetW_ * (1.0f - frontOffW_), backW = feetW_ * backFootW_ * (1.0f - backOffW_);
     if (!goofy) {
-        leg(legL_, rig.footFront, feetW_, -1.0f, false);
-        leg(legR_, back, feetW_ * backFootW_, 1.0f, true, toe);
+        leg(legL_, rig.footFront, frontW, -1.0f, false);
+        leg(legR_, back, backW, 1.0f, true, toe);
     } else {
         auto m = [](Vec3 v) { return Vec3(-v.x, v.y, v.z); };
-        leg(legR_, m(rig.footFront), feetW_, 1.0f, false);
-        leg(legL_, m(back), feetW_ * backFootW_, -1.0f, true, toe);
+        leg(legR_, m(rig.footFront), frontW, 1.0f, false);
+        leg(legL_, m(back), backW, -1.0f, true, toe);
     }
     auto arm = [&](int* ch, const Vec3& grip, float w, float sideSign) {
         if (ch[0] < 0 || ch[1] < 0 || ch[2] < 0 || w <= 0.001f) return;

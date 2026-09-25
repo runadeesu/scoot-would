@@ -760,14 +760,15 @@ void Menus::drawScooter(Context& ui) {
 void Menus::drawSettings(Context& ui) {
     header(ui, "SETTINGS");
     Settings& s = saves().settings();
-    const char* tabs[] = {"GRAPHICS", "GAMEPLAY", "AUDIO", "CONTROLS"};
+    const char* tabs[] = {"GRAPHICS", "GAMEPLAY", "AUDIO", "CONTROLS", "TRICKS"};
+    const int tabCount = 5;
     float W = ui.width();
     if (rebindAction_ < 0) {
-        if (ui.nav().tabLeft) { settingsTab_ = (settingsTab_ + 3) % 4; ui.resetFocus(0); scroll_ = 0; game_.sound().ui("ui_move"); }
-        if (ui.nav().tabRight) { settingsTab_ = (settingsTab_ + 1) % 4; ui.resetFocus(0); scroll_ = 0; game_.sound().ui("ui_move"); }
+        if (ui.nav().tabLeft) { settingsTab_ = (settingsTab_ + tabCount - 1) % tabCount; ui.resetFocus(0); scroll_ = 0; game_.sound().ui("ui_move"); }
+        if (ui.nav().tabRight) { settingsTab_ = (settingsTab_ + 1) % tabCount; ui.resetFocus(0); scroll_ = 0; game_.sound().ui("ui_move"); }
     }
     float tx = 124;
-    for (int t = 0; t < 4; ++t) {
+    for (int t = 0; t < tabCount; ++t) {
         float tw = ui.measure(tabs[t], 30.0f, FontStyle::Bold) + 48;
         Rect tr(tx, 150, tw, 50);
         bool sel = t == settingsTab_;
@@ -787,6 +788,11 @@ void Menus::drawSettings(Context& ui) {
         ui.text("SWITCH TAB", Vec2(gx, 162), 22.0f, ui.theme().text, FontStyle::SemiBold, Align::Left, 0.9f);
     }
 
+    if (settingsTab_ == 4) {
+        drawTrickList(ui, Rect(100, 230, W - 200, 760));
+        footer(ui, {Hint::act(Action::TabRight, "SWITCH TAB"), Hint::act(Action::Back, "BACK")}, "");
+        return;
+    }
     Rect panel(100, 230, std::min(1100.0f, W - 200), 760);
     ui.rect(panel, ui.theme().panel, 14);
     float h = 62, gap = 8;
@@ -1020,7 +1026,7 @@ void Menus::drawMoveList(Context& ui, const Rect& area) {
             x += glyphs::action(ui, Action::SpinLeft, x, yy, gh, pad) + 4;
             return x + glyphs::action(ui, Action::SpinRight, x, yy, gh, pad);
         });
-        row("Tailwhip", combo(Action::TrickMod, StickDir::Right));
+        row("Tailwhip (hold: double, triple, quad)", combo(Action::TrickMod, StickDir::Right));
         row("Heelwhip", combo(Action::TrickMod, StickDir::Left));
         row("Barspin", combo(Action::TrickMod, StickDir::Up));
         row("Fingerwhip", combo(Action::TrickMod, StickDir::Down));
@@ -1028,12 +1034,18 @@ void Menus::drawMoveList(Context& ui, const Rect& area) {
             x = combo(Action::TrickMod, StickDir::Right)(x, yy) + 6;
             return x + glyphs::stick(ui, true, StickDir::Left, x, yy, gh, pad);
         });
-        row("Scooter flip  /  bri flip  /  kickless", [&](float x, float yy) {
-            x = combo(Action::TrickMod, StickDir::UpRight)(x, yy) + 6;
-            x += glyphs::stick(ui, true, StickDir::UpLeft, x, yy, gh, pad) + 6;
-            return x + glyphs::stick(ui, true, StickDir::DownRight, x, yy, gh, pad);
+        row("Bri flip  /  front scoot  /  kickless  /  inward", [&](float x, float yy) {
+            x = combo(Action::TrickMod, StickDir::UpLeft)(x, yy) + 6;
+            x += glyphs::stick(ui, true, StickDir::UpRight, x, yy, gh, pad) + 6;
+            x += glyphs::stick(ui, true, StickDir::DownRight, x, yy, gh, pad) + 6;
+            return x + glyphs::stick(ui, true, StickDir::DownLeft, x, yy, gh, pad);
         });
-        row("Grabs: no hander / one hand / can can", combo(Action::Grab, StickDir::Up));
+        row("Full whip, oppo bar, briwhip, umbrella...", [&](float x, float yy) {
+            x += glyphs::action(ui, Action::SpinRight, x, yy, gh, pad);
+            x += glyphs::plus(ui, x, yy, gh);
+            return combo(Action::TrickMod, StickDir::None)(x, yy);
+        });
+        row("Grabs (hold)", combo(Action::Grab, StickDir::None));
     } else {
         row("Crouch (hold)  /  pop (release)", act(Action::Jump));
         row("Spin / flip in the air", stickDir(false, StickDir::None));
@@ -1044,9 +1056,62 @@ void Menus::drawMoveList(Context& ui, const Rect& area) {
     }
     row("Revert", act(Action::Revert));
     if (y + 40 < area.y + area.h)
-        ui.paragraph(flow ? "Push the right stick all the way for tricks to register. Repeat the input during a whip or barspin to double it."
-                          : "Flick the right stick in the air for scooter tricks, hold the grab trigger for grabs.",
+        ui.paragraph(flow ? "Push the right stick all the way for tricks to register. The TRICKS tab lists every trick."
+                          : "Flick the right stick in the air for scooter tricks, hold the grab trigger for grabs. The TRICKS tab lists every trick.",
                      Rect(area.x + 28, y - 8, area.w - 56, area.y + area.h - y), 18.0f, ui.theme().textDim);
+}
+
+// every trick of tricks.json by input layer: the layer's buttons, then stick direction + name per trick
+void Menus::drawTrickList(Context& ui, const Rect& area) {
+    ui.rect(area, ui.theme().panel, 14);
+    bool pad = input().usingGamepad();
+    bool flow = input().scheme() == ControlScheme::Flow;
+    const auto& defs = game_.player().tricks.definitions();
+    struct Col {
+        TrickLayer layer;
+        const char* title;
+    };
+    const Col cols[4] = {{TrickLayer::Trick, "SCOOTER TRICKS"}, {TrickLayer::TrickAlt, "SCOOTER TRICKS 2"}, {TrickLayer::Grab, "GRABS"},
+                         {TrickLayer::GrabAlt, "GRABS 2"}};
+    const float gh = 30.0f, colW = (area.w - 56) / 4.0f;
+    for (int c = 0; c < 4; ++c) {
+        float x0 = area.x + 28 + colW * float(c), y = area.y + 30;
+        ui.text(cols[c].title, Vec2(x0, y), 24.0f, ui.theme().accent, FontStyle::Bold);
+        y += 52;
+        // the buttons that select the layer
+        float gx = x0;
+        bool alt = cols[c].layer == TrickLayer::TrickAlt || cols[c].layer == TrickLayer::GrabAlt;
+        bool grab = cols[c].layer == TrickLayer::Grab || cols[c].layer == TrickLayer::GrabAlt;
+        if (alt) {
+            gx += glyphs::action(ui, Action::SpinRight, gx, y, gh, pad);
+            gx += glyphs::plus(ui, gx, y, gh);
+        }
+        if (grab || flow) {
+            gx += glyphs::action(ui, grab ? Action::Grab : Action::TrickMod, gx, y, gh, pad);
+            gx += glyphs::plus(ui, gx, y, gh);
+        }
+        glyphs::stick(ui, true, StickDir::None, gx, y, gh, pad);
+        y += 44;
+        for (const TrickDefinition& d : defs) {
+            if (d.layer != cols[c].layer || d.inputType == "chain") continue;
+            const auto& dirs = flow ? d.flowDirs : d.dirs;
+            if (dirs.empty()) continue;
+            float x = x0;
+            size_t shown = d.inputType == "sequence" ? dirs.size() : std::min<size_t>(dirs.size(), 1);
+            for (size_t i = 0; i < shown; ++i) x += glyphs::stick(ui, true, dirs[i], x, y, gh, pad) + 4;
+            std::string label = T(d.name);
+            if (!d.chainTo.empty()) label += "  (+)";
+            if (d.hold) label += "  " + T("(hold)");
+            ui.textBox(label, Rect(x + 8, y - 18, x0 + colW - 16 - (x + 8), 36), 21.0f, ui.theme().text, FontStyle::SemiBold, Align::Left);
+            y += 40;
+        }
+    }
+    const char* note = flow ? "(+) hold the stick or repeat the input: double, triple, quad. Spins and flips: right stick or LB / RB without a trigger. "
+                              "Tricks link: start the next one as the last one finishes (tailwhip, bri flip, tailwhip = Buttercup). Names follow "
+                              "the riders' way: body trick first, then the scooter tricks (540 Flair, 360 Whip, Flair Quad Whip Bar, Truck Driver)."
+                            : "(+) repeat the input: double, triple, quad. Spins and flips: left stick or LB / RB. Names follow the riders' way: body "
+                              "trick first, then the scooter tricks (540 Flair, 360 Whip, Flair Quad Whip Bar, Truck Driver).";
+    ui.paragraph(note, Rect(area.x + 28, area.y + area.h - 96, area.w - 56, 90), 19.0f, ui.theme().textDim);
 }
 
 void Menus::drawPause(Context& ui) {

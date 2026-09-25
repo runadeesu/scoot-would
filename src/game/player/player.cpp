@@ -362,7 +362,7 @@ void Player::fixedUpdate(float dt, const PlayerInput& in, std::deque<FlickEvent>
                 if (std::fabs(in.move.y) < 0.35f) c.flip = 0.0f;
             }
             predictLanding();
-            tricks.airUpdate(dt, flicks, time, in.grab, in.rightDir, scooter.angularVelocity(), scooter.right(), scooter.forward(), timeToLand_);
+            tricks.airUpdate(dt, flicks, time, in.grab, in.trickMod, in.alt, in.rightDir, scooter.angularVelocity(), scooter.right(), scooter.forward(), timeToLand_);
             if (tricks.startedThisStep) emit(GameEventType::TrickStart, 0, tricks.lastStarted);
             // landing assist (tilt only, never spins / flips for the player)
             if (timeToLand_ < 0.3f) {

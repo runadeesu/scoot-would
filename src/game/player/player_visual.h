@@ -110,6 +110,7 @@ private:
     std::vector<RenderScene::Handle> shadowProxies_;  // full body, shadow only, while in first person
     int shadowBoneOffset_ = -1;
     Vec3 barCenterModel_{0, 0.8f, -0.18f};  // bar centre in rider model space
+    Mat4 barsLocal_, deckLocal_;             // animated bars / deck relative to the scooter body
     Transform displayXf_;
 };
 

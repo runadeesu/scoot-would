@@ -540,6 +540,9 @@ PlayerInput Game::gatherInput() {
     pi.spinLeft = in.down(Action::SpinLeft);
     pi.spinRight = in.down(Action::SpinRight);
     pi.grab = in.axis(Axis::Grab);
+    // a bumper with a trigger selects the second trick / grab layer (Scooter Flow layout: it does not spin then)
+    pi.alt = pi.spinLeft || pi.spinRight;
+    if (pi.flow && (pi.grab > 0.3f || pi.trickMod > 0.3f)) pi.spinLeft = pi.spinRight = false;
     pi.revertPressed = in.consumePressed(Action::Revert);
     pi.respawnPressed = in.consumePressed(Action::Respawn);
     pi.checkpointPressed = in.consumePressed(Action::Checkpoint);

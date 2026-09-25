@@ -1,445 +1,1227 @@
 {
-  "_comment": "scoot would trick definitions. input.type: flick | sequence | grab. input.modifier: none | grab (hold RT / F). scooter_rotation.axis: steer (whips), deck_roll, deck_pitch, bars, whole_pitch, whole_yaw. airtime = expected air time needed, duration = rotation time (s), cancel_window = landing tolerance before the rotation ends (s), chain = repeating the same input during the trick upgrades it. flow_dirs = right stick directions of the Scooter Flow style layout (hold RT / F; grabs keep their dirs with LT / G).",
-  "tricks": [
+ "_comment": "scoot would trick definitions (trick set of Scooter Flow). input.type: flick | sequence | chain | grab. input.layer: trick (RT + right stick; classic: bare flick) | grab (LT + right stick; classic: RT + flick) | trick_alt (RB + RT + right stick; classic: bumper + flick) | grab_alt (RB + LT + right stick; classic: bumper + RT + flick). flow_dirs = right stick directions in the Scooter Flow layout, dirs = classic layout. scooter_rotation (one or a list): axis steer (whips), bars, deck_roll, deck_pitch, bar_pitch (whole scooter round the grips: bri, inward), whole_pitch, whole_yaw, whole_roll; on grabs the rotation is held while the grab is. airtime = air time needed, duration = rotation time (s), cancel_window = landing tolerance (s), chain = repeating or holding the input during the trick upgrades it. short = name inside a combination, family = named combinations (whip + bri + whip = Buttercup).",
+ "tricks": [
+  {
+   "id": "tailwhip",
+   "name": "Tailwhip",
+   "short": "Whip",
+   "family": "whip",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "flick",
+    "dirs": [
+     "left",
+     "right"
+    ],
+    "flow_dirs": [
+     "right"
+    ]
+   },
+   "airtime": 0.38,
+   "duration": 0.36,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 360,
+    "direction": 1
+   },
+   "animation": "whip",
+   "feet_off": true,
+   "score": 400,
+   "difficulty": 2,
+   "cancel_window": 0.07,
+   "chain": "double_tailwhip"
+  },
+  {
+   "id": "double_tailwhip",
+   "name": "Double Tailwhip",
+   "short": "Double Whip",
+   "family": "whip",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "chain",
+    "dirs": [
+     "left",
+     "right"
+    ],
+    "flow_dirs": [
+     "right"
+    ]
+   },
+   "airtime": 0.7,
+   "duration": 0.66,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 720,
+    "direction": 1
+   },
+   "animation": "whip",
+   "feet_off": true,
+   "score": 1100,
+   "difficulty": 4,
+   "cancel_window": 0.07,
+   "chain": "triple_tailwhip"
+  },
+  {
+   "id": "triple_tailwhip",
+   "name": "Triple Tailwhip",
+   "short": "Triple Whip",
+   "family": "whip",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "chain",
+    "dirs": [
+     "left",
+     "right"
+    ],
+    "flow_dirs": [
+     "right"
+    ]
+   },
+   "airtime": 1.0,
+   "duration": 0.95,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 1080,
+    "direction": 1
+   },
+   "animation": "whip",
+   "feet_off": true,
+   "score": 2200,
+   "difficulty": 6,
+   "cancel_window": 0.07,
+   "chain": "quad_tailwhip"
+  },
+  {
+   "id": "quad_tailwhip",
+   "name": "Quad Whip",
+   "family": "whip",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "chain",
+    "dirs": [
+     "left",
+     "right"
+    ],
+    "flow_dirs": [
+     "right"
+    ]
+   },
+   "airtime": 1.28,
+   "duration": 1.22,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 1440,
+    "direction": 1
+   },
+   "animation": "whip",
+   "feet_off": true,
+   "score": 3800,
+   "difficulty": 8,
+   "cancel_window": 0.07,
+   "chain": "quint_tailwhip"
+  },
+  {
+   "id": "quint_tailwhip",
+   "name": "Quint Whip",
+   "family": "whip",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "chain",
+    "dirs": [
+     "left",
+     "right"
+    ],
+    "flow_dirs": [
+     "right"
+    ]
+   },
+   "airtime": 1.56,
+   "duration": 1.5,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 1800,
+    "direction": 1
+   },
+   "animation": "whip",
+   "feet_off": true,
+   "score": 5600,
+   "difficulty": 10,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "heelwhip",
+   "name": "Heelwhip",
+   "short": "Heel",
+   "family": "heel",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "flick",
+    "dirs": [
+     "down"
+    ],
+    "flow_dirs": [
+     "left"
+    ]
+   },
+   "airtime": 0.42,
+   "duration": 0.4,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 360,
+    "direction": -1
+   },
+   "animation": "heelwhip",
+   "feet_off": true,
+   "score": 500,
+   "difficulty": 3,
+   "cancel_window": 0.07,
+   "chain": "double_heelwhip"
+  },
+  {
+   "id": "double_heelwhip",
+   "name": "Double Heelwhip",
+   "short": "Double Heel",
+   "family": "heel",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "chain",
+    "dirs": [
+     "down"
+    ],
+    "flow_dirs": [
+     "left"
+    ]
+   },
+   "airtime": 0.76,
+   "duration": 0.72,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 720,
+    "direction": -1
+   },
+   "animation": "heelwhip",
+   "feet_off": true,
+   "score": 1300,
+   "difficulty": 5,
+   "cancel_window": 0.07,
+   "chain": "triple_heelwhip"
+  },
+  {
+   "id": "triple_heelwhip",
+   "name": "Triple Heelwhip",
+   "short": "Triple Heel",
+   "family": "heel",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "chain",
+    "dirs": [
+     "down"
+    ],
+    "flow_dirs": [
+     "left"
+    ]
+   },
+   "airtime": 1.06,
+   "duration": 1.02,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 1080,
+    "direction": -1
+   },
+   "animation": "heelwhip",
+   "feet_off": true,
+   "score": 2600,
+   "difficulty": 7,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "rewind",
+   "name": "Whip Rewind",
+   "short": "Rewind",
+   "family": "rewind",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "sequence",
+    "dirs": [
+     "left",
+     "right"
+    ],
+    "flow_dirs": [
+     "right",
+     "left"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.45,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 180,
+    "direction": 1,
+    "rewind": true
+   },
+   "animation": "whip",
+   "feet_off": true,
+   "score": 650,
+   "difficulty": 3,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "rewind_r",
+   "name": "Heel Rewind",
+   "family": "rewind",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "sequence",
+    "dirs": [
+     "right",
+     "left"
+    ],
+    "flow_dirs": [
+     "left",
+     "right"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.45,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 180,
+    "direction": -1,
+    "rewind": true
+   },
+   "animation": "heelwhip",
+   "feet_off": true,
+   "score": 700,
+   "difficulty": 3,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "barspin",
+   "name": "Barspin",
+   "short": "Bar",
+   "family": "bar",
+   "category": "bar",
+   "channel": "bars",
+   "input": {
+    "type": "flick",
+    "dirs": [
+     "up"
+    ],
+    "flow_dirs": [
+     "up"
+    ]
+   },
+   "airtime": 0.35,
+   "duration": 0.34,
+   "scooter_rotation": {
+    "axis": "bars",
+    "degrees": 360,
+    "direction": 1
+   },
+   "animation": "barspin",
+   "hands_off": true,
+   "score": 350,
+   "difficulty": 2,
+   "cancel_window": 0.07,
+   "chain": "double_barspin"
+  },
+  {
+   "id": "double_barspin",
+   "name": "Double Barspin",
+   "short": "Double Bar",
+   "family": "bar",
+   "category": "bar",
+   "channel": "bars",
+   "input": {
+    "type": "chain",
+    "dirs": [
+     "up"
+    ],
+    "flow_dirs": [
+     "up"
+    ]
+   },
+   "airtime": 0.62,
+   "duration": 0.6,
+   "scooter_rotation": {
+    "axis": "bars",
+    "degrees": 720,
+    "direction": 1
+   },
+   "animation": "barspin",
+   "hands_off": true,
+   "score": 950,
+   "difficulty": 4,
+   "cancel_window": 0.07,
+   "chain": "triple_barspin"
+  },
+  {
+   "id": "triple_barspin",
+   "name": "Triple Barspin",
+   "short": "Triple Bar",
+   "family": "bar",
+   "category": "bar",
+   "channel": "bars",
+   "input": {
+    "type": "chain",
+    "dirs": [
+     "up"
+    ],
+    "flow_dirs": [
+     "up"
+    ]
+   },
+   "airtime": 0.88,
+   "duration": 0.86,
+   "scooter_rotation": {
+    "axis": "bars",
+    "degrees": 1080,
+    "direction": 1
+   },
+   "animation": "barspin",
+   "hands_off": true,
+   "score": 1900,
+   "difficulty": 6,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "fingerwhip",
+   "name": "Fingerwhip",
+   "short": "Finger",
+   "family": "finger",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "flick",
+    "dirs": [
+     "down_left"
+    ],
+    "flow_dirs": [
+     "down"
+    ]
+   },
+   "airtime": 0.5,
+   "duration": 0.46,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 360,
+    "direction": 1
+   },
+   "animation": "fingerwhip",
+   "feet_off": true,
+   "one_hand": true,
+   "score": 900,
+   "difficulty": 5,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "bri_flip",
+   "name": "Bri Flip",
+   "short": "Bri",
+   "family": "bri",
+   "category": "flip",
+   "channel": "whole",
+   "input": {
+    "type": "flick",
+    "dirs": [
+     "up_left"
+    ],
+    "flow_dirs": [
+     "up_left"
+    ]
+   },
+   "airtime": 0.52,
+   "duration": 0.5,
+   "scooter_rotation": {
+    "axis": "bar_pitch",
+    "degrees": 360,
+    "direction": -1
+   },
+   "animation": "bri",
+   "feet_off": true,
+   "score": 850,
+   "difficulty": 5,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "scooter_flip",
+   "name": "Front Scooter Flip",
+   "short": "Front Scoot",
+   "family": "front_scoot",
+   "category": "flip",
+   "channel": "whole",
+   "input": {
+    "type": "flick",
+    "dirs": [
+     "up_right"
+    ],
+    "flow_dirs": [
+     "up_right"
+    ]
+   },
+   "airtime": 0.55,
+   "duration": 0.52,
+   "scooter_rotation": {
+    "axis": "whole_pitch",
+    "degrees": 360,
+    "direction": -1
+   },
+   "animation": "scooter_flip",
+   "feet_off": true,
+   "score": 950,
+   "difficulty": 5,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "kickless",
+   "name": "Kickless",
+   "family": "kickless",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "flick",
+    "dirs": [
+     "down_right"
+    ],
+    "flow_dirs": [
+     "down_right"
+    ]
+   },
+   "airtime": 0.5,
+   "duration": 0.46,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 360,
+    "direction": 1
+   },
+   "animation": "kickless",
+   "feet_off": true,
+   "score": 800,
+   "difficulty": 4,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "inward",
+   "name": "Inward",
+   "family": "inward",
+   "category": "flip",
+   "channel": "whole",
+   "input": {
+    "type": "flick",
+    "dirs": [],
+    "flow_dirs": [
+     "down_left"
+    ]
+   },
+   "airtime": 0.55,
+   "duration": 0.52,
+   "scooter_rotation": {
+    "axis": "bar_pitch",
+    "degrees": 360,
+    "direction": 1
+   },
+   "animation": "bri",
+   "feet_off": true,
+   "score": 950,
+   "difficulty": 6,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "full_whip",
+   "name": "Full Whip",
+   "family": "full",
+   "category": "whip",
+   "channel": "whole",
+   "input": {
+    "type": "flick",
+    "layer": "trick_alt",
+    "dirs": [
+     "right"
+    ],
+    "flow_dirs": [
+     "right"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.42,
+   "scooter_rotation": [
     {
-      "id": "tailwhip",
-      "name": "Tailwhip",
-      "category": "whip",
-      "channel": "deck",
-      "input": {
-        "type": "flick",
-        "dirs": [
-          "left",
-          "right"
-        ],
-        "flow_dirs": [
-          "right"
-        ]
-      },
-      "airtime": 0.38,
-      "duration": 0.36,
-      "scooter_rotation": {
-        "axis": "steer",
-        "degrees": 360,
-        "direction": 1
-      },
-      "animation": "whip",
-      "feet_off": true,
-      "score": 400,
-      "difficulty": 2,
-      "cancel_window": 0.07,
-      "chain": "double_tailwhip"
+     "axis": "steer",
+     "degrees": 360,
+     "direction": 1
     },
     {
-      "id": "double_tailwhip",
-      "name": "Double Tailwhip",
-      "category": "whip",
-      "channel": "deck",
-      "input": {
-        "type": "chain",
-        "dirs": [
-          "left",
-          "right"
-        ],
-        "flow_dirs": [
-          "right"
-        ]
-      },
-      "airtime": 0.7,
-      "duration": 0.66,
-      "scooter_rotation": {
-        "axis": "steer",
-        "degrees": 720,
-        "direction": 1
-      },
-      "animation": "whip",
-      "feet_off": true,
-      "score": 1100,
-      "difficulty": 4,
-      "cancel_window": 0.07,
-      "chain": "triple_tailwhip"
-    },
-    {
-      "id": "triple_tailwhip",
-      "name": "Triple Tailwhip",
-      "category": "whip",
-      "channel": "deck",
-      "input": {
-        "type": "chain",
-        "dirs": [
-          "left",
-          "right"
-        ],
-        "flow_dirs": [
-          "right"
-        ]
-      },
-      "airtime": 1.0,
-      "duration": 0.95,
-      "scooter_rotation": {
-        "axis": "steer",
-        "degrees": 1080,
-        "direction": 1
-      },
-      "animation": "whip",
-      "feet_off": true,
-      "score": 2200,
-      "difficulty": 6,
-      "cancel_window": 0.07
-    },
-    {
-      "id": "heelwhip",
-      "name": "Heelwhip",
-      "category": "whip",
-      "channel": "deck",
-      "input": {
-        "type": "flick",
-        "dirs": [
-          "down"
-        ],
-        "flow_dirs": [
-          "left"
-        ]
-      },
-      "airtime": 0.42,
-      "duration": 0.4,
-      "scooter_rotation": {
-        "axis": "steer",
-        "degrees": 360,
-        "direction": -1
-      },
-      "animation": "heelwhip",
-      "feet_off": true,
-      "score": 500,
-      "difficulty": 3,
-      "cancel_window": 0.07
-    },
-    {
-      "id": "rewind",
-      "name": "Rewind",
-      "category": "whip",
-      "channel": "deck",
-      "input": {
-        "type": "sequence",
-        "dirs": [
-          "left",
-          "right"
-        ],
-        "flow_dirs": [
-          "right",
-          "left"
-        ]
-      },
-      "airtime": 0.45,
-      "duration": 0.45,
-      "scooter_rotation": {
-        "axis": "steer",
-        "degrees": 180,
-        "direction": 1,
-        "rewind": true
-      },
-      "animation": "whip",
-      "feet_off": true,
-      "score": 650,
-      "difficulty": 3,
-      "cancel_window": 0.07
-    },
-    {
-      "id": "rewind_r",
-      "name": "Rewind",
-      "category": "whip",
-      "channel": "deck",
-      "input": {
-        "type": "sequence",
-        "dirs": [
-          "right",
-          "left"
-        ],
-        "flow_dirs": [
-          "left",
-          "right"
-        ]
-      },
-      "airtime": 0.45,
-      "duration": 0.45,
-      "scooter_rotation": {
-        "axis": "steer",
-        "degrees": 180,
-        "direction": 1,
-        "rewind": true
-      },
-      "animation": "whip",
-      "feet_off": true,
-      "score": 650,
-      "difficulty": 3,
-      "cancel_window": 0.07
-    },
-    {
-      "id": "fingerwhip",
-      "name": "Fingerwhip",
-      "category": "whip",
-      "channel": "whole",
-      "input": {
-        "type": "flick",
-        "dirs": [
-          "down_left"
-        ],
-        "flow_dirs": [
-          "down"
-        ]
-      },
-      "airtime": 0.5,
-      "duration": 0.48,
-      "scooter_rotation": {
-        "axis": "deck_roll",
-        "degrees": 360,
-        "direction": 1
-      },
-      "animation": "fingerwhip",
-      "feet_off": true,
-      "one_hand": true,
-      "score": 900,
-      "difficulty": 5,
-      "cancel_window": 0.06
-    },
-    {
-      "id": "bri_flip",
-      "name": "Bri Flip",
-      "category": "flip",
-      "channel": "deck",
-      "input": {
-        "type": "flick",
-        "dirs": [
-          "up_left"
-        ],
-        "flow_dirs": [
-          "up_left"
-        ]
-      },
-      "airtime": 0.5,
-      "duration": 0.46,
-      "scooter_rotation": {
-        "axis": "deck_pitch",
-        "degrees": 360,
-        "direction": 1
-      },
-      "animation": "whip",
-      "feet_off": true,
-      "score": 850,
-      "difficulty": 5,
-      "cancel_window": 0.06
-    },
-    {
-      "id": "scooter_flip",
-      "name": "Scooter Flip",
-      "category": "flip",
-      "channel": "whole",
-      "input": {
-        "type": "flick",
-        "dirs": [
-          "up_right"
-        ],
-        "flow_dirs": [
-          "up_right"
-        ]
-      },
-      "airtime": 0.55,
-      "duration": 0.52,
-      "scooter_rotation": {
-        "axis": "whole_pitch",
-        "degrees": 360,
-        "direction": -1
-      },
-      "animation": "scooter_flip",
-      "feet_off": true,
-      "score": 950,
-      "difficulty": 5,
-      "cancel_window": 0.06
-    },
-    {
-      "id": "kickless",
-      "name": "Kickless",
-      "category": "flip",
-      "channel": "whole",
-      "input": {
-        "type": "flick",
-        "dirs": [
-          "down_right"
-        ],
-        "flow_dirs": [
-          "down_right"
-        ]
-      },
-      "airtime": 0.62,
-      "duration": 0.6,
-      "scooter_rotation": {
-        "axis": "whole_pitch",
-        "degrees": 360,
-        "direction": 1
-      },
-      "animation": "kickless",
-      "feet_off": true,
-      "hands_off": true,
-      "score": 1200,
-      "difficulty": 6,
-      "cancel_window": 0.06
-    },
-    {
-      "id": "barspin",
-      "name": "Barspin",
-      "category": "bar",
-      "channel": "bars",
-      "input": {
-        "type": "flick",
-        "dirs": [
-          "up"
-        ],
-        "flow_dirs": [
-          "up"
-        ]
-      },
-      "airtime": 0.35,
-      "duration": 0.34,
-      "scooter_rotation": {
-        "axis": "bars",
-        "degrees": 360,
-        "direction": 1
-      },
-      "animation": "barspin",
-      "hands_off": true,
-      "score": 350,
-      "difficulty": 2,
-      "cancel_window": 0.07,
-      "chain": "double_barspin"
-    },
-    {
-      "id": "double_barspin",
-      "name": "Double Barspin",
-      "category": "bar",
-      "channel": "bars",
-      "input": {
-        "type": "chain",
-        "dirs": [
-          "up"
-        ],
-        "flow_dirs": [
-          "up"
-        ]
-      },
-      "airtime": 0.62,
-      "duration": 0.6,
-      "scooter_rotation": {
-        "axis": "bars",
-        "degrees": 720,
-        "direction": 1
-      },
-      "animation": "barspin",
-      "hands_off": true,
-      "score": 950,
-      "difficulty": 4,
-      "cancel_window": 0.07
-    },
-    {
-      "id": "no_hander",
-      "name": "No Hand",
-      "category": "grab",
-      "channel": "rider",
-      "input": {
-        "type": "grab",
-        "dirs": [
-          "up"
-        ],
-        "modifier": "grab"
-      },
-      "airtime": 0.4,
-      "duration": 0.25,
-      "animation": "no_hand",
-      "hands_off": true,
-      "score": 300,
-      "difficulty": 2,
-      "hold": true
-    },
-    {
-      "id": "one_hander",
-      "name": "One Hand",
-      "category": "grab",
-      "channel": "rider",
-      "input": {
-        "type": "grab",
-        "dirs": [
-          "left"
-        ],
-        "modifier": "grab"
-      },
-      "airtime": 0.3,
-      "duration": 0.2,
-      "animation": "one_hand",
-      "one_hand": true,
-      "score": 200,
-      "difficulty": 1,
-      "hold": true
-    },
-    {
-      "id": "can_can",
-      "name": "Can Can",
-      "category": "grab",
-      "channel": "rider",
-      "input": {
-        "type": "grab",
-        "dirs": [
-          "right"
-        ],
-        "modifier": "grab"
-      },
-      "airtime": 0.4,
-      "duration": 0.25,
-      "animation": "can_can",
-      "score": 350,
-      "difficulty": 2,
-      "hold": true
-    },
-    {
-      "id": "no_footer",
-      "name": "No Footer",
-      "category": "grab",
-      "channel": "rider",
-      "input": {
-        "type": "grab",
-        "dirs": [
-          "down"
-        ],
-        "modifier": "grab"
-      },
-      "airtime": 0.45,
-      "duration": 0.28,
-      "animation": "no_footer",
-      "feet_off": true,
-      "score": 450,
-      "difficulty": 3,
-      "hold": true
-    },
-    {
-      "id": "grab",
-      "name": "Deck Grab",
-      "category": "grab",
-      "channel": "rider",
-      "input": {
-        "type": "grab",
-        "dirs": [
-          "down_left",
-          "down_right",
-          "up_left",
-          "up_right"
-        ],
-        "modifier": "grab"
-      },
-      "airtime": 0.35,
-      "duration": 0.22,
-      "animation": "grab",
-      "one_hand": true,
-      "score": 250,
-      "difficulty": 1,
-      "hold": true
+     "axis": "bars",
+     "degrees": 360,
+     "direction": 1
     }
-  ]
+   ],
+   "animation": "whip",
+   "feet_off": true,
+   "hands_off": true,
+   "score": 900,
+   "difficulty": 4,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "full_heel",
+   "name": "Full Heel",
+   "family": "full",
+   "category": "whip",
+   "channel": "whole",
+   "input": {
+    "type": "flick",
+    "layer": "trick_alt",
+    "dirs": [
+     "left"
+    ],
+    "flow_dirs": [
+     "left"
+    ]
+   },
+   "airtime": 0.48,
+   "duration": 0.46,
+   "scooter_rotation": [
+    {
+     "axis": "steer",
+     "degrees": 360,
+     "direction": -1
+    },
+    {
+     "axis": "bars",
+     "degrees": 360,
+     "direction": -1
+    }
+   ],
+   "animation": "heelwhip",
+   "feet_off": true,
+   "hands_off": true,
+   "score": 1000,
+   "difficulty": 5,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "oppo_bar",
+   "name": "Oppo Bar",
+   "family": "oppo_bar",
+   "category": "bar",
+   "channel": "bars",
+   "input": {
+    "type": "flick",
+    "layer": "trick_alt",
+    "dirs": [
+     "up"
+    ],
+    "flow_dirs": [
+     "up"
+    ]
+   },
+   "airtime": 0.38,
+   "duration": 0.36,
+   "scooter_rotation": {
+    "axis": "bars",
+    "degrees": 360,
+    "direction": -1
+   },
+   "animation": "barspin",
+   "hands_off": true,
+   "score": 450,
+   "difficulty": 3,
+   "cancel_window": 0.07,
+   "chain": "double_oppo_bar"
+  },
+  {
+   "id": "double_oppo_bar",
+   "name": "Double Oppo Bar",
+   "family": "oppo_bar",
+   "category": "bar",
+   "channel": "bars",
+   "input": {
+    "type": "chain",
+    "layer": "trick_alt",
+    "dirs": [
+     "up"
+    ],
+    "flow_dirs": [
+     "up"
+    ]
+   },
+   "airtime": 0.66,
+   "duration": 0.64,
+   "scooter_rotation": {
+    "axis": "bars",
+    "degrees": 720,
+    "direction": -1
+   },
+   "animation": "barspin",
+   "hands_off": true,
+   "score": 1100,
+   "difficulty": 5,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "whip_kickless",
+   "name": "Whip Kickless",
+   "family": "kickless",
+   "category": "whip",
+   "channel": "deck",
+   "input": {
+    "type": "flick",
+    "layer": "trick_alt",
+    "dirs": [
+     "down"
+    ],
+    "flow_dirs": [
+     "down"
+    ]
+   },
+   "airtime": 0.74,
+   "duration": 0.7,
+   "scooter_rotation": {
+    "axis": "steer",
+    "degrees": 720,
+    "direction": 1
+   },
+   "animation": "kickless",
+   "feet_off": true,
+   "score": 1300,
+   "difficulty": 5,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "briwhip",
+   "name": "Briwhip",
+   "family": "briwhip",
+   "category": "flip",
+   "channel": "whole",
+   "input": {
+    "type": "flick",
+    "layer": "trick_alt",
+    "dirs": [
+     "up_left"
+    ],
+    "flow_dirs": [
+     "up_left"
+    ]
+   },
+   "airtime": 0.62,
+   "duration": 0.6,
+   "scooter_rotation": [
+    {
+     "axis": "bar_pitch",
+     "degrees": 360,
+     "direction": -1
+    },
+    {
+     "axis": "steer",
+     "degrees": 360,
+     "direction": 1
+    }
+   ],
+   "animation": "bri",
+   "feet_off": true,
+   "score": 1500,
+   "difficulty": 6,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "umbrella",
+   "name": "Umbrella",
+   "family": "umbrella",
+   "category": "flip",
+   "channel": "whole",
+   "input": {
+    "type": "flick",
+    "layer": "trick_alt",
+    "dirs": [
+     "up_right"
+    ],
+    "flow_dirs": [
+     "up_right"
+    ]
+   },
+   "airtime": 0.65,
+   "duration": 0.62,
+   "scooter_rotation": [
+    {
+     "axis": "bar_pitch",
+     "degrees": 360,
+     "direction": -1
+    },
+    {
+     "axis": "deck_roll",
+     "degrees": 360,
+     "direction": 1
+    }
+   ],
+   "animation": "bri",
+   "feet_off": true,
+   "score": 1600,
+   "difficulty": 6,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "bartwist",
+   "name": "Bartwist",
+   "short": "Twist",
+   "family": "twist",
+   "category": "bar",
+   "channel": "bars",
+   "input": {
+    "type": "flick",
+    "layer": "trick_alt",
+    "dirs": [
+     "down_right"
+    ],
+    "flow_dirs": [
+     "down_right"
+    ]
+   },
+   "airtime": 0.46,
+   "duration": 0.44,
+   "scooter_rotation": {
+    "axis": "bars",
+    "degrees": 360,
+    "direction": 1
+   },
+   "animation": "barspin",
+   "one_hand": true,
+   "score": 500,
+   "difficulty": 3,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "untwist",
+   "name": "Untwist",
+   "family": "twist",
+   "category": "bar",
+   "channel": "bars",
+   "input": {
+    "type": "flick",
+    "layer": "trick_alt",
+    "dirs": [],
+    "flow_dirs": [
+     "down_left"
+    ]
+   },
+   "airtime": 0.46,
+   "duration": 0.44,
+   "scooter_rotation": {
+    "axis": "bars",
+    "degrees": 360,
+    "direction": -1
+   },
+   "animation": "barspin",
+   "one_hand": true,
+   "score": 550,
+   "difficulty": 3,
+   "cancel_window": 0.07
+  },
+  {
+   "id": "no_hander",
+   "name": "No Hander",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab",
+    "dirs": [
+     "up"
+    ],
+    "flow_dirs": [
+     "up"
+    ]
+   },
+   "airtime": 0.4,
+   "duration": 0.25,
+   "animation": "no_hand",
+   "hands_off": true,
+   "score": 300,
+   "difficulty": 2
+  },
+  {
+   "id": "one_hander",
+   "name": "One Hander",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab",
+    "dirs": [
+     "left"
+    ],
+    "flow_dirs": [
+     "left"
+    ]
+   },
+   "airtime": 0.3,
+   "duration": 0.2,
+   "animation": "one_hand",
+   "one_hand": true,
+   "score": 200,
+   "difficulty": 1
+  },
+  {
+   "id": "can_can",
+   "name": "Can Can",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab",
+    "dirs": [
+     "right"
+    ],
+    "flow_dirs": [
+     "right"
+    ]
+   },
+   "airtime": 0.4,
+   "duration": 0.25,
+   "animation": "can_can",
+   "front_foot_off": true,
+   "score": 350,
+   "difficulty": 2
+  },
+  {
+   "id": "no_footer",
+   "name": "No Footer",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab",
+    "dirs": [
+     "down"
+    ],
+    "flow_dirs": [
+     "down"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.28,
+   "animation": "no_footer",
+   "feet_off": true,
+   "score": 450,
+   "difficulty": 3
+  },
+  {
+   "id": "tuck_no_hander",
+   "name": "Tuck No Hander",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab",
+    "dirs": [
+     "up_left"
+    ],
+    "flow_dirs": [
+     "up_left"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.3,
+   "animation": "tuck_no_hand",
+   "hands_off": true,
+   "score": 500,
+   "difficulty": 3
+  },
+  {
+   "id": "turndown",
+   "name": "Turndown",
+   "category": "grab",
+   "channel": "whole",
+   "input": {
+    "type": "grab",
+    "layer": "grab",
+    "dirs": [
+     "up_right"
+    ],
+    "flow_dirs": [
+     "up_right"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.3,
+   "scooter_rotation": [
+    {
+     "axis": "whole_yaw",
+     "degrees": 70,
+     "direction": -1
+    },
+    {
+     "axis": "whole_roll",
+     "degrees": 45,
+     "direction": 1
+    }
+   ],
+   "animation": "turndown",
+   "score": 550,
+   "difficulty": 3
+  },
+  {
+   "id": "toboggan",
+   "name": "Toboggan",
+   "category": "grab",
+   "channel": "whole",
+   "input": {
+    "type": "grab",
+    "layer": "grab",
+    "dirs": [
+     "down_left"
+    ],
+    "flow_dirs": [
+     "down_left"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.3,
+   "scooter_rotation": [
+    {
+     "axis": "bars",
+     "degrees": 90,
+     "direction": 1
+    },
+    {
+     "axis": "whole_pitch",
+     "degrees": 14,
+     "direction": 1
+    }
+   ],
+   "animation": "toboggan",
+   "one_hand": true,
+   "score": 500,
+   "difficulty": 3
+  },
+  {
+   "id": "grab",
+   "name": "Deck Grab",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab",
+    "dirs": [
+     "down_right"
+    ],
+    "flow_dirs": [
+     "down_right"
+    ]
+   },
+   "airtime": 0.35,
+   "duration": 0.22,
+   "animation": "grab",
+   "one_hand": true,
+   "score": 250,
+   "difficulty": 1
+  },
+  {
+   "id": "nothing_front_scoot",
+   "name": "Nothing Front Scoot",
+   "family": "front_scoot",
+   "category": "flip",
+   "channel": "whole",
+   "input": {
+    "type": "flick",
+    "layer": "grab_alt",
+    "dirs": [
+     "left"
+    ],
+    "flow_dirs": [
+     "left"
+    ]
+   },
+   "airtime": 0.76,
+   "duration": 0.7,
+   "scooter_rotation": {
+    "axis": "whole_pitch",
+    "degrees": 360,
+    "direction": -1
+   },
+   "animation": "nothing",
+   "feet_off": true,
+   "hands_off": true,
+   "score": 2400,
+   "difficulty": 8,
+   "cancel_window": 0.06
+  },
+  {
+   "id": "suicide_no_hander",
+   "name": "Suicide No Hander",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab_alt",
+    "dirs": [
+     "up"
+    ],
+    "flow_dirs": [
+     "up"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.3,
+   "animation": "suicide",
+   "hands_off": true,
+   "score": 600,
+   "difficulty": 4
+  },
+  {
+   "id": "nac_nac",
+   "name": "Nac Nac",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab_alt",
+    "dirs": [
+     "right"
+    ],
+    "flow_dirs": [
+     "right"
+    ]
+   },
+   "airtime": 0.42,
+   "duration": 0.28,
+   "animation": "nac_nac",
+   "back_foot_off": true,
+   "score": 400,
+   "difficulty": 2
+  },
+  {
+   "id": "cannonball",
+   "name": "Cannonball",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab_alt",
+    "dirs": [
+     "down"
+    ],
+    "flow_dirs": [
+     "down"
+    ]
+   },
+   "airtime": 0.5,
+   "duration": 0.32,
+   "animation": "cannonball",
+   "feet_off": true,
+   "hands_off": true,
+   "score": 600,
+   "difficulty": 4
+  },
+  {
+   "id": "superman",
+   "name": "Superman",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab_alt",
+    "dirs": [
+     "up_left"
+    ],
+    "flow_dirs": [
+     "up_left"
+    ]
+   },
+   "airtime": 0.5,
+   "duration": 0.32,
+   "animation": "superman",
+   "feet_off": true,
+   "score": 650,
+   "difficulty": 4
+  },
+  {
+   "id": "candybar",
+   "name": "Candybar",
+   "category": "grab",
+   "channel": "rider",
+   "input": {
+    "type": "grab",
+    "layer": "grab_alt",
+    "dirs": [
+     "up_right"
+    ],
+    "flow_dirs": [
+     "up_right"
+    ]
+   },
+   "airtime": 0.45,
+   "duration": 0.3,
+   "animation": "candybar",
+   "front_foot_off": true,
+   "score": 550,
+   "difficulty": 3
+  },
+  {
+   "id": "canvert",
+   "name": "Canvert",
+   "category": "grab",
+   "channel": "whole",
+   "input": {
+    "type": "grab",
+    "layer": "grab_alt",
+    "dirs": [
+     "down_right"
+    ],
+    "flow_dirs": [
+     "down_right"
+    ]
+   },
+   "airtime": 0.48,
+   "duration": 0.3,
+   "scooter_rotation": {
+    "axis": "whole_roll",
+    "degrees": 55,
+    "direction": 1
+   },
+   "animation": "can_can",
+   "front_foot_off": true,
+   "score": 650,
+   "difficulty": 4
+  },
+  {
+   "id": "x_up",
+   "name": "X-Up",
+   "family": "x_up",
+   "category": "bar",
+   "channel": "bars",
+   "input": {
+    "type": "flick",
+    "layer": "grab_alt",
+    "dirs": [
+     "down_left"
+    ],
+    "flow_dirs": [
+     "down_left"
+    ]
+   },
+   "airtime": 0.52,
+   "duration": 0.5,
+   "scooter_rotation": {
+    "axis": "bars",
+    "degrees": 180,
+    "direction": 1,
+    "rewind": true
+   },
+   "animation": "barspin",
+   "score": 400,
+   "difficulty": 3,
+   "cancel_window": 0.07
+  }
+ ]
 }

@@ -256,6 +256,7 @@ void Input::processEvent(const SDL_Event& e) {
                 f.time = time_;
                 f.modifierGrab = down(Action::Grab);
                 f.modifierTrick = down(Action::TrickMod);
+                f.modifierAlt = down(Action::SpinLeft) || down(Action::SpinRight);
                 if (f.dir != StickDir::None) flicks_.push_back(f);
             }
             break;
@@ -377,6 +378,7 @@ void Input::update(double time, float dt) {
                 f.time = time;
                 f.modifierGrab = axes_[int(Axis::Grab)] > 0.3f;
                 f.modifierTrick = axes_[int(Axis::Trick)] > 0.3f;
+                f.modifierAlt = down(Action::SpinLeft) || down(Action::SpinRight);
                 flicks_.push_back(f);
                 flickArmed_ = false;
             } else if (lookPeakTime_ > 0.35f) {

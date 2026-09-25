@@ -27,7 +27,7 @@ public:
     bool customizing() const { return screen_ == Screen::Rider || screen_ == Screen::Scooter; }
     int shopCategory() const { return shopCat_; }  // scooter shop: part category being edited
     void setShopCategory(int c) { shopCat_ = std::clamp(c, 0, 5); }
-    void setSettingsTab(int t) { settingsTab_ = std::clamp(t, 0, 3); }
+    void setSettingsTab(int t) { settingsTab_ = std::clamp(t, 0, 4); }
     void draw(ui::Context& ui, float dt);
     void setChallengeType(ModeType t) { listType_ = t; }
     // a map load is shown for one frame before it happens
@@ -44,6 +44,7 @@ private:
     void drawScooter(ui::Context& ui);
     void shopHints(ui::Context& ui);
     void drawMoveList(ui::Context& ui, const ui::Rect& area);
+    void drawTrickList(ui::Context& ui, const ui::Rect& area);
     void drawSettings(ui::Context& ui);
     void drawPause(ui::Context& ui);
     void drawResults(ui::Context& ui);

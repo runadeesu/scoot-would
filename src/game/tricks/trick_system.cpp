@@ -22,7 +22,25 @@ ScooterAxis axisFrom(const std::string& s) {
     if (s == "bars") return ScooterAxis::Bars;
     if (s == "whole_pitch") return ScooterAxis::WholePitch;
     if (s == "whole_yaw") return ScooterAxis::WholeYaw;
+    if (s == "whole_roll") return ScooterAxis::WholeRoll;
+    if (s == "bar_pitch") return ScooterAxis::BarPitch;
     return ScooterAxis::None;
+}
+
+TrickLayer layerFrom(const std::string& s) {
+    if (s == "grab") return TrickLayer::Grab;
+    if (s == "trick_alt") return TrickLayer::TrickAlt;
+    if (s == "grab_alt") return TrickLayer::GrabAlt;
+    return TrickLayer::Trick;
+}
+
+TrickRotation rotationFrom(const Json& r) {
+    TrickRotation t;
+    t.axis = axisFrom(jget<std::string>(r, "axis", "steer"));
+    t.degrees = jget<float>(r, "degrees", 360.0f);
+    t.direction = jget<int>(r, "direction", 1);
+    t.rewind = jget<bool>(r, "rewind", false);
+    return t;
 }
 
 float easeInOut(float t) {
@@ -38,6 +56,8 @@ bool conflicts(TrickChannel a, TrickChannel b) {
     return false;
 }
 
+bool isGrabLayer(TrickLayer l) { return l == TrickLayer::Grab || l == TrickLayer::GrabAlt; }
+
 }  // namespace
 
 bool TrickSystem::loadDefinitions(const std::string& absPath) {
@@ -48,6 +68,8 @@ bool TrickSystem::loadDefinitions(const std::string& absPath) {
         TrickDefinition d;
         d.id = jget<std::string>(t, "id", "");
         d.name = jget<std::string>(t, "name", d.id);
+        d.shortName = jget<std::string>(t, "short", d.name);
+        d.family = jget<std::string>(t, "family", "");
         d.category = jget<std::string>(t, "category", "whip");
         d.channel = channelFrom(jget<std::string>(t, "channel", "deck"));
         if (t.contains("input")) {
@@ -56,23 +78,26 @@ bool TrickSystem::loadDefinitions(const std::string& absPath) {
             for (auto& s : in.value("dirs", Json::array())) d.dirs.push_back(stickDirFromName(s.get<std::string>()));
             for (auto& s : in.value("flow_dirs", Json::array())) d.flowDirs.push_back(stickDirFromName(s.get<std::string>()));
             if (d.flowDirs.empty()) d.flowDirs = d.dirs;
-            d.modifierGrab = jget<std::string>(in, "modifier", "none") == "grab";
+            // "modifier": "grab" is the older spelling of the grab layer
+            std::string layer = jget<std::string>(in, "layer", jget<std::string>(in, "modifier", "none") == "grab" ? "grab" : "trick");
+            d.layer = layerFrom(layer);
         }
         d.minAirtime = jget<float>(t, "airtime", 0.3f);
         d.duration = jget<float>(t, "duration", 0.4f);
         if (t.contains("scooter_rotation")) {
             const Json& r = t["scooter_rotation"];
-            d.axis = axisFrom(jget<std::string>(r, "axis", "steer"));
-            d.degrees = jget<float>(r, "degrees", 360.0f);
-            d.direction = jget<int>(r, "direction", 1);
-            d.rewind = jget<bool>(r, "rewind", false);
-        } else {
-            d.axis = ScooterAxis::None;
+            if (r.is_array())
+                for (const Json& e : r) d.rotations.push_back(rotationFrom(e));
+            else
+                d.rotations.push_back(rotationFrom(r));
         }
+        d.degrees = d.rotations.empty() ? 0.0f : d.rotations[0].degrees;
         d.animation = jget<std::string>(t, "animation", "");
         d.feetOff = jget<bool>(t, "feet_off", false);
         d.handsOff = jget<bool>(t, "hands_off", false);
         d.oneHand = jget<bool>(t, "one_hand", false);
+        d.frontFootOff = jget<bool>(t, "front_foot_off", false);
+        d.backFootOff = jget<bool>(t, "back_foot_off", false);
         d.score = jget<int>(t, "score", 100);
         d.difficulty = jget<int>(t, "difficulty", 1);
         d.cancelWindow = jget<float>(t, "cancel_window", 0.08f);
@@ -88,6 +113,18 @@ const TrickDefinition* TrickSystem::find(const std::string& id) const {
     for (auto& d : defs_)
         if (d.id == id) return &d;
     return nullptr;
+}
+
+TrickLayer TrickSystem::layerFor(bool grab, bool trick, bool alt) const {
+    if (flow_) {
+        // Scooter Flow layout: the bare right stick rotates the rider; RT = scooter tricks, LT = grabs (both
+        // triggers: scooter tricks), a bumper on top selects the second layer
+        if (!grab && !trick) return TrickLayer::None;
+        bool g = grab && !trick;
+        return g ? (alt ? TrickLayer::GrabAlt : TrickLayer::Grab) : (alt ? TrickLayer::TrickAlt : TrickLayer::Trick);
+    }
+    // classic: bare flicks are scooter tricks, RT + flick grabs
+    return grab ? (alt ? TrickLayer::GrabAlt : TrickLayer::Grab) : (alt ? TrickLayer::TrickAlt : TrickLayer::Trick);
 }
 
 void TrickSystem::beginAir(float predictedAirtime, bool fakie) {
@@ -110,19 +147,31 @@ void TrickSystem::cancel() {
 }
 
 bool TrickSystem::tryStart(const TrickDefinition& d, int direction, double) {
+    // transitions: the next trick may start over the last quarter of the one using the same parts
     for (const ActiveTrick& a : active_)
-        if (conflicts(a.def->channel, d.channel)) return false;
+        if (conflicts(a.def->channel, d.channel) && (a.def->hold || a.progress < 0.75f)) return false;
     ActiveTrick t;
     t.def = &d;
     t.direction = direction;
+    t.startAir = airTime_;
     active_.push_back(t);
     lastStarted = d.name;
     startedThisStep = true;
     return true;
 }
 
-void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now, float grabAxis, StickDir rightDir, const Vec3& angVel,
-                            const Vec3& bodyRight, const Vec3& bodyForward, float timeToLand) {
+void TrickSystem::upgrade(ActiveTrick& a, const TrickDefinition* up) {
+    // keep the angle already turned: a tailwhip at 200 degrees becomes a double whip at 200 of 720 degrees
+    float angleDone = a.progress * a.def->degrees;
+    a.def = up;
+    a.time = up->degrees > 0.0f ? angleDone / up->degrees * up->duration : 0.0f;
+    a.progress = a.time / up->duration;
+    lastStarted = up->name;
+    startedThisStep = true;
+}
+
+void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now, float grabAxis, float trickAxis, bool altHeld,
+                            StickDir rightDir, const Vec3& angVel, const Vec3& bodyRight, const Vec3& bodyForward, float timeToLand) {
     (void)timeToLand;
     startedThisStep = false;
     if (!inAir_) return;
@@ -132,30 +181,26 @@ void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now
     roll_ += dot(angVel, bodyForward) * dt;
 
     auto dirsOf = [&](const TrickDefinition& d) -> const std::vector<StickDir>& { return flow_ ? d.flowDirs : d.dirs; };
+    auto has = [](const std::vector<StickDir>& v, StickDir s) { return std::find(v.begin(), v.end(), s) != v.end(); };
     // buffered flicks -> trick starts
     for (size_t fi = 0; fi < flicks.size(); ++fi) {
         FlickEvent& f = flicks[fi];
         if (f.consumed || now - f.time > 0.25) continue;
-        bool grabMod = f.modifierGrab || grabAxis > 0.3f;
-        if (flow_) {
-            // Scooter Flow layout: a bare right stick rotates the rider, tricks need RT (scooter) or LT (grabs)
-            if (!f.modifierTrick && !f.modifierGrab) {
-                f.consumed = true;
-                continue;
-            }
-            grabMod = f.modifierGrab && !f.modifierTrick;
+        TrickLayer layer = layerFor(f.modifierGrab || (!flow_ && grabAxis > 0.3f), f.modifierTrick, f.modifierAlt);
+        if (layer == TrickLayer::None) {
+            f.consumed = true;  // bare right stick in the Scooter Flow layout: body rotation, not a trick
+            continue;
         }
         // 1) sequences (rewind): previous flick + this one
         const TrickDefinition* seqMatch = nullptr;
         for (auto& d : defs_) {
             const auto& dd = dirsOf(d);
-            if (d.inputType != "sequence" || dd.size() != 2 || d.modifierGrab != grabMod) continue;
+            if (d.inputType != "sequence" || dd.size() != 2 || d.layer != layer) continue;
             if (dd[1] != f.dir) continue;
             // the first flick of the sequence started a trick shortly before
             for (auto& a : active_) {
                 const auto& ad = dirsOf(*a.def);
-                if (a.time < 0.28f && a.def->channel == d.channel && a.def->inputType != "sequence" &&
-                    std::find(ad.begin(), ad.end(), dd[0]) != ad.end()) {
+                if (a.time < 0.28f && a.def->channel == d.channel && a.def->inputType != "sequence" && has(ad, dd[0])) {
                     seqMatch = &d;
                     a.def = &d;  // convert in place (keeps timing)
                     a.progress = a.time / d.duration;
@@ -168,53 +213,55 @@ void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now
             if (seqMatch) break;
         }
         if (f.consumed) continue;
-        // 2) chaining: same input while the trick is running upgrades it (double / triple)
+        // 2) chaining: the same input while the trick is running upgrades it (double / triple / quad)
         bool chained = false;
         for (auto& a : active_) {
             const auto& ad = dirsOf(*a.def);
             if (a.done || a.def->chainTo.empty() || ad.empty()) continue;
-            bool sameInput = std::find(ad.begin(), ad.end(), f.dir) != ad.end() && a.def->modifierGrab == grabMod;
-            if (!sameInput) continue;
+            if (!has(ad, f.dir) || a.def->layer != layer) continue;
             const TrickDefinition* up = find(a.def->chainTo);
             if (!up) continue;
-            float angleDone = a.progress * a.def->degrees;
-            a.def = up;
-            a.time = angleDone / up->degrees * up->duration;
-            a.progress = a.time / up->duration;
+            upgrade(a, up);
             f.consumed = true;
             chained = true;
-            lastStarted = up->name;
-            startedThisStep = true;
             break;
         }
         if (chained) continue;
         // 3) single flick tricks
         for (auto& d : defs_) {
             if (d.inputType == "sequence" || d.inputType == "chain") continue;
-            if (d.modifierGrab != grabMod) continue;
-            const auto& dd = dirsOf(d);
-            auto it = std::find(dd.begin(), dd.end(), f.dir);
-            if (it == dd.end()) continue;
+            if (d.layer != layer) continue;
+            if (!has(dirsOf(d), f.dir)) continue;
             // classic: left side inputs spin the trick the other way (the Scooter Flow layout gives each side its
             // own trick, e.g. right = tailwhip, left = heelwhip)
             bool leftSide = f.dir == StickDir::Left || f.dir == StickDir::UpLeft || f.dir == StickDir::DownLeft;
-            int dir = (!flow_ && leftSide) ? -d.direction : d.direction;
-            if (tryStart(d, dir, now)) f.consumed = true;
+            int mirror = (!flow_ && leftSide && layer == TrickLayer::Trick) ? -1 : 1;
+            if (tryStart(d, mirror, now)) f.consumed = true;
             break;
         }
         f.consumed = true;  // unmatched flicks are dropped (no late trigger)
     }
 
+    // Scooter Flow layout: holding the stick keeps a whip / bar going ("continuous overheads")
+    if (flow_ && rightDir != StickDir::None) {
+        TrickLayer held = layerFor(grabAxis > 0.3f, trickAxis > 0.3f, altHeld);
+        for (auto& a : active_) {
+            if (a.done || a.def->chainTo.empty() || a.def->layer != held || a.progress < 0.62f) continue;
+            if (!has(dirsOf(*a.def), rightDir)) continue;
+            if (const TrickDefinition* up = find(a.def->chainTo)) upgrade(a, up);
+        }
+    }
+
     // holding the grab trigger and pointing the right stick starts a grab even without a flick
-    if (grabAxis > 0.5f && rightDir != StickDir::None) {
+    if (grabAxis > 0.5f && rightDir != StickDir::None && !(flow_ && trickAxis > 0.3f)) {
+        TrickLayer layer = altHeld ? TrickLayer::GrabAlt : TrickLayer::Grab;
         bool riderBusy = false;
         for (auto& a : active_)
             if (a.def->channel == TrickChannel::Rider) riderBusy = true;
         if (!riderBusy && grabCooldown_ <= 0.0f) {
             for (auto& d : defs_) {
-                if (d.inputType != "grab") continue;
-                const auto& dd = dirsOf(d);
-                if (std::find(dd.begin(), dd.end(), rightDir) == dd.end()) continue;
+                if (d.inputType != "grab" || d.layer != layer) continue;
+                if (!has(dirsOf(d), rightDir)) continue;
                 if (tryStart(d, 1, now)) grabCooldown_ = 0.3f;
                 break;
             }
@@ -257,16 +304,22 @@ void TrickSystem::updatePose(float dt) {
     for (const ActiveTrick& a : active_) {
         const TrickDefinition& d = *a.def;
         float e = easeInOut(a.progress);
-        float ang = d.degrees * kDeg2Rad * float(a.direction);
-        float v = d.rewind ? std::sin(a.progress * kPi) * kPi * float(a.direction) : ang * e;
-        switch (d.axis) {
-            case ScooterAxis::Steer: p.deckSteer += v; break;
-            case ScooterAxis::DeckRoll: p.deckRoll += v; break;
-            case ScooterAxis::DeckPitch: p.deckPitch += v; break;
-            case ScooterAxis::Bars: p.bars += v; break;
-            case ScooterAxis::WholePitch: p.wholePitch += v; break;
-            case ScooterAxis::WholeYaw: p.wholeYaw += v; break;
-            case ScooterAxis::None: break;
+        // held tricks (grabs, turndowns) ease in, stay while held, ease out after release
+        float holdW = d.hold ? (a.released ? 1.0f - saturate((a.time - d.duration) * 4.0f) : saturate(a.time * 6.0f)) : 0.0f;
+        for (const TrickRotation& r : d.rotations) {
+            float ang = r.degrees * kDeg2Rad * float(r.direction * a.direction);
+            float v = d.hold ? ang * holdW * holdW * (3.0f - 2.0f * holdW) : r.rewind ? std::sin(a.progress * kPi) * ang : ang * e;
+            switch (r.axis) {
+                case ScooterAxis::Steer: p.deckSteer += v; break;
+                case ScooterAxis::DeckRoll: p.deckRoll += v; break;
+                case ScooterAxis::DeckPitch: p.deckPitch += v; break;
+                case ScooterAxis::Bars: p.bars += v; break;
+                case ScooterAxis::WholePitch: p.wholePitch += v; break;
+                case ScooterAxis::WholeYaw: p.wholeYaw += v; break;
+                case ScooterAxis::WholeRoll: p.wholeRoll += v; break;
+                case ScooterAxis::BarPitch: p.barPitch += v; break;
+                case ScooterAxis::None: break;
+            }
         }
         bool mid = a.progress > 0.02f && a.progress < 0.97f;
         if (d.hold) mid = !a.released || a.progress < 1.0f;
@@ -274,10 +327,12 @@ void TrickSystem::updatePose(float dt) {
             p.feetOff |= d.feetOff;
             p.handsOff |= d.handsOff;
             p.oneHand |= d.oneHand;
+            p.frontFootOff |= d.frontFootOff;
+            p.backFootOff |= d.backFootOff;
         }
         if (d.channel == TrickChannel::Whole) p.scooterAway = std::max(p.scooterAway, std::sin(saturate(a.progress) * kPi));
         if (!d.animation.empty()) {
-            float w = d.hold ? (a.released ? 1.0f - saturate((a.time - a.def->duration) * 4.0f) : saturate(a.time * 6.0f)) : std::sin(saturate(a.progress) * kPi);
+            float w = d.hold ? holdW : std::sin(saturate(a.progress) * kPi);
             if (w > riderW) {
                 riderW = w;
                 p.riderPose = d.animation;
@@ -313,10 +368,13 @@ std::string TrickSystem::bodyTrickName(bool fakie, int& score, int& difficulty) 
     difficulty = 0;
     static const int spinScore[] = {0, 100, 250, 450, 700, 1000, 1400, 1900};
     int s = std::min(spinSteps, 7);
-    if (flips >= 1 && back && spinSteps == 1) {
-        name = flips == 1 ? "Flair" : "Double Flair";
-        score = flips == 1 ? 1100 : 2600;
-        difficulty = flips == 1 ? 4 : 7;
+    if (flips >= 1 && (spinSteps % 2) == 1) {
+        // a flip with an odd half turn lands back into the ramp: flair family (180 / 540 / 900)
+        std::string pre = spinSteps >= 5 ? "900 " : spinSteps == 3 ? "540 " : "";
+        std::string base = back ? (flips >= 2 ? "Double Flair" : "Flair") : (flips >= 2 ? "Double Front Flair" : "Front Flair");
+        name = pre + base;
+        score = (back ? 1100 : 1400) + (flips - 1) * 1500 + (spinSteps >= 5 ? 3100 : spinSteps == 3 ? 1300 : 0);
+        difficulty = (back ? 4 : 5) + (flips - 1) * 3 + (spinSteps - 1);
     } else if (flips >= 1) {
         std::string pre = flips == 2 ? "Double " : flips >= 3 ? "Triple " : "";
         name = pre + (back ? "Backflip" : "Frontflip");
@@ -327,6 +385,10 @@ std::string TrickSystem::bodyTrickName(bool fakie, int& score, int& difficulty) 
             score += spinScore[s];
             difficulty += spinSteps;
         }
+    } else if (rollDeg > 300.0f && spinSteps < 2) {
+        name = "Barrel Roll";
+        score = 1300;
+        difficulty = 5;
     } else if (spinSteps >= 2 && rollDeg > 110.0f) {
         name = "Cork " + std::to_string(spinSteps * 180);
         score = int(float(spinScore[s]) * 1.5f);
@@ -340,13 +402,54 @@ std::string TrickSystem::bodyTrickName(bool fakie, int& score, int& difficulty) 
     return name;
 }
 
-std::string TrickSystem::currentLabel() const {
-    int s, d;
-    std::string body = bodyTrickName(startFakie_, s, d);
-    std::string out = body;
-    for (auto& a : finished_) out += (out.empty() ? "" : " ") + a.def->name;
-    for (auto& a : active_) out += (out.empty() ? "" : " ") + a.def->name;
+std::string TrickSystem::composeName(const std::string& body, std::vector<ActiveTrick> parts, int& bonusScore,
+                                     std::vector<std::string>* outParts) const {
+    bonusScore = 0;
+    std::sort(parts.begin(), parts.end(), [](const ActiveTrick& a, const ActiveTrick& b) { return a.startAir < b.startAir; });
+    struct Named {
+        std::string name, shortName;
+    };
+    std::vector<Named> names;
+    auto fam = [&](size_t i) { return i < parts.size() ? parts[i].def->family : std::string(); };
+    for (size_t i = 0; i < parts.size();) {
+        // buttercup: whip -> bri flip -> whip in one air (front buttercup with an inward)
+        if (fam(i) == "whip" && (fam(i + 1) == "bri" || fam(i + 1) == "inward") && fam(i + 2) == "whip") {
+            std::string n = fam(i + 1) == "bri" ? "Buttercup" : "Front Buttercup";
+            names.push_back({n, n});
+            bonusScore += 1500;
+            i += 3;
+            continue;
+        }
+        names.push_back({parts[i].def->name, parts[i].def->shortName});
+        ++i;
+    }
+    // a 360 with a barspin is a truck driver
+    std::string b = body;
+    std::string plain = body.rfind("Fakie ", 0) == 0 ? body.substr(6) : body;
+    if (plain == "360" && names.size() == 1 && (names[0].name == "Barspin" || names[0].name == "Double Barspin")) {
+        std::string n = names[0].name == "Barspin" ? "Truck Driver" : "Double Truck Driver";
+        names[0] = {n, n};
+        b = body.size() > plain.size() ? "Fakie" : "";
+        bonusScore += 300;
+    }
+    bool combined = !b.empty() || names.size() > 1;
+    std::string out = b;
+    for (size_t i = 0; i < names.size(); ++i) {
+        const std::string& s = combined ? names[i].shortName : names[i].name;
+        // the same trick twice in one air, one after the other: "Whip to Whip"
+        bool again = i > 0 && names[i].shortName == names[i - 1].shortName;
+        out += (out.empty() ? "" : again ? " to " : " ") + s;
+        if (outParts) outParts->push_back(names[i].name);
+    }
     return out;
+}
+
+std::string TrickSystem::currentLabel() const {
+    int s, d, bonus;
+    std::string body = bodyTrickName(startFakie_, s, d);
+    std::vector<ActiveTrick> parts = finished_;
+    parts.insert(parts.end(), active_.begin(), active_.end());
+    return composeName(body, parts, bonus, nullptr);
 }
 
 bool TrickSystem::land(TrickResult& out, bool landedFakie) {
@@ -369,24 +472,23 @@ bool TrickSystem::land(TrickResult& out, bool landedFakie) {
     int bodyScore = 0, bodyDiff = 0;
     std::string body = bodyTrickName(startFakie_, bodyScore, bodyDiff);
     out = TrickResult{};
-    std::string name = body;
     int score = bodyScore;
     int diff = bodyDiff;
     int n = 0;
     for (auto& a : all) {
-        name += (name.empty() ? "" : " ") + a.def->name;
         int ts = a.def->score;
         if (a.def->hold) ts = int(float(ts) * (0.6f + std::min(a.holdTime, 1.5f)));  // longer grabs score more
         score += ts;
         diff += a.def->difficulty;
-        out.parts.push_back(a.def->name);
         ++n;
     }
+    int bonus = 0;
+    out.name = composeName(body, all, bonus, &out.parts);
+    score += bonus;
     if (!body.empty()) out.parts.insert(out.parts.begin(), body);
     // combining a body rotation with scooter tricks is worth more than the sum
     if (!body.empty() && n > 0) score = int(float(score) * (1.2f + 0.15f * float(n - 1)));
     else if (n > 1) score = int(float(score) * (1.0f + 0.15f * float(n - 1)));
-    out.name = name;
     out.score = score;
     out.difficulty = diff;
     active_.clear();

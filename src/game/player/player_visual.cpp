@@ -338,10 +338,18 @@ void PlayerVisual::updateScooterParts(const Transform& body, const Player& playe
     Vec3 fa = d.frontAxle();
     // whole scooter flips pivot around the deck centre, pushed away from the rider (kickless)
     Mat4 whole = Mat4::identity();
-    if (std::fabs(pose.wholePitch) > 1e-4f || std::fabs(pose.wholeYaw) > 1e-4f || pose.scooterAway > 0.0f) {
+    if (std::fabs(pose.wholePitch) > 1e-4f || std::fabs(pose.wholeYaw) > 1e-4f || std::fabs(pose.wholeRoll) > 1e-4f || pose.scooterAway > 0.0f) {
         Vec3 pivot(0, 0.35f, -0.05f);
-        Mat4 r = Mat4::rotation(Quat::angleAxis(pose.wholeYaw, Vec3(0, 1, 0)) * Quat::angleAxis(pose.wholePitch, Vec3(1, 0, 0)));
+        Mat4 r = Mat4::rotation(Quat::angleAxis(pose.wholeYaw, Vec3(0, 1, 0)) * Quat::angleAxis(pose.wholePitch, Vec3(1, 0, 0)) *
+                                Quat::angleAxis(pose.wholeRoll, Vec3(0, 0, -1)));
         whole = Mat4::translation(Vec3(0, -0.25f * pose.scooterAway, -0.15f * pose.scooterAway)) * Mat4::translation(pivot) * r * Mat4::translation(-pivot);
+    }
+    if (std::fabs(pose.barPitch) > 1e-4f) {
+        // bri flip / inward: the scooter swings around the line through the grips, the hands stay on
+        ScooterDims bd = d;
+        bd.barHeight = barHeight_;
+        Vec3 bp = bd.barCenter();
+        whole = whole * Mat4::translation(bp) * Mat4::rotation(Quat::angleAxis(pose.barPitch, Vec3(1, 0, 0))) * Mat4::translation(-bp);
     }
     Mat4 rootM = root.matrix() * whole;
     // deck: whip around the steer axis through the front axle, roll / pitch around its own centre
@@ -358,6 +366,10 @@ void PlayerVisual::updateScooterParts(const Transform& body, const Player& playe
     barSteer_ = steerAngle;
     Mat4 barsM = rootM * Mat4::translation(fa) * Mat4::rotation(Quat::angleAxis(pose.bars - steerAngle * 0.8f, steer)) * Mat4::translation(-fa);
     Mat4 wheelSpin = Mat4::rotation(Quat::angleAxis(-wheelSpin_, Vec3(1, 0, 0)));
+    // the rider's hands and feet follow the animated bars and deck (turndowns, scooter flips, tricks)
+    Mat4 bodyInv = root.matrix().inverse();
+    barsLocal_ = bodyInv * barsM;
+    deckLocal_ = bodyInv * deckM;
     rs_->setTransform(partHandles_[Deck], deckM);
     rs_->setTransform(partHandles_[Grip], deckM);
     rs_->setTransform(partHandles_[Brake], deckM);
@@ -405,14 +417,18 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
     bars.barHeight = barHeight_;
     bars.barWidth = barWidth_;
     barCenterModel_ = bars.barCenter() - modelToBody.position;
-    rig.gripL = bars.gripL() - modelToBody.position;
-    rig.gripR = bars.gripR() - modelToBody.position;
-    rig.footFront = d.frontFoot() - modelToBody.position;
-    rig.footBack = d.backFoot() - modelToBody.position;
+    bool airTrick = player.state() == PlayerState::Air && !bailed;
+    Mat4 barsL = airTrick ? barsLocal_ : Mat4::identity(), deckL = airTrick ? deckLocal_ : Mat4::identity();
+    rig.gripL = barsL.transformPoint(bars.gripL()) - modelToBody.position;
+    rig.gripR = barsL.transformPoint(bars.gripR()) - modelToBody.position;
+    rig.footFront = deckL.transformPoint(d.frontFoot()) - modelToBody.position;
+    rig.footBack = deckL.transformPoint(d.backFoot()) - modelToBody.position;
     if (player.state() == PlayerState::Air) {
         rig.feetOff = tp.feetOff;
         rig.handsOff = tp.handsOff;
         rig.oneHand = tp.oneHand;
+        rig.frontFootOff = tp.frontFootOff;
+        rig.backFootOff = tp.backFootOff;
     }
     animator_->update(dt, ap, rig);
     animator_->modelSpace(jointsModel_);

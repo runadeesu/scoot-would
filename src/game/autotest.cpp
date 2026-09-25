@@ -40,6 +40,7 @@ void Autotest::apply(const Json& c, std::deque<FlickEvent>& flicks, double gameT
     if (c.contains("brake")) brake_ = c["brake"].get<float>();
     if (c.contains("grab")) grab_ = c["grab"].get<float>();
     if (c.contains("trick")) trick_ = c["trick"].get<float>();
+    if (c.contains("alt")) alt_ = c["alt"].get<bool>();
     if (c.contains("spin")) {
         float s = c["spin"].get<float>();
         spinL_ = s < 0;
@@ -64,6 +65,7 @@ void Autotest::apply(const Json& c, std::deque<FlickEvent>& flicks, double gameT
         f.time = gameTime;
         f.modifierGrab = grab_ > 0.3f;
         f.modifierTrick = trick_ > 0.3f;
+        f.modifierAlt = alt_;
         flicks.push_back(f);
     }
 }
@@ -113,6 +115,13 @@ PlayerInput Autotest::input(double t, std::deque<FlickEvent>& flicks, double gam
     in.respawnPressed = respawnPulse_;
     in.flow = flow_;
     in.trickMod = trick_;
+    in.alt = alt_;
+    // a held right stick (continuous whips): the direction it points
+    if (look_.length() > 0.6f) {
+        float a = std::atan2(look_.x, look_.y);  // 0 = up, clockwise
+        int oct = int(std::floor(a / (kPi / 4.0f) + 0.5f));
+        in.rightDir = StickDir(((oct % 8) + 8) % 8);
+    }
     return in;
 }
 

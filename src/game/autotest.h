@@ -60,6 +60,7 @@ private:
     Vec2 move_, look_;
     bool jumpHeld_ = false;
     float brake_ = 0.0f, grab_ = 0.0f, trick_ = 0.0f;
+    bool alt_ = false;
     bool flow_ = false;
     bool spinL_ = false, spinR_ = false;
     // pulses for this frame

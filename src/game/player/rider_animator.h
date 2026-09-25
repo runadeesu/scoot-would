@@ -13,7 +13,7 @@ namespace sw {
 struct RiderRig {
     Vec3 gripL, gripR;
     Vec3 footFront, footBack;  // sole contact points on the deck
-    bool feetOff = false, handsOff = false, oneHand = false;
+    bool feetOff = false, handsOff = false, oneHand = false, frontFootOff = false, backFootOff = false;
 };
 
 struct RiderAnimParams {
@@ -67,7 +67,7 @@ private:
     int armL_[3] = {-1, -1, -1}, armR_[3] = {-1, -1, -1}, legL_[3] = {-1, -1, -1}, legR_[3] = {-1, -1, -1};
     float feetW_ = 1.0f, handLW_ = 1.0f, handRW_ = 1.0f, backFootW_ = 1.0f;
     float crouchS_ = 0.0f, lookS_ = 0.0f, leanS_ = 0.0f;
-    float pushW_ = 0.0f, fpW_ = 0.0f;
+    float pushW_ = 0.0f, fpW_ = 0.0f, frontOffW_ = 0.0f, backOffW_ = 0.0f;
     Vec3 pushFoot_;     // pushing foot sole target (rider model space, regular stance)
     float pushToe_ = 0.0f;  // heel lift at the end of the drive
     float footDownW_ = 0.0f, groundFoot_ = 0.0f;  // 0 = back foot on the tail, 1 = standing on the ground next to the deck

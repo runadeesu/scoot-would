@@ -64,6 +64,7 @@ struct FlickEvent {
     double time = 0.0;
     bool modifierGrab = false;   // grab modifier held
     bool modifierTrick = false;  // trick modifier held (Scooter Flow layout)
+    bool modifierAlt = false;    // a bumper held: second trick / grab layer
     bool consumed = false;
 };
 

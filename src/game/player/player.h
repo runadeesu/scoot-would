@@ -39,6 +39,7 @@ struct PlayerInput {
     bool flow = false;
     Vec2 rotate;
     float trickMod = 0.0f;  // RT held (Scooter Flow layout)
+    bool alt = false;       // a bumper held: second trick / grab layer
 };
 
 struct PlayerSettings {

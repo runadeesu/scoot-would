@@ -166,6 +166,58 @@ std::vector<ClipDef> clipDefs() {
         PoseDef sf = tuckPose();
         sf.hips(0, -0.1f, 0.03f).set(RJ_Spine, -26).pair(RJ_UpperArmL, RJ_UpperArmR, 58, 0, 10).pair(RJ_LowerArmL, RJ_LowerArmR, 30);
         hold("scooter_flip", sf);
+        // bri flip / inward: knees pulled up out of the way, arms long, pushing the scooter round under the grips
+        PoseDef bri = tuckPose();
+        bri.hips(0, -0.06f, 0.05f).set(RJ_Spine, -8).set(RJ_Chest, -4).set(RJ_Neck, 20).pair(RJ_ThighL, RJ_ThighR, 96, 0, 14).pair(RJ_ShinL, RJ_ShinR, -118);
+        bri.pair(RJ_UpperArmL, RJ_UpperArmR, 64, 0, 12).pair(RJ_LowerArmL, RJ_LowerArmR, 6);
+        hold("bri", bri);
+        // tuck no hander: bars clamped between the knees, arms thrown out wide and back
+        PoseDef tnh = tuckPose();
+        tnh.hips(0, -0.06f, 0.0f).set(RJ_Spine, 4).set(RJ_Chest, 8).set(RJ_Neck, -2).set(RJ_Head, -8);
+        tnh.pair(RJ_ThighL, RJ_ThighR, 74, 0, -4).pair(RJ_ShinL, RJ_ShinR, -104);
+        tnh.pair(RJ_UpperArmL, RJ_UpperArmR, -18, 0, 78).pair(RJ_LowerArmL, RJ_LowerArmR, 12);
+        hold("tuck_no_hand", tnh);
+        // suicide no hander: hands let go and sweep behind the back, chest out
+        PoseDef sui = B;
+        sui.hips(0, -0.05f, -0.02f).set(RJ_Pelvis, 4).set(RJ_Spine, 10).set(RJ_Chest, 10).set(RJ_Neck, -6).set(RJ_Head, -6);
+        sui.pair(RJ_UpperArmL, RJ_UpperArmR, -56, 0, 22).pair(RJ_LowerArmL, RJ_LowerArmR, 14);
+        hold("suicide", sui);
+        // superman: both legs stretched out behind, body flat over the bars, head up
+        PoseDef sup = B;
+        sup.hips(0, 0.02f, 0.12f).set(RJ_Pelvis, -34).set(RJ_Spine, -22).set(RJ_Chest, -8).set(RJ_Neck, 44).set(RJ_Head, 14);
+        sup.pair(RJ_ThighL, RJ_ThighR, -26, 0, 6).pair(RJ_ShinL, RJ_ShinR, -12).pair(RJ_FootL, RJ_FootR, -34);
+        sup.pair(RJ_UpperArmL, RJ_UpperArmR, 70, 0, 10).pair(RJ_LowerArmL, RJ_LowerArmR, 10);
+        hold("superman", sup);
+        // candybar: the front leg swings up over the bars
+        PoseDef cb = B;
+        cb.hips(0, -0.02f, 0.06f).set(RJ_Pelvis, 8, -20, 0).set(RJ_Spine, 6).set(RJ_Chest, 4);
+        cb.set(RJ_ThighL, 118, 0, 8).set(RJ_ShinL, -24).set(RJ_FootL, 10);
+        hold("candybar", cb);
+        // nac nac: the back leg kicks out to the side and back
+        PoseDef nn = B;
+        nn.hips(-0.02f, -0.04f, 0.02f).set(RJ_Pelvis, -4, -30, -8).set(RJ_Spine, -8, 10, 6);
+        nn.set(RJ_ThighR, -18, 0, 52).set(RJ_ShinR, -14).set(RJ_FootR, -20);
+        hold("nac_nac", nn);
+        // turndown: hips turn with the deck kicked out to the side, shoulders stay square to the landing
+        PoseDef td = tuckPose();
+        td.set(RJ_Pelvis, -6, -62, 10).set(RJ_Spine, -16, 30, 0).set(RJ_Chest, -6, 18, 0).set(RJ_Neck, 12, 10, 0);
+        td.pair(RJ_ThighL, RJ_ThighR, 70, 0, 2).pair(RJ_ShinL, RJ_ShinR, -96);
+        hold("turndown", td);
+        // toboggan: bars turned, the back hand reaches down and holds the deck
+        PoseDef tb = tuckPose();
+        tb.set(RJ_Spine, -30, -12, 0).set(RJ_Chest, -10, -8, 0).set(RJ_Neck, 26).set(RJ_UpperArmR, 18, 0, 20).set(RJ_LowerArmR, 16);
+        hold("toboggan", tb);
+        // cannonball: knees to the chest, both hands down on the deck
+        PoseDef cnb = tuckPose();
+        cnb.hips(0, 0.02f, 0.02f).set(RJ_Spine, -42).set(RJ_Chest, -16).set(RJ_Neck, 38).set(RJ_Head, 10);
+        cnb.pair(RJ_ThighL, RJ_ThighR, 112, 0, 12).pair(RJ_ShinL, RJ_ShinR, -132).pair(RJ_UpperArmL, RJ_UpperArmR, 22, 0, 8).pair(RJ_LowerArmL, RJ_LowerArmR, 14);
+        hold("cannonball", cnb);
+        // nothing: hands and feet off at the same time, spread out in the air
+        PoseDef no = B;
+        no.hips(0, 0.0f, 0.0f).set(RJ_Spine, 4).set(RJ_Chest, 6).set(RJ_Head, -6);
+        no.pair(RJ_UpperArmL, RJ_UpperArmR, 26, 0, 104).pair(RJ_LowerArmL, RJ_LowerArmR, 18);
+        no.pair(RJ_ThighL, RJ_ThighR, -10, 0, 22).pair(RJ_ShinL, RJ_ShinR, -30).pair(RJ_FootL, RJ_FootR, -18);
+        hold("nothing", no);
     }
     // bail: flailing arms
     {
