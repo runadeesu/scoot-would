@@ -125,6 +125,14 @@ bool GrindSystem::tryAttach(const ScooterPhysics& sc, const Vec2& stick, bool ai
     Vec3 deck = P + up * 0.01f;
     Vec3 v = sc.velocity();
     Vec3 vh(v.x, 0, v.z);
+    // from the air the deck has to come down roughly level: not during a vert air, where the scooter points up the
+    // wall past the coping
+    if (airborne && up.y < 0.55f) {
+        lastRejectReason = "not level";
+        return false;
+    }
+    Vec3 fwd = sc.forward();
+    Vec3 fh(fwd.x, 0.0f, fwd.z);
     float best = 1e9f;
     int bestRail = -1;
     float bestS = 0.0f;
@@ -155,6 +163,14 @@ bool GrindSystem::tryAttach(const ScooterPhysics& sc, const Vec2& stick, bool ai
         if (std::fabs(along) < (board ? 0.6f : 1.0f)) {
             lastRejectReason = "too slow along the rail";
             continue;
+        }
+        // copings: a 50-50 needs the scooter set down along the coping (airs, air turns and flairs pass it by)
+        if (r.type == RailType::Coping && airborne) {
+            float align = fh.length() > 0.2f && th.length() > 0.1f ? std::fabs(dot(fh.normalized(), th.normalized())) : 0.0f;
+            if (align < 0.82f || up.y < 0.75f) {
+                lastRejectReason = "not along the coping";
+                continue;
+            }
         }
         float score = dh + std::fabs(dv) * 0.6f;
         if (score < best) {

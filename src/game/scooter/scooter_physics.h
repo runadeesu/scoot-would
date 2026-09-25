@@ -92,6 +92,10 @@ public:
     void setVelocity(const Vec3& v);
     void setAngularVelocity(const Vec3& w);
     void setOrientation(const Quat& q);
+    // turn the scooter and rider round their common centre of mass (a flip played by the game keeps the rider's
+    // path; turning round the axle-height origin would throw the body around)
+    void setOrientationAboutCom(const Quat& q);
+    Vec3 centerOfMass() const { return pos_ + rot_ * Vec3(0.0f, tuning.comHeight, 0.0f); }
     void addVelocity(const Vec3& dv);
 
     // state
@@ -110,6 +114,7 @@ public:
     float airTime() const { return airTime_; }
     float groundTime() const { return groundTime_; }
     Vec3 groundNormal() const { return groundNormal_; }
+    Vec3 lastGroundPoint() const { return lastGroundPoint_; }  // where the wheels last touched (the lip on a take off)
     int groundSurface() const { return groundSurface_; }
     const WheelContact& frontWheel() const { return front_; }
     const WheelContact& rearWheel() const { return rear_; }
@@ -138,6 +143,11 @@ public:
 
     ScooterTuning tuning;
     bool enableAirControl = true;
+    // axis the air spin turns round: world up, or the wall's normal after leaving a quarter / bowl wall (an air turn
+    // turns the rider round their own length, which there points into the ramp)
+    Vec3 spinAxis{0.0f, 1.0f, 0.0f};
+    // over a spine / hip from a steep wall: the nose follows the whole arc so it comes down matching the far wall
+    bool transferAir = false;
 
 private:
     void readBody();
@@ -156,6 +166,7 @@ private:
     float airTime_ = 0.0f, groundTime_ = 0.0f;
     float steerAngle_ = 0.0f;
     float lean_ = 0.0f;
+    Vec3 lastGroundPoint_;
     float pushTimer_ = 0.0f;
     float pushActive_ = 0.0f;
     bool pushQueued_ = false;

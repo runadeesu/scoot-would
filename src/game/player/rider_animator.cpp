@@ -260,7 +260,7 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     leanS_ = dampf(leanS_, p.lean, 8.0f, dt);
     if (spine_ >= 0) {
         Quat& r = pose_.local[size_t(spine_)].rotation;
-        r = (Quat::angleAxis(-leanS_ * 0.35f, Vec3(0, 0, -1)) * Quat::angleAxis(-p.steer * 0.12f, Vec3(0, 1, 0)) * r).normalized();
+        r = (Quat::angleAxis(-leanS_ * 0.2f, Vec3(0, 0, -1)) * Quat::angleAxis(-p.steer * 0.12f, Vec3(0, 1, 0)) * r).normalized();
     }
     // head follows the look direction a little
     lookS_ = dampf(lookS_, clampf(p.lookYaw, -0.8f, 0.8f), 5.0f, dt);

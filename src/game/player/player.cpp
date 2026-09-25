@@ -147,9 +147,28 @@ void Player::enterAir(bool popped) {
     Vec3 nh(n.x, 0.0f, n.z);
     rampAir_ = n.y < 0.6f && nh.lengthSq() > 0.25f;  // wall steeper than ~53 deg
     rampOut_ = rampAir_ ? -nh.normalized() : Vec3(0.0f);
+    scooter.transferAir = false;
+    if (rampAir_) {
+        // only where a deck follows the coping (quarters, bowls): over a spine or a hip the far side drops away
+        // steeply right behind the coping and the rider transfers
+        Vec3 probe = scooter.position() + rampOut_ * 0.8f + Vec3(0.0f, 0.6f, 0.0f);
+        RayHit hit;
+        bool deck = physics().raycast(probe, Vec3(0, -1, 0), 2.2f, hit, kWorldMask, scooter.body()) &&
+                    hit.point.y > scooter.position().y - 0.9f;
+        if (!deck) {
+            rampAir_ = false;
+            scooter.transferAir = true;
+        }
+    }
+    rampNormal_ = rampAir_ ? n.normalized() : Vec3(0, 1, 0);
+    rampLip_ = scooter.lastGroundPoint();
+    scooter.spinAxis = rampNormal_;
+    flairActive_ = flairDone_ = false;
+    airFlipArmed_ = false;
     coyote_ = popped ? 0.0f : 0.12f;
     predictLanding();
     tricks.beginAir(timeToLand_, scooter.fakie());
+    tricks.setSpinAxis(rampNormal_);
 }
 
 void Player::doPop(float timingBonus) {
@@ -353,30 +372,73 @@ void Player::fixedUpdate(float dt, const PlayerInput& in, std::deque<FlickEvent>
             jumpLatch_ = false;
             float spinBtn = (in.spinRight ? 1.0f : 0.0f) - (in.spinLeft ? 1.0f : 0.0f);
             if (in.flow) {
-                // Scooter Flow layout: right stick = rotations, left stick = body weight (small lean)
-                if (!airRotateArmed_ && in.rotate.length() < 0.3f) airRotateArmed_ = true;
-                Vec2 r = airRotateArmed_ ? in.rotate : Vec2(0.0f, 0.0f);
-                c.spin = clampf(r.x + spinBtn, -1.0f, 1.0f);
-                c.flip = std::fabs(r.y) >= 0.45f ? r.y : 0.0f;
-                c.roll = in.move.x * 0.3f;
+                // left stick rotates (x spin, y flip); the right stick stays for the pop, compressing and the RT / LT
+                // tricks. A stick held back or forward into the air (manual) only flips once it came back to the middle.
+                if (!airFlipArmed_ && std::fabs(in.move.y) < 0.35f) airFlipArmed_ = true;
+                c.spin = clampf(in.move.x + spinBtn, -1.0f, 1.0f);
+                c.flip = airFlipArmed_ && std::fabs(in.move.y) >= 0.45f ? in.move.y : 0.0f;
+                c.roll = 0.0f;
             } else {
                 c.spin = clampf(in.move.x + spinBtn, -1.0f, 1.0f);
                 c.flip = in.move.y;
                 c.roll = in.move.x * std::fabs(in.move.y) * 0.8f;
                 if (std::fabs(in.move.y) < 0.35f) c.flip = 0.0f;
             }
-            // transition air: riders steer the scooter back over the ramp with their body, so a mellow lip (70-80 deg)
-            // brings them down the wall instead of out onto the deck. Holding forward means a transfer / air to deck.
-            if (rampAir_ && in.move.y < 0.6f) {
+            // transition air: riders keep themselves over the ramp with their body, so an air out of a quarter or bowl
+            // wall goes up past the coping and comes back down onto the top of the transition, just inside the coping
+            if (rampAir_) {
+                // hold the rider over the top of the transition: the wheels 45 cm inside the coping line. Measured on the
+                // centre of mass (it moves smoothly through flips); square to the wall the body sticks out from the
+                // wheels into the ramp by the centre of mass height.
                 Vec3 v = scooter.velocity();
                 float out = dot(v, rampOut_);
-                if (out > -0.25f) scooter.setVelocity(v - rampOut_ * ((out + 0.25f) * saturate(dt * 5.0f)));
+                float d = dot(scooter.centerOfMass() - rampLip_, rampOut_);
+                float target = -0.45f - scooter.tuning.comHeight * std::max(0.0f, dot(rampNormal_, -rampOut_));
+                float want = clampf((target - d) * 4.0f, -2.2f, 2.2f);
+                scooter.setVelocity(v + rampOut_ * ((want - out) * saturate(dt * 10.0f)));
+                // flair: left stick back and to a side on the way up = backflip with a 180 back into the ramp
+                if (!flairActive_ && !flairDone_ && airTimer_ < 0.5f && in.move.y < -0.55f && std::fabs(in.move.x) > 0.4f &&
+                    timeToLand_ > 0.55f) {
+                    flairActive_ = true;
+                    flairT_ = 0.0f;
+                    flairDur_ = clampf(timeToLand_ - 0.14f, 0.45f, 1.2f);
+                    flairDir_ = in.move.x > 0.0f ? 1.0f : -1.0f;
+                    flairQ0_ = scooter.rotation();
+                    flairRight0_ = scooter.right();
+                    emit(GameEventType::TrickStart, 0, "Flair");
+                }
+            }
+            if (flairActive_) {
+                flairT_ += dt;
+                float u = saturate(flairT_ / flairDur_);
+                float e = u * u * (3.0f - 2.0f * u), de = 6.0f * u * (1.0f - u) / flairDur_;
+                Quat spin = Quat::angleAxis(-flairDir_ * kPi * e, rampNormal_);
+                scooter.setOrientationAboutCom((spin * Quat::angleAxis(kTwoPi * e, flairRight0_) * flairQ0_).normalized());
+                scooter.setAngularVelocity((rampNormal_ * (-flairDir_ * kPi) + (spin * flairRight0_) * kTwoPi) * de);
+                c.spin = c.flip = c.roll = 0.0f;
+                if (u >= 1.0f) {
+                    flairActive_ = false;
+                    flairDone_ = true;
+                    scooter.setAngularVelocity(Vec3(0.0f));
+                }
+            } else if (rampAir_ && timeToLand_ < 0.4f && std::fabs(c.spin) < 0.2f) {
+                // air turns finish square to the wall: whatever is left of the nearest half turn (0 = back in fakie,
+                // 180 = forwards) is turned before the wheels touch
+                float spinRad = tricks.spinDegrees() * kDeg2Rad;
+                float target = std::round(spinRad / kPi) * kPi;
+                float rest = target - spinRad;
+                if (std::fabs(rest) < 0.9f) {
+                    Vec3 w = scooter.angularVelocity();
+                    float cur = dot(w, rampNormal_);
+                    float want = rest / std::max(timeToLand_ - 0.04f, 0.08f);
+                    scooter.setAngularVelocity(w + rampNormal_ * (want - cur));
+                }
             }
             predictLanding();
             tricks.airUpdate(dt, flicks, time, in.grab, in.trickMod, in.alt, in.rightDir, scooter.angularVelocity(), scooter.right(), scooter.forward(), timeToLand_);
             if (tricks.startedThisStep) emit(GameEventType::TrickStart, 0, tricks.lastStarted);
             // landing assist (tilt only, never spins / flips for the player)
-            if (timeToLand_ < 0.3f) {
+            if (timeToLand_ < 0.3f && !flairActive_) {
                 Quat q = landing.assist(scooter.rotation(), landNormal_, timeToLand_, dt);
                 if (q.x != scooter.rotation().x || q.w != scooter.rotation().w) scooter.setOrientation(q);
             }

@@ -133,6 +133,8 @@ public:
 
     // start of an airtime
     void beginAir(float predictedAirtime, bool fakie);
+    // spins are counted round this axis (world up; a quarter's wall normal for airs out of it)
+    void setSpinAxis(const Vec3& a) { spinAxis_ = a; }
     // per physics step while airborne
     // grabAxis / trickAxis: LT / RT held amount, altHeld: a bumper is held (second layer)
     void airUpdate(float dt, std::deque<FlickEvent>& flicks, double now, float grabAxis, float trickAxis, bool altHeld, StickDir rightDir,
@@ -171,6 +173,7 @@ private:
     bool startFakie_ = false;
     float spin_ = 0.0f, flip_ = 0.0f, roll_ = 0.0f;
     float airTime_ = 0.0f;
+    Vec3 spinAxis_{0.0f, 1.0f, 0.0f};
     float predicted_ = 0.0f;
     float grabCooldown_ = 0.0f;
 };

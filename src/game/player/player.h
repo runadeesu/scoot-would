@@ -127,7 +127,15 @@ private:
     float airStartY_ = 0.0f;
     // left a steep transition (quarter / bowl wall): the rider pulls the scooter back over the ramp
     bool rampAir_ = false;
-    Vec3 rampOut_;  // horizontal direction from the ramp out over its deck
+    Vec3 rampOut_;     // horizontal direction from the ramp out over its deck
+    Vec3 rampNormal_;  // the wall's normal at the take off: air turns and flairs turn round it
+    Vec3 rampLip_;     // the take off point (at the coping)
+    // flair on a quarter (backflip + 180): played as one motion over the air time
+    bool flairActive_ = false, flairDone_ = false;
+    float flairT_ = 0.0f, flairDur_ = 0.0f, flairDir_ = 1.0f;
+    Quat flairQ0_;
+    Vec3 flairRight0_;
+    bool airFlipArmed_ = false;  // the left stick has to come back to the middle before it flips (manual / nose held into an air)
     float bailTimer_ = 0.0f;
     std::string bailReason_;
     LandingInfo lastLanding_;

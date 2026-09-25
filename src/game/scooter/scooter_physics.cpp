@@ -111,6 +111,13 @@ void ScooterPhysics::setOrientation(const Quat& q) {
     physics().setTransform(body_, physics().position(body_), rot_, true);
 }
 
+void ScooterPhysics::setOrientationAboutCom(const Quat& q) {
+    Vec3 com = centerOfMass();
+    rot_ = q.normalized();
+    pos_ = com - rot_ * Vec3(0.0f, tuning.comHeight, 0.0f);
+    physics().setTransform(body_, pos_, rot_, true);
+}
+
 void ScooterPhysics::castWheel(WheelContact& w, const Vec3& axleLocal, float dt) {
     Vec3 upW = up();
     Vec3 axle = pos_ + rot_ * axleLocal;
@@ -197,7 +204,20 @@ void ScooterPhysics::keepUpright(float dt, const Controls& c) {
         float t = 1.0f - spd / 1.5f;
         yawRate = lerpf(yawRate, -c.steer * 1.6f, t * damp(6.0f, dt));
     }
-    Vec3 target = desiredUp * yawRate + wAlign;
+    // transitions: the ground turns under the wheels at speed / radius (a quarter hit at 9 m/s turns the scooter at
+    // over 3 rad/s); feed that forward from the curvature between the two wheel contacts so the scooter follows the
+    // curve instead of lagging behind it (the lag leaned the rider into the wall ahead)
+    Vec3 ff(0.0f);
+    if (front_.contact && rear_.contact) {
+        Vec3 axis = cross(rear_.normal, front_.normal);
+        float sa = axis.length();
+        float base = (front_.point - rear_.point).length();
+        if (sa > 1e-4f && base > 0.2f) {
+            float rate = std::asin(clampf(sa, 0.0f, 1.0f)) / base * forwardSpeed();
+            ff = axis / sa * rate;
+        }
+    }
+    Vec3 target = desiredUp * yawRate + wAlign + ff;
     w = lerp(w, target, damp(30.0f, dt));
     physics().setAngularVelocity(body_, w);
 }
@@ -215,7 +235,7 @@ void ScooterPhysics::airControl(float dt, const Controls& c) {
         }
         w += axis * (next - cur);
     };
-    channel(Vec3(0, 1, 0), c.spin, -c.spin * tuning.spinMax, tuning.spinAccel);
+    channel(spinAxis, c.spin, -c.spin * tuning.spinMax, tuning.spinAccel);
     if (std::fabs(c.flip) < 0.12f) {
         // no flip input: the rider lets the nose follow the trajectory (like pulling the bars
         // through the arc of a jump). Only for forward travel with real horizontal speed, so
@@ -228,15 +248,17 @@ void ScooterPhysics::airControl(float dt, const Controls& c) {
         // moving forwards (not fakie) judged on the horizontal heading, rider right side up
         Vec3 fh(f.x, 0, f.z);
         bool forwardTravel = fh.length() > 0.15f && dot(fh.normalized(), Vec3(v.x, 0, v.z).normalized()) > 0.3f && up().y > 0.0f;
-        if (hs > 2.0f && vp.length() > 1.0f && forwardTravel) {
-            // desired nose pitch: half of the trajectory angle, limited so landings stay rideable
+        if ((hs > 2.0f || (transferAir && hs > 0.25f)) && vp.length() > 0.5f && forwardTravel) {
+            // desired nose pitch: half of the trajectory angle, limited so landings stay rideable (a spine transfer
+            // follows it all the way, from up the near wall to down the far one)
             Vec3 hdir = Vec3(v.x, 0, v.z).normalized();
             float traj = std::atan2(v.y, hs);
-            float pitch = clampf(traj * 0.5f, -35.0f * kDeg2Rad, 35.0f * kDeg2Rad);
+            float pitch = transferAir ? clampf(traj, -75.0f * kDeg2Rad, 75.0f * kDeg2Rad)
+                                      : clampf(traj * 0.5f, -35.0f * kDeg2Rad, 35.0f * kDeg2Rad);
             Vec3 desired = (hdir * std::cos(pitch) + Vec3(0, std::sin(pitch), 0)).normalized();
             Vec3 dp = projectOnPlane(desired, R);
             float ang = dp.lengthSq() > 1e-4f ? signedAngle(f, dp.normalized(), R) : 0.0f;
-            float target = clampf(ang * 2.2f, -2.5f, 2.5f);
+            float target = transferAir ? clampf(ang * 5.0f, -6.0f, 6.0f) : clampf(ang * 2.2f, -2.5f, 2.5f);
             float cur = dot(w, R);
             float next = target + (cur - target) * std::exp(-tuning.airAngularDrag * dt);
             w += R * (next - cur);
@@ -254,7 +276,8 @@ Vec3 ScooterPhysics::pop(float crouch01, float timingBonus) {
     readBody();
     // pop perpendicular to the riding surface (ramps, banks, transitions) blended with world up
     Vec3 n = groundNormal_;
-    Vec3 dir = (n * 0.82f + Vec3(0, 1, 0) * 0.18f).normalized();
+    // on a steep wall (quarter / bowl, above ~53 deg) the pop goes up the wall, not back into the ramp
+    Vec3 dir = n.y < 0.6f ? (Vec3(0, 1, 0) * 0.8f + n * 0.2f).normalized() : (n * 0.82f + Vec3(0, 1, 0) * 0.18f).normalized();
     float slope = std::acos(clampf(n.y, -1.0f, 1.0f));
     float surf = surfaces().get(groundSurface_).popFactor;
     float v = (tuning.popBase + tuning.popCrouch * saturate(crouch01)) * surf * (1.0f + timingBonus * 0.12f) + 0.03f * speed();
@@ -308,6 +331,12 @@ void ScooterPhysics::step(float dt, const Controls& c) {
             }
         groundNormal_ = (n / wsum).normalized();
         groundSurface_ = rear_.contact ? rear_.surface : front_.surface;
+        // the wheel that is further along the travel direction touched last on a take off
+        Vec3 fw = forward() * (dot(vel_, forward()) >= 0.0f ? 1.0f : -1.0f);
+        if (front_.contact && rear_.contact)
+            lastGroundPoint_ = dot(front_.point - rear_.point, fw) >= 0.0f ? front_.point : rear_.point;
+        else
+            lastGroundPoint_ = front_.contact ? front_.point : rear_.point;
     } else {
         airTime_ += dt;
         groundTime_ = 0.0f;
@@ -363,7 +392,9 @@ void ScooterPhysics::step(float dt, const Controls& c) {
         // visual carve lean from the lateral acceleration (v^2 / r)
         float yawRate = dot(physics().angularVelocity(body_), groundNormal_);
         float latAcc = yawRate * s * (fakie_ ? 1.0f : -1.0f);
-        float targetLean = clampf(std::atan2(latAcc, 9.81f), -0.6f, 0.6f);
+        // scooter riders turn mostly with the bars and keep their weight over the deck: the deck leans into a carve
+        // only about half of what a bike would (and never more than ~17 deg)
+        float targetLean = clampf(std::atan2(latAcc, 9.81f) * 0.5f, -0.3f, 0.3f);
         lean_ = dampf(lean_, targetLean, 8.0f, dt);
     } else {
         pushActive_ = 0.0f;

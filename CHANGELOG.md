@@ -3,6 +3,26 @@
 ## Unreleased
 
 ### Controls
+- Spins and flips in the air are on the left stick (Scooter Flow layout too); the right stick is only for the pop,
+  compressing and the RT / LT tricks. A stick held back or forward into the air (manual) flips only after it came
+  back to the middle.
+- Flair: out of a quarter or bowl wall, pull the left stick back and to a side on the way up - backflip with a 180,
+  back down into the ramp going forwards.
+
+### Ramps
+- Airs out of a quarter or bowl wall go up past the coping and come back down onto the top of the transition, just
+  inside the coping (a straight air lands fakie; an air turn lands forwards and is squared up to the wall before
+  the wheels touch). Air turns turn round the wall (the rider's own length), not round the world vertical.
+- No more automatic 50-50 on the coping during airs: a coping is only ground into when the scooter comes down along
+  it, deck level.
+- Popping on a steep wall pops up the wall instead of back into the ramp.
+- Fast hits into a quarter no longer throw the rider: the scooter follows the curve of the transition (it used to
+  lag behind and lean the rider into the wall ahead). Over a spine the nose follows the arc over the top.
+
+### Riding (carving)
+- The scooter and rider no longer lean over nearly flat in hard carves: scooter riders turn with the bars, the deck
+  leans into a carve about half as much as a bike would, at most ~17 degrees.
+
 - New default layout modelled on Scooter Flow's twin stick scheme: left stick = body weight (manuals),
   right stick down = compress / pump, flick up = pop, right stick in the air = spins and flips, RT + right
   stick = scooter tricks (right tailwhip, left heelwhip, RT right then RT left = whip rewind), LT + right stick

@@ -1,0 +1,1 @@
+{"name": "spine_transfer", "map": "assets/scenes/maple_grove.json", "spawn": [-23.5, -1.37, -9], "yaw": -90, "velocity": [7.6, 0, 0], "duration": 3.5, "steps": [{"t": 0.1, "push": false}], "expect": [{"noBail": true}], "screenshots": []}

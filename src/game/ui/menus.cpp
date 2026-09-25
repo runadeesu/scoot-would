@@ -1024,9 +1024,13 @@ void Menus::drawMoveList(Context& ui, const Rect& area) {
         row("Compress / pump (hold)", stickDir(true, StickDir::Down));
         row("Pop (flick up)", stickDir(true, StickDir::Up));
         row("Spin / flip in the air", [&](float x, float yy) {
-            x += glyphs::stick(ui, true, StickDir::None, x, yy, gh, pad) + 6;
+            x += glyphs::stick(ui, false, StickDir::None, x, yy, gh, pad) + 6;
             x += glyphs::action(ui, Action::SpinLeft, x, yy, gh, pad) + 4;
             return x + glyphs::action(ui, Action::SpinRight, x, yy, gh, pad);
+        });
+        row("Flair (air out of a quarter: back + side)", [&](float x, float yy) {
+            x += glyphs::stick(ui, false, StickDir::DownLeft, x, yy, gh, pad) + 6;
+            return x + glyphs::stick(ui, false, StickDir::DownRight, x, yy, gh, pad);
         });
         row("Tailwhip (hold: double, triple, quad)", combo(Action::TrickMod, StickDir::Right));
         row("Heelwhip", combo(Action::TrickMod, StickDir::Left));
@@ -1108,12 +1112,12 @@ void Menus::drawTrickList(Context& ui, const Rect& area) {
             y += 40;
         }
     }
-    const char* note = flow ? "(+) hold the stick or repeat the input: double, triple, quad. Spins and flips: right stick or LB / RB without a trigger. "
+    const char* note = flow ? "(+) hold the stick or repeat the input: double, triple, quad. Spins and flips: left stick or LB / RB. "
                               "Tricks link: start the next one as the last one finishes (tailwhip, bri flip, tailwhip = Buttercup). Names follow "
                               "the riders' way: body trick first, then the scooter tricks (540 Flair, 360 Whip, Flair Quad Whip Bar, Truck Driver)."
                             : "(+) repeat the input: double, triple, quad. Spins and flips: left stick or LB / RB. Names follow the riders' way: body "
                               "trick first, then the scooter tricks (540 Flair, 360 Whip, Flair Quad Whip Bar, Truck Driver).";
-    ui.paragraph(note, Rect(area.x + 28, area.y + area.h - 96, area.w - 56, 90), 19.0f, ui.theme().textDim);
+    ui.paragraph(T(note), Rect(area.x + 28, area.y + area.h - 96, area.w - 56, 90), 19.0f, ui.theme().textDim);
 }
 
 void Menus::drawPause(Context& ui) {

@@ -247,7 +247,7 @@ void TrickSystem::airUpdate(float dt, std::deque<FlickEvent>& flicks, double now
     startedThisStep = false;
     if (!inAir_) return;
     airTime_ += dt;
-    spin_ += dot(angVel, Vec3(0, 1, 0)) * dt;
+    spin_ += dot(angVel, spinAxis_) * dt;
     flip_ += dot(angVel, bodyRight) * dt;
     roll_ += dot(angVel, bodyForward) * dt;
 

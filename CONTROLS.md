@@ -14,10 +14,10 @@ bindings (`<user folder>/input_flow.json`, `input_classic.json`). Defaults: `con
 
 | input | on the ground | in the air |
 |---|---|---|
-| Left stick | carve / lean; back = manual, forward = nose manual | small body lean |
-| Right stick down (hold) | compress: charges the pop, pumps through transitions | spin / flip |
-| Right stick up (flick) | pop (stronger after compressing) | spin / flip |
-| Right stick left / right | - | spin |
+| Left stick | carve / lean; back = manual, forward = nose manual | spin (left / right), flip (back = backflip, forward = front flip) |
+| Left stick back + side, out of a quarter | - | flair (backflip with a 180 back into the ramp) |
+| Right stick down (hold) | compress: charges the pop, pumps through transitions | - |
+| Right stick up (flick) | pop (stronger after compressing) | - |
 | A | push | - |
 | B | brake | - |
 | RT + right stick | - | scooter tricks (push the stick all the way) |
@@ -41,8 +41,11 @@ Scooter tricks (hold RT):
 | up-right / up-left / down-right | Scooter flip / Bri flip / Kickless |
 
 Grabs (hold LT): up = no hander, left = one hand, right = can can, down = no footer, diagonals = deck grab.
-Spins and flips are free: rotate with the right stick (or LB / RB) and land straight; a backflip with a 180
-becomes a flair.
+Spins and flips are free: rotate with the left stick (or LB / RB) and land straight; a backflip with a 180
+becomes a flair. Airs out of a quarter or bowl wall go up past the coping and come back down onto the top of the
+transition (a straight air lands fakie, a 180 air turn lands forwards; the turn is squared up to the wall before
+the landing). Pulling the left stick back and to a side on the way up does a flair. Over a spine the rider
+transfers to the other side. Copings are only ground into when the scooter comes down along them.
 
 Keyboard: WASD = left stick, arrow keys = right stick, Space = pop (hold to compress), Left Shift = push,
 Left Ctrl = brake, F = trick (RT), G = grab (LT), Q / E = spin, V = revert, Tab = camera, C = checkpoint,

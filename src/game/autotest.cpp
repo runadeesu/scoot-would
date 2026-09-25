@@ -190,6 +190,7 @@ bool Autotest::check(const Json& c, Player& p, std::string& detail) {
     };
     if (c.contains("trick") && !contains(landedTricks_, c["trick"].get<std::string>())) fail("trick '%s' not landed", c["trick"].get<std::string>().c_str());
     if (c.contains("grind") && !contains(grinds_, c["grind"].get<std::string>())) fail("grind '%s' not started", c["grind"].get<std::string>().c_str());
+    if (c.value("noGrind", false) && !grinds_.empty()) fail("grind '%s' started", grinds_.front().c_str());
     if (c.contains("manual") && !contains(manuals_, c["manual"].get<std::string>())) fail("manual '%s' not started", c["manual"].get<std::string>().c_str());
     if (c.contains("landing") && !contains(landings_, c["landing"].get<std::string>())) fail("landing '%s' not seen", c["landing"].get<std::string>().c_str());
     if (c.contains("comboMin") && p.combo.totalScore() + p.combo.comboTotal() < c["comboMin"].get<int>())
