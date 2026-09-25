@@ -851,7 +851,8 @@ void Menus::drawSettings(Context& ui) {
         if (ui.toggle("Ambient Occlusion", G.ssao, R())) video = true;
         if (ui.toggle("Bloom", G.bloom, R())) video = true;
         if (ui.toggle("Motion Blur", G.motionBlur, R())) video = true;
-        if (ui.toggle("Anti-Aliasing (FXAA)", G.fxaa, R())) video = true;
+        const char* aa[] = {"Off", "FXAA", "TAA (temporal)"};
+        if (int d = ui.choice("Anti-Aliasing", aa[G.antiAliasing], R())) { G.antiAliasing = (G.antiAliasing + d + 3) % 3; video = true; }
         if (ui.toggle("Sharpening", G.sharpen, R())) video = true;
         if (ui.slider("Draw Distance", G.drawDistance, 200.0f, 1200.0f, 50.0f, R(), "%.0f m", 1.0f)) video = true;
         const char* lq[] = {"Low", "Medium", "High", "Ultra"};

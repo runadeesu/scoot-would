@@ -36,3 +36,15 @@ void meshVertex(InstanceData inst, out vec3 worldPos, out vec3 worldNormal, out 
     worldNormal = normalize(nm * ln);
     worldTangent = vec4(normalize(mat3(inst.model) * lt), inTangent.w);
 }
+
+// position of the vertex in the previous frame (previous transform and bone palette) for motion vectors
+vec3 meshPrevPosition(InstanceData inst) {
+    vec4 lp = vec4(inPos, 1.0);
+#ifdef SKINNED
+    uint b = uint(inst.misc.x) + uint(frame.taa.z);
+    mat4 skin = inWeights.x * bones[b + inJoints.x] + inWeights.y * bones[b + inJoints.y] +
+                inWeights.z * bones[b + inJoints.z] + inWeights.w * bones[b + inJoints.w];
+    lp = skin * lp;
+#endif
+    return (inst.prevModel * lp).xyz;
+}

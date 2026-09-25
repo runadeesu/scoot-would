@@ -1,8 +1,8 @@
 // scoot would - main renderer (SDL3 GPU; D3D12 / Vulkan)
 //
 // Frame: upload -> shadow cascades -> depth/normal prepass -> SSAO -> forward PBR opaque
-//        -> sky -> transparent + particles -> debug lines -> motion blur (opt.) -> bloom
-//        -> tone map / grading -> FXAA + upscale + sharpen -> UI + ImGui -> present
+//        -> sky -> transparent + particles -> debug lines -> TAA resolve -> motion blur (opt.) -> bloom
+//        -> tone map / grading -> FXAA (opt.) + upscale + sharpen -> UI + ImGui -> present
 #pragma once
 
 #include "core/math.h"
@@ -38,7 +38,7 @@ struct RenderSettings {
     int shadowQuality = 3;  // 0 off, 1 low, 2 medium, 3 high, 4 ultra
     bool ssao = true;
     bool bloom = true;
-    bool fxaa = true;
+    int antiAliasing = 2;  // 0 off, 1 FXAA, 2 TAA
     bool motionBlur = false;
     float motionBlurStrength = 0.35f;
     float renderScale = 1.0f;
@@ -68,6 +68,8 @@ public:
     bool renderFrame(RenderScene& scene, const RenderView& view, const UIDrawList* ui, const RenderCallbacks& cb, float dt);
 
     void requestScreenshot(const std::string& absPath) { screenshotPath_ = absPath; }
+    // camera cut: the next frame starts without temporal history (TAA, motion blur)
+    void resetHistory() { taaValid_ = false; hasPrev_ = false; }
     void setFlash(const Vec4& rgbAmount) { flash_ = rgbAmount; }
     SDL_GPUTextureFormat backbufferFormat() const;
     int outputWidth() const { return outW_; }
@@ -121,6 +123,10 @@ private:
 
     // targets
     GpuTexture depth_, normals_, hdr_, hdrTemp_, ldr_, backbuffer_, ssao_, ssaoTemp_;
+    GpuTexture taaHistory_[2];  // ping-pong: resolved result of this frame / previous frame
+    int taaIndex_ = 0;
+    bool taaValid_ = false;
+    uint32_t taaFrame_ = 0, taaPhase_ = 0;  // phase 1..8 while TAA runs (jitter / noise index), 0 = off
     std::vector<GpuTexture> bloom_;
     GpuTexture shadowMap_;
     int shadowSize_ = 0, shadowLayers_ = 0;
@@ -153,6 +159,7 @@ private:
     GfxPipeline *sky_ = nullptr, *ssaoPipe_ = nullptr, *ssaoBlur_ = nullptr, *bloomDown_ = nullptr, *bloomUp_ = nullptr;
     GfxPipeline *tonemap_ = nullptr, *fxaa_ = nullptr, *motionBlur_ = nullptr, *debugLines_ = nullptr, *debugLinesNoDepth_ = nullptr;
     GfxPipeline *particlesAlpha_ = nullptr, *particlesAdd_ = nullptr, *ui_ = nullptr, *present_ = nullptr, *prefilter_ = nullptr, *brdfPipe_ = nullptr;
+    GfxPipeline* taa_ = nullptr;
 
     // buffers
     DynBuffer instanceBuf_, visibleBuf_, boneBuf_, lightBuf_, lineBuf_, particleBuf_, uiVertBuf_, uiIndexBuf_;
@@ -166,9 +173,12 @@ private:
             cascadeTexel;
         Vec4 sh[9];
         Vec4 extra;  // x = night, y = contact shadows, z = GI volume, w = urban reflection
+        Vec4 taa;    // xy = jitter (NDC), z = previous bone palette offset, w = TAA phase (1..8, 0 = off)
     } frame_{};
-    Mat4 prevViewProj_;
+    Mat4 prevViewProj_;  // unjittered
+    Vec3 prevCamPos_, prevCamFwd_{0, 0, -1};
     bool hasPrev_ = false;
+    std::vector<Mat4> prevBones_, boneUpload_;  // skinning palette of the previous frame (motion vectors)
     std::vector<uint32_t> visibleIndices_;
     std::vector<DrawBatch> mainBatches_, transparentBatches_, shadowBatches_[4];
     std::vector<uint32_t> scratchObjs_;

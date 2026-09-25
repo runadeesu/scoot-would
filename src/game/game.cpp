@@ -185,7 +185,7 @@ void Game::applySettings(bool video) {
     rs.shadowQuality = s.graphics.shadowQuality;
     rs.ssao = s.graphics.ssao;
     rs.bloom = s.graphics.bloom;
-    rs.fxaa = s.graphics.fxaa;
+    rs.antiAliasing = opts_.antiAliasing >= 0 ? opts_.antiAliasing : s.graphics.antiAliasing;
     rs.motionBlur = s.graphics.motionBlur;
     rs.renderScale = s.graphics.renderScale;
     rs.anisotropy = float(s.graphics.anisotropy);
@@ -855,8 +855,9 @@ void Game::update(float dt, float alpha) {
 }
 
 void Game::render(float dt, float alpha) {
-    // scripted tests only render the frames that take screenshots (much faster on software GPUs)
-    if (autotest_ && !(nextShot_ < autotest_->screenshotTimes.size() && testTime_ + 1.0 / 60.0 >= autotest_->screenshotTimes[nextShot_]) &&
+    // scripted tests only render the frames leading up to a screenshot (much faster on software GPUs); a few
+    // frames before it so temporal effects (TAA, motion blur) have their history as in a real game
+    if (autotest_ && !(nextShot_ < autotest_->screenshotTimes.size() && testTime_ + 0.25 >= autotest_->screenshotTimes[nextShot_]) &&
         !pendingShot_)
         return;
     pendingShot_ = false;

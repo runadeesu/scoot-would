@@ -27,6 +27,7 @@ struct FrameData {
     vec4 cascadeTexel;   // world size of one shadow texel per cascade
     vec4 sh[9];          // irradiance SH coefficients (rgb)
     vec4 extra;          // x = night (lamps on), y = contact shadows, z = GI volume, w = urban reflection amount
+    vec4 taa;            // xy = sub pixel jitter (NDC), z = offset of the previous bone palette, w = TAA phase 1..8 (0 = off)
 };
 
 struct InstanceData {
@@ -36,6 +37,7 @@ struct InstanceData {
     vec4 nrm2;
     vec4 tint;   // rgb tint, a = tint amount
     vec4 misc;   // x = bone offset, y = dither fade, z = unused, w = object id
+    mat4 prevModel;  // transform used in the previous frame (motion vectors)
 };
 
 struct LightData {

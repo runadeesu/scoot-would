@@ -71,11 +71,13 @@ RenderScene::Handle RenderScene::add(const RenderObject& obj) {
         alive_.push_back(1);
         instances_.push_back(InstanceGpu{});
         visit_.push_back(0);
+        movedFlag_.push_back(0);
     }
     ++liveCount_;
     RenderObject& o = objects_[h];
     if (o.mesh) o.worldBounds = o.mesh->bounds.transformed(o.world);
     writeInstance(h);
+    instances_[h].prevModel = o.world;
     if (!o.isStatic)
         dynamic_.push_back(h);
     else if (grid_.valid())
@@ -109,6 +111,10 @@ void RenderScene::setTransform(Handle h, const Mat4& world) {
         grid_.insert(h, o.worldBounds);
     }
     writeInstance(h);
+    if (!movedFlag_[h]) {
+        movedFlag_[h] = 1;
+        moved_.push_back(h);
+    }
 }
 
 void RenderScene::setVisible(Handle h, bool visible) {
@@ -167,6 +173,16 @@ bool RenderScene::takeDirtyRange(uint32_t& first, uint32_t& count) {
     return true;
 }
 
+void RenderScene::commitMotion() {
+    for (Handle h : moved_) {
+        if (h >= instances_.size()) continue;
+        movedFlag_[h] = 0;
+        instances_[h].prevModel = instances_[h].model;
+        markDirty(h);
+    }
+    moved_.clear();
+}
+
 void RenderScene::markAllDirty() {
     if (instances_.empty()) return;
     dirtyMin_ = 0;
@@ -217,6 +233,8 @@ void RenderScene::clear() {
     instances_.clear();
     visit_.clear();
     dynamic_.clear();
+    moved_.clear();
+    movedFlag_.clear();
     liveCount_ = 0;
     lights_.clear();
     lightAlive_.clear();

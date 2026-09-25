@@ -123,9 +123,13 @@ void main() {
 
     vec3 diffuse = vec3(0.0), specular = vec3(0.0);
 
+    // ambient occlusion (r) and contact shadows (g) from the SSAO pass
+    vec2 ssaoCs = frame.misc.z > 0.5 ? texture(texSSAO, screenUV).rg : vec2(1.0);
+
     // sun
     vec3 L = normalize(frame.sunDir.xyz);
     float shadow = sampleShadow(texShadow, vWorldPos, normalize(vNormal), L, viewDepth, gl_FragCoord.xy);
+    shadow = min(shadow, ssaoCs.g);
     {
         vec3 d;
         vec3 s = brdfDirect(N, V, L, albedo, metal, rough, f0, d);
@@ -169,7 +173,7 @@ void main() {
     float NoV = clamp(dot(N, V), 1e-4, 1.0);
     vec3 F = F_SchlickRoughness(f0, NoV, rough);
     vec2 brdf = texture(texBRDF, vec2(NoV, rough)).rg;
-    float ssao = frame.misc.z > 0.5 ? texture(texSSAO, screenUV).r : 1.0;
+    float ssao = ssaoCs.r;
     float occlusion = min(ao, ssao);
     float iblScale = frame.sunColor.w;
     vec3 irradiance = evalSH(frame.sh, N) * iblScale;

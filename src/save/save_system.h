@@ -27,7 +27,7 @@ struct GraphicsSettings {
     bool ssao = true;
     bool bloom = true;
     bool motionBlur = false;
-    bool fxaa = true;
+    int antiAliasing = 2;        // 0 off, 1 FXAA, 2 TAA
     bool sharpen = true;
     float drawDistance = 700.0f;
     float lodBias = 1.0f;

@@ -71,7 +71,7 @@ Json SaveSystem::toJson(const Settings& s) {
     j["graphics"] = {{"windowMode", g.windowMode},   {"width", g.width},          {"height", g.height},
                      {"vsync", g.vsync},             {"fpsLimit", g.fpsLimit},    {"renderScale", g.renderScale},
                      {"shadowQuality", g.shadowQuality}, {"textureQuality", g.textureQuality}, {"ssao", g.ssao},
-                     {"bloom", g.bloom},             {"motionBlur", g.motionBlur}, {"fxaa", g.fxaa},
+                     {"bloom", g.bloom},             {"motionBlur", g.motionBlur}, {"antiAliasing", g.antiAliasing},
                      {"sharpen", g.sharpen},         {"drawDistance", g.drawDistance}, {"lodBias", g.lodBias},
                      {"fov", g.fov},                 {"brightness", g.brightness}, {"anisotropy", g.anisotropy},
                      {"particles", g.particles}};
@@ -101,7 +101,10 @@ Settings SaveSystem::settingsFromJson(const Json& j) {
     G.ssao = jget<bool>(g, "ssao", G.ssao);
     G.bloom = jget<bool>(g, "bloom", G.bloom);
     G.motionBlur = jget<bool>(g, "motionBlur", G.motionBlur);
-    G.fxaa = jget<bool>(g, "fxaa", G.fxaa);
+    if (g.contains("antiAliasing"))
+        G.antiAliasing = std::clamp(jget<int>(g, "antiAliasing", G.antiAliasing), 0, 2);
+    else if (g.contains("fxaa"))
+        G.antiAliasing = jget<bool>(g, "fxaa", true) ? 2 : 0;  // settings from before TAA
     G.sharpen = jget<bool>(g, "sharpen", G.sharpen);
     G.drawDistance = clampf(jget<float>(g, "drawDistance", G.drawDistance), 150.0f, 1500.0f);
     G.lodBias = clampf(jget<float>(g, "lodBias", G.lodBias), 0.25f, 4.0f);

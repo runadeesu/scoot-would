@@ -31,13 +31,20 @@ Forward PBR (glTF metallic / roughness) with reverse Z and a depth prepass:
 
 1. uploads (instances, bones, lights; textures in chunked uploads)
 2. shadow cascades (up to 4, texel snapped)
-3. depth + normal prepass, SSAO (half resolution, bilateral blur)
+3. depth + normal + motion prepass (per pixel screen motion from the camera, each object's previous transform
+   and the rider's previous bone palette), SSAO + sun contact shadows (half resolution ray march through the
+   depth buffer, bilateral blur)
 4. forward PBR: sun with PCF shadows, up to 64 local lights, image based ambient (SH9 irradiance + GGX
    prefiltered cube from the HDRI), specular occlusion, shading models: standard, skin (wrap + subsurface tint),
    cloth (sheen), interior mapped windows, foliage (translucency)
 5. sky, transparent surfaces and decals, particles
-6. motion blur (optional), bloom (13 tap down / tent up chain), ACES tone mapping and grading, FXAA +
-   sharpening, UI, present
+6. TAA: the projection is jittered by a Halton (2, 3) sub pixel offset every frame; the resolve reprojects the
+   previous result with the motion buffer (nearest depth motion in a 3x3 block), fetches it with a 5 tap
+   Catmull-Rom filter, clips it to a YCoCg variance box of the current neighbourhood and blends it with the
+   current frame reconstructed at the pixel centre (weights in a luminance compressed range). Camera cuts
+   reset the history.
+7. motion blur (optional), bloom (13 tap down / tent up chain), ACES tone mapping and grading, FXAA (when
+   selected instead of TAA) + sharpening, UI, present
 
 Environments come from photographed HDRIs (Poly Haven, CC0). Recently used environments stay resident so the
 street and the scooter shop interior switch without reprocessing. Interior HDRIs skip the synthetic ground

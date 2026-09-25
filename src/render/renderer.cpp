@@ -46,8 +46,8 @@ namespace {
 
 constexpr SDL_GPUTextureFormat kDepthFormat = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
 constexpr SDL_GPUTextureFormat kHdrFormat = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;
-constexpr SDL_GPUTextureFormat kNormalFormat = SDL_GPU_TEXTUREFORMAT_R16G16_FLOAT;
-constexpr SDL_GPUTextureFormat kAoFormat = SDL_GPU_TEXTUREFORMAT_R8_UNORM;
+constexpr SDL_GPUTextureFormat kNormalFormat = SDL_GPU_TEXTUREFORMAT_R16G16B16A16_FLOAT;  // oct normal + motion
+constexpr SDL_GPUTextureFormat kAoFormat = SDL_GPU_TEXTUREFORMAT_R8G8_UNORM;  // ambient occlusion, contact shadow
 constexpr SDL_GPUTextureFormat kLdrFormat = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
 constexpr int kMaxLights = 64;
 constexpr int kBloomLevels = 6;
@@ -177,7 +177,8 @@ void Renderer::applySettings(const RenderSettings& s) {
 }
 
 void Renderer::releaseTargets() {
-    for (GpuTexture* t : {&depth_, &normals_, &hdr_, &hdrTemp_, &ldr_, &backbuffer_, &ssao_, &ssaoTemp_}) gpu().release(*t);
+    for (GpuTexture* t : {&depth_, &normals_, &hdr_, &hdrTemp_, &ldr_, &backbuffer_, &ssao_, &ssaoTemp_, &taaHistory_[0], &taaHistory_[1]})
+        gpu().release(*t);
     for (auto& b : bloom_) gpu().release(b);
     bloom_.clear();
     for (auto& b : backdrop_) gpu().release(b);
@@ -195,6 +196,8 @@ void Renderer::createTargets(int w, int h) {
     normals_ = gpu().createTexture2D(uint32_t(rw_), uint32_t(rh_), kNormalFormat, rt, 1, "normals");
     hdr_ = gpu().createTexture2D(uint32_t(rw_), uint32_t(rh_), kHdrFormat, rt, 1, "hdr");
     hdrTemp_ = gpu().createTexture2D(uint32_t(rw_), uint32_t(rh_), kHdrFormat, rt, 1, "hdr temp");
+    for (auto& t : taaHistory_) t = gpu().createTexture2D(uint32_t(rw_), uint32_t(rh_), kHdrFormat, rt, 1, "taa history");
+    taaValid_ = false;
     ldr_ = gpu().createTexture2D(uint32_t(rw_), uint32_t(rh_), kLdrFormat, rt, 1, "ldr");
     int hw = std::max(1, rw_ / 2), hh = std::max(1, rh_ / 2);
     ssao_ = gpu().createTexture2D(uint32_t(hw), uint32_t(hh), kAoFormat, rt, 1, "ssao");
@@ -238,6 +241,7 @@ void Renderer::createPipelines() {
         PipelineDesc z = d;
         z.name = std::string("prepass") + std::to_string(p);
         z.fragment = "depth.frag";
+        z.defines = d.defines.empty() ? "PREPASS" : d.defines + ";PREPASS";
         z.colorFormats = {kNormalFormat};
         z.depthWrite = true;
         z.depthCompare = SDL_GPU_COMPAREOP_GREATER;
@@ -328,6 +332,7 @@ void Renderer::createPipelines() {
     bloomDown_ = post("bloom down", "bloom_down.frag", kHdrFormat);
     bloomUp_ = post("bloom up", "bloom_up.frag", kHdrFormat, PipelineDesc::Blend::Additive);
     motionBlur_ = post("motion blur", "motion_blur.frag", kHdrFormat);
+    taa_ = post("taa", "taa.frag", kHdrFormat);
     tonemap_ = post("tonemap", "postprocess.frag", kLdrFormat);
     fxaa_ = post("fxaa", "fxaa.frag", gpu().swapchainFormat());
     present_ = post("present", "present.frag", gpu().swapchainFormat());
@@ -953,6 +958,29 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
         view.viewProj = view.proj * view.view;
     }
     const Environment& env = scene.environment;
+    // a camera cut (respawn, menu -> shop) cannot be reprojected: start the temporal effects over
+    if (hasPrev_ && (distance(view.position, prevCamPos_) > 6.0f || dot(view.forward, prevCamFwd_) < 0.5f)) resetHistory();
+    const Mat4 viewProjNoJitter = view.viewProj;
+    const bool taa = settings_.antiAliasing == 2 && taa_ && taa_->valid();
+    Vec2 jitter(0.0f, 0.0f);
+    if (taa) {
+        // Halton (2, 3) sub pixel offsets, 8 frame cycle
+        auto halton = [](uint32_t i, uint32_t b) {
+            float f = 1.0f, r = 0.0f;
+            for (; i > 0; i /= b) {
+                f /= float(b);
+                r += f * float(i % b);
+            }
+            return r;
+        };
+        taaPhase_ = taaFrame_++ % 8u + 1u;
+        jitter = Vec2((halton(taaPhase_, 2) - 0.5f) * 2.0f / float(rw_), (halton(taaPhase_, 3) - 0.5f) * 2.0f / float(rh_));
+        view.proj = Mat4::translation(Vec3(jitter.x, jitter.y, 0.0f)) * view.proj;
+        view.viewProj = view.proj * view.view;
+    } else {
+        taaValid_ = false;
+        taaPhase_ = 0;
+    }
 
     Profiler::begin(ProfileSection::RenderPrep);
     // frame constants
@@ -960,7 +988,7 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
     frame_.proj = view.proj;
     frame_.viewProj = view.viewProj;
     frame_.invViewProj = view.viewProj.inverse();
-    frame_.prevViewProj = hasPrev_ ? prevViewProj_ : view.viewProj;
+    frame_.prevViewProj = hasPrev_ ? prevViewProj_ : viewProjNoJitter;
     frame_.invView = view.view.affineInverse();
     frame_.invProj = view.proj.inverse();
     frame_.cameraPos = Vec4(view.position, time_);
@@ -1015,6 +1043,7 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
     }
     frame_.misc = Vec4(exposure, float(lightCount_), settings_.ssao ? 1.0f : 0.0f, float(settings_.debugView));
     frame_.extra = Vec4(env.lampsOn ? 1.0f : 0.0f, 0.0f, 0.0f, env.urbanReflection);
+    frame_.taa = Vec4(jitter.x, jitter.y, float(scene.bones().size()), float(taaPhase_));
 
     cullAndBatch(scene, view);
 
@@ -1067,7 +1096,14 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
     visibleBuf_.name = "visible";
     if (!visibleIndices_.empty()) uploadDynamic(copy, visibleBuf_, visibleIndices_.data(), uint32_t(visibleIndices_.size() * 4));
     boneBuf_.name = "bones";
-    if (!scene.bones().empty()) uploadDynamic(copy, boneBuf_, scene.bones().data(), uint32_t(scene.bones().size() * sizeof(Mat4)));
+    if (!scene.bones().empty()) {
+        // current palette followed by the previous one (motion vectors of the skinned rider)
+        const auto& bones = scene.bones();
+        if (prevBones_.size() != bones.size() || !hasPrev_) prevBones_ = bones;
+        boneUpload_.assign(bones.begin(), bones.end());
+        boneUpload_.insert(boneUpload_.end(), prevBones_.begin(), prevBones_.end());
+        uploadDynamic(copy, boneBuf_, boneUpload_.data(), uint32_t(boneUpload_.size() * sizeof(Mat4)));
+    }
     lightBuf_.name = "lights";
     if (!lights.empty()) uploadDynamic(copy, lightBuf_, lights.data(), uint32_t(lights.size() * sizeof(LightGpu)));
     lineBuf_.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
@@ -1199,10 +1235,24 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
 
     // post processing ------------------------------------------------------------------
     GpuTexture* src = &hdr_;
+    if (taa) {
+        GpuTexture& out = taaHistory_[taaIndex_];
+        GpuTexture& history = taaHistory_[taaIndex_ ^ 1];
+        Vec4 params(taaValid_ ? 1.0f : 0.0f, 0.08f, 0.22f, 0.0f);
+        fullscreen(cmd, out.handle, 0, taa_,
+                   {{hdr_.handle, gpu().sampler(SamplerKind::PointClamp)},
+                    {history.handle, gpu().sampler(SamplerKind::LinearClamp)},
+                    {depth_.handle, gpu().sampler(SamplerKind::PointClamp)},
+                    {normals_.handle, gpu().sampler(SamplerKind::PointClamp)}},
+                   &params, sizeof(params), true, true);
+        src = &out;
+        taaIndex_ ^= 1;
+        taaValid_ = true;
+    }
     if (settings_.motionBlur && hasPrev_) {
         Vec4 params(settings_.motionBlurStrength, 0.035f, 0, 0);
         fullscreen(cmd, hdrTemp_.handle, 0, motionBlur_,
-                   {{hdr_.handle, gpu().sampler(SamplerKind::LinearClamp)}, {depth_.handle, gpu().sampler(SamplerKind::PointClamp)}},
+                   {{src->handle, gpu().sampler(SamplerKind::LinearClamp)}, {depth_.handle, gpu().sampler(SamplerKind::PointClamp)}},
                    &params, sizeof(params), true, true);
         src = &hdrTemp_;
     }
@@ -1236,8 +1286,9 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
         }
     }
     {
-        float sharpen = settings_.sharpen ? (settings_.renderScale < 0.99f ? 1.0f : 0.35f) : 0.0f;
-        Vec4 params(1.0f / float(rw_), 1.0f / float(rh_), settings_.fxaa ? 1.0f : 0.0f, sharpen);
+        // TAA softens a little: sharpen a bit more to keep the texture detail
+        float sharpen = settings_.sharpen ? (settings_.renderScale < 0.99f ? 1.0f : taa ? 0.6f : 0.35f) : 0.0f;
+        Vec4 params(1.0f / float(rw_), 1.0f / float(rh_), settings_.antiAliasing == 1 ? 1.0f : 0.0f, sharpen);
         fullscreen(cmd, backbuffer_.handle, 0, fxaa_, {{ldr_.handle, gpu().sampler(SamplerKind::LinearClamp)}}, &params,
                    sizeof(params), true);
     }
@@ -1307,7 +1358,11 @@ bool Renderer::renderFrame(RenderScene& scene, const RenderView& viewIn, const U
         fullscreen(cmd, swap, 0, present_, {{backbuffer_.handle, gpu().sampler(SamplerKind::LinearClamp)}}, nullptr, 0, false);
     }
     gpu().endFrame(cmd);
-    prevViewProj_ = view.viewProj;
+    prevViewProj_ = viewProjNoJitter;
+    prevCamPos_ = view.position;
+    prevCamFwd_ = view.forward;
+    prevBones_ = scene.bones();
+    scene.commitMotion();
     hasPrev_ = true;
     return true;
 }

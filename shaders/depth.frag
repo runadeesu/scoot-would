@@ -1,5 +1,5 @@
 #version 450
-// depth prepass: writes view space normals (octahedral) for SSAO
+// depth prepass: writes view space normals (octahedral) for SSAO and screen space motion (uv / frame) for TAA
 #include "common.glsl"
 
 layout(location = 0) in vec3 vWorldPos;
@@ -8,8 +8,10 @@ layout(location = 2) in vec4 vTangent;
 layout(location = 3) in vec2 vUV;
 layout(location = 4) in vec4 vTint;
 layout(location = 5) in vec4 vMisc;
+layout(location = 6) in vec4 vClip;
+layout(location = 7) in vec4 vPrevClip;
 
-layout(location = 0) out vec2 outNormal;
+layout(location = 0) out vec4 outNormalMotion;
 
 layout(set = 2, binding = 0) uniform sampler2D texBaseColor;
 layout(set = 3, binding = 0) uniform FrameUBO { FrameData frame; };
@@ -26,5 +28,8 @@ void main() {
     vec3 n = normalize(vNormal);
     if (!gl_FrontFacing) n = -n;
     vec3 vn = normalize(mat3(frame.view) * n);
-    outNormal = octEncode(vn);
+    // motion without the jitter: current and previous positions both in the unjittered projection
+    vec2 motion = vec2(4.0);  // behind the camera last frame: no history
+    if (vPrevClip.w > 1e-4) motion = (vClip.xy / vClip.w - frame.taa.xy - vPrevClip.xy / vPrevClip.w) * vec2(0.5, -0.5);
+    outNormalMotion = vec4(octEncode(vn), motion);
 }

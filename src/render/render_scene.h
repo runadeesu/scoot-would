@@ -104,8 +104,9 @@ struct InstanceGpu {
     Vec4 nrm0, nrm1, nrm2;
     Vec4 tint;
     Vec4 misc;
+    Mat4 prevModel;  // transform of the previous rendered frame (motion vectors)
 };
-static_assert(sizeof(InstanceGpu) == 144, "instance layout");
+static_assert(sizeof(InstanceGpu) == 208, "instance layout");
 
 class RenderScene {
 public:
@@ -148,6 +149,8 @@ public:
     const std::vector<InstanceGpu>& instances() const { return instances_; }
     bool takeDirtyRange(uint32_t& first, uint32_t& count);
     void markAllDirty();
+    // after a frame is rendered: objects moved since the last call remember the transform they were drawn with
+    void commitMotion();
     void clear();
 
     // frame counter based dedup during culling
@@ -163,6 +166,8 @@ private:
     std::vector<InstanceGpu> instances_;
     std::vector<uint32_t> visit_;
     std::vector<uint32_t> dynamic_;
+    std::vector<Handle> moved_;
+    std::vector<uint8_t> movedFlag_;
     size_t liveCount_ = 0;
     uint32_t dirtyMin_ = 0xffffffffu, dirtyMax_ = 0;
     std::vector<LightProxy> lights_;

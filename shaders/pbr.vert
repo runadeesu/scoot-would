@@ -9,6 +9,10 @@ layout(location = 2) out vec4 vTangent;
 layout(location = 3) out vec2 vUV;
 layout(location = 4) out vec4 vTint;
 layout(location = 5) out vec4 vMisc;
+#ifdef PREPASS
+layout(location = 6) out vec4 vClip;
+layout(location = 7) out vec4 vPrevClip;
+#endif
 
 invariant gl_Position;
 
@@ -24,4 +28,8 @@ void main() {
     vTint = inst.tint;
     vMisc = inst.misc;
     gl_Position = frame.viewProj * vec4(wp, 1.0);
+#ifdef PREPASS
+    vClip = gl_Position;
+    vPrevClip = frame.prevViewProj * vec4(meshPrevPosition(inst), 1.0);
+#endif
 }

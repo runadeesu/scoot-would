@@ -23,6 +23,11 @@
   specs and brand marks; live preview, select to equip, save; orbit camera.
 
 ### Rendering
+- Temporal anti-aliasing (default): jittered rendering, motion vectors for the camera, moving objects and the
+  skinned rider, variance clipped history. Thin things (rails, cables, bars, foliage, the scooter) no longer
+  crawl or shimmer. SETTINGS > VIDEO > Anti-Aliasing: Off / FXAA / TAA.
+- Screen space sun contact shadows (shoes on the deck, wheels on the ground, cars on the street) on top of the
+  shadow cascades; ambient occlusion noise now changes every frame and is accumulated by TAA.
 - Tubes (bars, rails, hooks) were built inside out and rendered dark: fixed.
 - Environment cache, interior HDRIs, frosted UI backdrop blur.
 
