@@ -3,6 +3,11 @@
 
 namespace sw {
 
+namespace {
+float approach(float v, float target, float step) { return v < target ? std::min(v + step, target) : std::max(v - step, target); }
+}  // namespace
+
+
 void RiderAnimator::init(SkeletonPtr skel, const std::vector<AnimationClipPtr>& clips) {
     skel_ = skel;
     sm_.setSkeleton(skel_.get());
@@ -261,9 +266,29 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     float pushLeg = 0.0f;
     if (p.pushing && sm_.current() == "push") pushLeg = std::sin(saturate(sm_.currentNormalizedTime()) * kPi);
     backFootW_ = dampf(backFootW_, 1.0f - pushLeg, 25.0f, dt);
+    // stopped: step off with the back foot and stand next to the deck, weight on that leg
+    footDownW_ = approach(footDownW_, p.footDown && st == PlayerState::Riding ? 1.0f : 0.0f, dt * 2.6f);
+    RiderRig r = rig;
+    if (footDownW_ > 0.001f) {
+        float t = footDownW_ * footDownW_ * (3.0f - 2.0f * footDownW_);
+        // the deck top is the model origin: the ground is a wheel radius and the deck height below
+        Vec3 ground(0.27f, -0.113f, 0.06f);
+        Vec3 foot = lerp(rig.footBack, ground, t);
+        foot.y += std::sin(t * kPi) * 0.09f;  // lift the foot over the deck edge
+        r.footBack = foot;
+        if (pelvis_ >= 0) {
+            // hips drop and slide towards the standing leg, the chest settles back
+            float side = p.goofy ? -1.0f : 1.0f;
+            pose_.local[size_t(pelvis_)].position += Vec3(side * 0.045f, -0.025f, 0.03f) * t;
+            pose_.local[size_t(pelvis_)].rotation =
+                (Quat::angleAxis(side * 0.07f * t, Vec3(0, 0, 1)) * Quat::angleAxis(-0.18f * t, Vec3(0, 1, 0) * side) * pose_.local[size_t(pelvis_)].rotation).normalized();
+        }
+        if (spine_ >= 0) pose_.local[size_t(spine_)].rotation = (Quat::angleAxis(-0.06f * t, Vec3(1, 0, 0)) * pose_.local[size_t(spine_)].rotation).normalized();
+    }
+    groundFoot_ = footDownW_;
     applyFace(dt, p.speed);
     applyFingers(dt);
-    applyIK(rig, dt, p.goofy);
+    applyIK(r, dt, p.goofy);
 }
 
 void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
@@ -275,10 +300,12 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
         std::vector<Transform> ms;
         pose_.modelSpace(*skel_, ms);
         Vec3 hip = ms[size_t(ch[0])].position;
-        Vec3 pole = hip + Vec3(sideSign * (back ? -0.22f : 0.08f), -0.35f, -0.6f);
+        Vec3 pole = hip + Vec3(sideSign * (back ? lerpf(-0.22f, 0.12f, groundFoot_) : 0.08f), -0.35f, -0.6f);
         solveTwoBoneIK(*skel_, pose_, ch[0], ch[1], ch[2], sole + ankleOff, pole, w);
-        // keep the sole flat on the deck: front foot points forward, back foot turned out on the tail
-        Quat footRot = Quat::angleAxis(sideSign * (back ? 0.55f : 0.12f), Vec3(0, 1, 0));
+        // keep the sole flat on the deck: front foot points forward, back foot turned out on the tail (and a
+        // little less once it stands on the ground)
+        float turn = back ? lerpf(0.55f, 0.3f, groundFoot_) : 0.12f;
+        Quat footRot = Quat::angleAxis(sideSign * turn, Vec3(0, 1, 0));
         std::vector<Transform> ms2;
         pose_.modelSpace(*skel_, ms2);
         Quat cur = ms2[size_t(ch[2])].rotation;

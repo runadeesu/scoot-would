@@ -256,6 +256,8 @@ void Player::fixedUpdate(float dt, const PlayerInput& in, std::deque<FlickEvent>
         if (state_ != PlayerState::Air) crouchHold_ = 0.0f;
     }
 
+    stoppedTime_ = (state_ == PlayerState::Riding && scooter.grounded() && scooter.speed() < 0.3f && !in.pushPressed) ? stoppedTime_ + dt : 0.0f;
+
     ScooterPhysics::Controls c;
     c.steer = in.move.x;
     c.brake = in.brake;

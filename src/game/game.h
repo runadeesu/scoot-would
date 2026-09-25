@@ -141,7 +141,8 @@ private:
     float menuTime_ = 0.0f;
     RenderView menuView_;
     bool inputFrozen_ = false;
-    bool rsDownPrev_ = false, rsUpPrev_ = false;  // Scooter Flow layout: right stick pop edges
+    bool rsDownPrev_ = false, rsUpPrev_ = false;
+    bool menuSpawn_ = false;  // the player stands at the menu backdrop spawn  // Scooter Flow layout: right stick pop edges
     std::string lastArea_;
     // scooter shop (customization backdrop)
     ShopScene shop_;

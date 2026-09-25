@@ -20,6 +20,10 @@
 
 namespace sw {
 
+namespace {
+const char* kMenuMap = "assets/scenes/street_spot.json";
+}
+
 Game::Game(const GameOptions& opts) : opts_(opts), scene_(&renderScene_) {}
 Game::~Game() = default;
 
@@ -112,6 +116,12 @@ bool Game::init() {
             map = d->map;
             spawn = d->spawn;
         }
+    }
+    bool toMenu = !autotest_ && !opts_.skipMenu && opts_.map.empty() && opts_.challenge.empty();
+    if (map.empty() && toMenu && fs::exists(fs::resolve(kMenuMap))) {
+        // the main menu shows the rider idling at the Street Spot
+        map = kMenuMap;
+        if (spawn.empty()) spawn = "Menu";
     }
     if (map.empty()) {
         map = saves().data().lastMap;
@@ -343,6 +353,7 @@ void Game::spawnPlayerAtDefault() {
 }
 
 bool Game::spawnAt(const std::string& label) {
+    menuSpawn_ = label == "Menu";
     bool found = false;
     scene_.forEach([&](Entity& e) {
         if (found || !e.spawn || e.spawn->label != label) return;
@@ -368,7 +379,11 @@ void Game::startFreeRide(bool respawn) {
     state_ = AppState::Playing;
     menus_->close();
     player_.combo.reset();
-    if (respawn) {
+    if (respawn && menuSpawn_) {
+        // leaving the menu backdrop: ride from the map's start
+        menuSpawn_ = false;
+        spawnPlayerAtDefault();
+    } else if (respawn) {
         player_.respawn(false);
         CameraTarget ct;
         ct.position = player_.position() + Vec3(0, 1.1f, 0);
@@ -422,7 +437,8 @@ void Game::goToMenu() {
     modes_.startFreeRide();
     state_ = AppState::Menu;
     engine().setTimeScale(1.0f);
-    player_.respawn(false);
+    if (mapPath_ == kMenuMap) spawnAt("Menu");
+    else player_.respawn(false);
     menus_->close();
     menus_->open(Menus::Screen::Main, false);
     music().setContext(true);

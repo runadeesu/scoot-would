@@ -66,6 +66,7 @@ public:
     Vec3 position() const { return scooter.valid() ? scooter.position() : ragdoll.centre(); }
     Vec3 velocity() const { return scooter.valid() ? scooter.velocity() : ragdoll.velocity(); }
     float speed() const { return velocity().length(); }
+    float stoppedTime() const { return stoppedTime_; }  // standing still on the ground (rider puts a foot down)
     float crouch() const { return crouch_; }
     float bailTime() const { return bailTimer_; }
     const std::string& bailReason() const { return bailReason_; }
@@ -118,7 +119,8 @@ private:
     bool jumpLatch_ = false;
     float coyote_ = 0.0f;
     float airTimer_ = 0.0f;
-    bool airRotateArmed_ = false;  // Scooter Flow layout: the pop flick must return before the stick rotates
+    bool airRotateArmed_ = false;
+    float stoppedTime_ = 0.0f;  // Scooter Flow layout: the pop flick must return before the stick rotates
     Vec3 pumpNormal_{0, 1, 0};
     float airPeak_ = 0.0f;
     float airStartY_ = 0.0f;

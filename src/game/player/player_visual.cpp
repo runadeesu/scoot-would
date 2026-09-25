@@ -347,6 +347,7 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
     ap.landImpact = player.lastLanding().impact;
     ap.steer = bailed ? 0.0f : player.scooter.steerAngle() / 0.5f;
     ap.goofy = goofy_;
+    ap.footDown = !bailed && player.stoppedTime() > 0.45f && !ap.pushing;
     RiderRig rig;
     rig.gripL = d.gripL() - modelToBody.position;
     rig.gripR = d.gripR() - modelToBody.position;
