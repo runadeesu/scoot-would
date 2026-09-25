@@ -53,6 +53,7 @@ DISPLAY=:99 SCOOT_FFMPEG=/path/to/ffmpeg ./tools/make_trailer.sh     # -> out/tr
   it all.
 
 To check one shot quickly, copy the script with only that shot and a small `width` / `height` and record it.
+The current cut is committed as `dist/trailer/scoot_would_trailer.mp4` (re-encoded at CRF 22 for size).
 
 ## Adding content
 
