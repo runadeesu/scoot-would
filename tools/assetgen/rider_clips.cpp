@@ -28,9 +28,12 @@ PoseDef ridePose() {
     return p;
 }
 PoseDef tuckPose() {
+    // air tuck (photos of airs and whips): torso upright, the scooter pulled up to the chest, knees up and apart
+    // either side of the stem, eyes down on the deck
     PoseDef p = ridePose();
-    p.hips(0, -0.08f, 0.02f).set(RJ_Spine, -20).set(RJ_Chest, -8).set(RJ_Neck, 16);
-    p.pair(RJ_ThighL, RJ_ThighR, 88, 0, 6).pair(RJ_ShinL, RJ_ShinR, -122).pair(RJ_FootL, RJ_FootR, 34);
+    p.hips(0, -0.1f, 0.02f).set(RJ_Pelvis, -4, -14, 0).set(RJ_Spine, -8, 6, 0).set(RJ_Chest, -3, 4, 0).set(RJ_Neck, -10).set(RJ_Head, -6);
+    p.pair(RJ_ThighL, RJ_ThighR, 80, 0, 12).pair(RJ_ShinL, RJ_ShinR, -116).pair(RJ_FootL, RJ_FootR, 28);
+    p.pair(RJ_UpperArmL, RJ_UpperArmR, 14, 0, 26).pair(RJ_LowerArmL, RJ_LowerArmR, 96);
     return p;
 }
 
@@ -84,8 +87,11 @@ std::vector<ClipDef> clipDefs() {
     }
     // air: knees up, compact
     {
+        // photos of plain airs: upright, bars pulled up to the chest (elbows bent and out), knees bent under it
         PoseDef a = B;
-        a.hips(0, -0.12f, 0.03f).set(RJ_Spine, -16).set(RJ_Chest, -8).set(RJ_Neck, 14).pair(RJ_ThighL, RJ_ThighR, 48).pair(RJ_ShinL, RJ_ShinR, -80);
+        a.hips(0, -0.12f, 0.02f).set(RJ_Pelvis, -4, -16, 0).set(RJ_Spine, -8, 6, 0).set(RJ_Chest, -3, 4, 0).set(RJ_Neck, -8).set(RJ_Head, -4);
+        a.pair(RJ_ThighL, RJ_ThighR, 64, 0, 8).pair(RJ_ShinL, RJ_ShinR, -100).pair(RJ_FootL, RJ_FootR, 20);
+        a.pair(RJ_UpperArmL, RJ_UpperArmR, 16, 0, 24).pair(RJ_LowerArmL, RJ_LowerArmR, 90);
         PoseDef b = a;
         b.add(RJ_Spine, -2).add(RJ_Head, 2);
         c.push_back({"air", {{0.0f, a}, {0.6f, b}, {1.2f, a}}});
@@ -139,99 +145,110 @@ std::vector<ClipDef> clipDefs() {
         PoseDef T = tuckPose();
         // pop: legs just extended from the pop, arms pulling the scooter up
         PoseDef pop = B;
-        pop.hips(0, -0.05f, 0.02f).set(RJ_Spine, -10).set(RJ_Chest, -6).set(RJ_Neck, 14);
+        pop.hips(0, -0.05f, 0.02f).set(RJ_Pelvis, -4, -18, 0).set(RJ_Spine, -6, 6, 0).set(RJ_Chest, -3, 4, 0).set(RJ_Neck, -4);
         pop.pair(RJ_ThighL, RJ_ThighR, 34, 0, 4).pair(RJ_ShinL, RJ_ShinR, -52).pair(RJ_FootL, RJ_FootR, 16);
-        pop.pair(RJ_UpperArmL, RJ_UpperArmR, 40, 0, 14).pair(RJ_LowerArmL, RJ_LowerArmR, 74);
-        // tuck (reference photos): hunched over the bars, eyes on the deck, knees up and apart either side of the
-        // stem, feet only just above the deck as it goes round
+        pop.pair(RJ_UpperArmL, RJ_UpperArmR, 18, 0, 22).pair(RJ_LowerArmL, RJ_LowerArmR, 96);
+        // tuck (photos of whips): torso upright over the scooter pulled up to the chest, eyes down on the deck,
+        // knees up and apart either side of the stem, feet just above the deck as it goes round
         auto tight = [&](float thigh, float shin) {
             PoseDef p = T;
-            p.hips(0, -0.06f, 0.05f).set(RJ_Pelvis, -14).set(RJ_Spine, -30).set(RJ_Chest, -10).set(RJ_Neck, -2).set(RJ_Head, -6);
-            p.pair(RJ_ThighL, RJ_ThighR, thigh, 0, 16).pair(RJ_ShinL, RJ_ShinR, shin).pair(RJ_FootL, RJ_FootR, 26);
-            p.pair(RJ_UpperArmL, RJ_UpperArmR, 32, 0, 16).pair(RJ_LowerArmL, RJ_LowerArmR, 86);
+            p.hips(0, -0.1f, 0.02f).set(RJ_Pelvis, -4, -12, 0).set(RJ_Spine, -8, 4, 0).set(RJ_Chest, -3, 2, 0).set(RJ_Neck, -14).set(RJ_Head, -8);
+            p.pair(RJ_ThighL, RJ_ThighR, thigh, 0, 20).pair(RJ_ShinL, RJ_ShinR, shin).pair(RJ_FootL, RJ_FootR, 22);
+            p.pair(RJ_UpperArmL, RJ_UpperArmR, 12, 0, 28).pair(RJ_LowerArmL, RJ_LowerArmR, 100);
             return p;
         };
         // front foot reaches down first and stops the deck, back foot still up
         auto catchFront = [&](PoseDef p) {
-            p.set(RJ_ThighL, 52, 0, 6).set(RJ_ShinL, -72).set(RJ_FootL, 16).set(RJ_Neck, 4);
+            p.set(RJ_ThighL, 52, 0, 6).set(RJ_ShinL, -72).set(RJ_FootL, 16).set(RJ_Neck, -10);
             return p;
         };
         PoseDef land = B;
-        land.hips(0, -0.1f, 0.03f).set(RJ_Spine, -16).set(RJ_Neck, 16).set(RJ_ThighL, 46, -6, -4).set(RJ_ShinL, -80).set(RJ_ThighR, 50, 10, -12).set(RJ_ShinR, -88);
+        land.hips(0, -0.12f, 0.03f).set(RJ_Spine, -12).set(RJ_Chest, -4).set(RJ_Neck, -4).set(RJ_ThighL, 46, -6, -4).set(RJ_ShinL, -80).set(RJ_ThighR, 50, 10, -12).set(RJ_ShinR, -88);
 
         // tailwhip: the back foot kicks the tail out to the side, the hips answer the other way, then both knees
         // come up while the deck goes round underneath
         PoseDef kick = pop;
-        kick.set(RJ_Pelvis, -12, 14, 4).set(RJ_Spine, -24, -6, 0).set(RJ_Chest, -8, -8, 0).set(RJ_Neck, 2).set(RJ_Head, -6);
-        kick.set(RJ_ThighR, 6, 0, 30).set(RJ_ShinR, -10).set(RJ_FootR, -30).set(RJ_ThighL, 70, 0, 12).set(RJ_ShinL, -100);
+        kick.set(RJ_Pelvis, -4, 12, 4).set(RJ_Spine, -8, -6, 0).set(RJ_Chest, -3, -6, 0).set(RJ_Neck, -12).set(RJ_Head, -8);
+        kick.set(RJ_ThighR, 4, 0, 30).set(RJ_ShinR, -12).set(RJ_FootR, -24).set(RJ_ThighL, 70, 0, 12).set(RJ_ShinL, -100);
         // mid whip (photo): front knee pulled up, the kicking leg still hanging down, then it comes up for the catch
         PoseDef hang = tight(84, -112);
-        hang.set(RJ_ThighR, 22, 0, 14).set(RJ_ShinR, -26).set(RJ_FootR, -10);
+        hang.set(RJ_ThighR, 24, 0, 16).set(RJ_ShinR, -30).set(RJ_FootR, -10);
         keyed("whip", {{0.0f, pop}, {0.1f, kick}, {0.3f, hang}, {0.55f, tight(86, -118)}, {0.8f, catchFront(tight(84, -116))}, {1.0f, land}});
         // heelwhip: the back heel sweeps the tail round the other way, towards the front foot
         PoseDef heel = pop;
-        heel.set(RJ_Pelvis, -10, -12, -4).set(RJ_Spine, -22, 6, 0).set(RJ_Neck, 4).set(RJ_Head, -4);
+        heel.set(RJ_Pelvis, -4, -12, -4).set(RJ_Spine, -8, 6, 0).set(RJ_Neck, -12).set(RJ_Head, -8);
         heel.set(RJ_ThighR, 44, 0, -24).set(RJ_ShinR, -64).set(RJ_FootR, 8).set(RJ_ThighL, 72, 0, 4).set(RJ_ShinL, -104);
         keyed("heelwhip", {{0.0f, pop}, {0.1f, heel}, {0.3f, tight(86, -118)}, {0.6f, tight(88, -120)}, {0.8f, catchFront(tight(84, -116))}, {1.0f, land}});
         // kickless: no kick, the knees come straight up and the arms swing the deck round (shoulders wind up and
         // swing through)
         PoseDef kl1 = tight(100, -132), kl2 = tight(100, -132), kl3 = tight(98, -130);
-        kl1.set(RJ_Spine, -18, -10, 0).set(RJ_Chest, -8, -16, 0).pair(RJ_UpperArmL, RJ_UpperArmR, 28, 0, 12).pair(RJ_LowerArmL, RJ_LowerArmR, 96);
-        kl2.set(RJ_Spine, -18, 10, 0).set(RJ_Chest, -8, 14, 0).pair(RJ_UpperArmL, RJ_UpperArmR, 44, 0, 18).pair(RJ_LowerArmL, RJ_LowerArmR, 64);
-        kl3.set(RJ_Chest, -6, 6, 0);
+        kl1.set(RJ_Spine, -8, -10, 0).set(RJ_Chest, -3, -16, 0).pair(RJ_UpperArmL, RJ_UpperArmR, 14, 0, 24).pair(RJ_LowerArmL, RJ_LowerArmR, 104);
+        kl2.set(RJ_Spine, -8, 10, 0).set(RJ_Chest, -3, 14, 0).pair(RJ_UpperArmL, RJ_UpperArmR, 24, 0, 30).pair(RJ_LowerArmL, RJ_LowerArmR, 80);
+        kl3.set(RJ_Chest, -3, 6, 0);
         keyed("kickless", {{0.0f, pop}, {0.08f, kl1}, {0.4f, kl2}, {0.7f, kl3}, {0.84f, catchFront(kl3)}, {1.0f, land}});
         // barspin: the front hand pushes the bar away, the back hand pulls, both let go, the arms stay open in
         // front ready to catch; the feet stay on
         PoseDef thr = pop;
-        thr.set(RJ_UpperArmL, 70, 0, -18).set(RJ_LowerArmL, 22).set(RJ_UpperArmR, 18, 0, 24).set(RJ_LowerArmR, 96).set(RJ_Chest, -6, 12, 0);
+        thr.set(RJ_UpperArmL, 60, 0, -18).set(RJ_LowerArmL, 30).set(RJ_UpperArmR, 4, 0, 30).set(RJ_LowerArmR, 104).set(RJ_Chest, -3, 12, 0);
+        // photos of barspins: upright, knees bent, eyes on the bar spinning at chest height, hands open just over it
         PoseDef open = pop;
-        open.set(RJ_Spine, -16).set(RJ_Neck, 8).set(RJ_Head, -4).pair(RJ_ThighL, RJ_ThighR, 50, 0, 6).pair(RJ_ShinL, RJ_ShinR, -84);
-        open.pair(RJ_UpperArmL, RJ_UpperArmR, 46, 0, 16).pair(RJ_LowerArmL, RJ_LowerArmR, 58);  // hands stay near the bar
+        open.hips(0, -0.14f, 0.02f).set(RJ_Spine, -6, 4, 0).set(RJ_Neck, -16).set(RJ_Head, -8).pair(RJ_ThighL, RJ_ThighR, 60, 0, 6).pair(RJ_ShinL, RJ_ShinR, -98);
+        open.pair(RJ_UpperArmL, RJ_UpperArmR, 20, 0, 26).pair(RJ_LowerArmL, RJ_LowerArmR, 80);
         PoseDef open2 = open;
         open2.add(RJ_Chest, 0, -6, 0);
         PoseDef grab = open;
-        grab.pair(RJ_UpperArmL, RJ_UpperArmR, 44, 0, 14).pair(RJ_LowerArmL, RJ_LowerArmR, 54);
+        grab.pair(RJ_UpperArmL, RJ_UpperArmR, 18, 0, 20).pair(RJ_LowerArmL, RJ_LowerArmR, 84);
         keyed("barspin", {{0.0f, pop}, {0.12f, thr}, {0.3f, open}, {0.7f, open2}, {0.86f, grab}, {1.0f, B}});
         // bartwist: the front hand keeps hold and twists the bar round, the back hand lets go and waits
         PoseDef tw = pop;
-        tw.set(RJ_UpperArmR, 52, 0, 38).set(RJ_LowerArmR, 30).set(RJ_Neck, 18);
+        tw.set(RJ_UpperArmR, 52, 0, 38).set(RJ_LowerArmR, 30).set(RJ_Neck, -10);
         keyed("bartwist", {{0.0f, pop}, {0.12f, tw}, {0.5f, tw}, {0.86f, grab}, {1.0f, B}});
         // x-up: the arms cross as the bars go 180 (the IK keeps the hands on), body compact
         PoseDef xu = pop;
-        xu.pair(RJ_ThighL, RJ_ThighR, 70, 0, 6).pair(RJ_ShinL, RJ_ShinR, -104).set(RJ_Chest, -8, 10, 0).set(RJ_Neck, 18);
+        xu.pair(RJ_ThighL, RJ_ThighR, 70, 0, 6).pair(RJ_ShinL, RJ_ShinR, -104).set(RJ_Chest, -8, 10, 0).set(RJ_Neck, -8);
         keyed("x_up", {{0.0f, pop}, {0.5f, xu}, {1.0f, B}});
         // full whip: whip kick and bar throw together, knees up, arms open, catch bars and deck together
         PoseDef fk = kick;
-        fk.set(RJ_UpperArmL, 70, 0, -18).set(RJ_LowerArmL, 22).set(RJ_UpperArmR, 18, 0, 24).set(RJ_LowerArmR, 96);
+        fk.set(RJ_UpperArmL, 60, 0, -18).set(RJ_LowerArmL, 30).set(RJ_UpperArmR, 4, 0, 30).set(RJ_LowerArmR, 104);
         PoseDef fo = tight(96, -128);
-        fo.pair(RJ_UpperArmL, RJ_UpperArmR, 58, 0, 30).pair(RJ_LowerArmL, RJ_LowerArmR, 34);
+        fo.pair(RJ_UpperArmL, RJ_UpperArmR, 22, 0, 30).pair(RJ_LowerArmL, RJ_LowerArmR, 80);
         PoseDef fc = catchFront(fo);
-        fc.pair(RJ_UpperArmL, RJ_UpperArmR, 44, 0, 14).pair(RJ_LowerArmL, RJ_LowerArmR, 54);
+        fc.pair(RJ_UpperArmL, RJ_UpperArmR, 16, 0, 22).pair(RJ_LowerArmL, RJ_LowerArmR, 90);
         keyed("full_whip", {{0.0f, pop}, {0.1f, fk}, {0.3f, fo}, {0.66f, fo}, {0.84f, fc}, {1.0f, land}});
         // fingerwhip: bent over, the back hand grabs the deck and throws it round, then goes back to the bar
         PoseDef fw1 = tight(88, -120), fw2 = tight(90, -122), fw3 = tight(96, -128);
-        fw1.pair(RJ_ThighL, RJ_ThighR, 88, 0, 18).set(RJ_Spine, -38).set(RJ_Chest, -12).set(RJ_Neck, 10).set(RJ_UpperArmR, 26, 0, 22).set(RJ_LowerArmR, 12);
-        fw2.pair(RJ_ThighL, RJ_ThighR, 90, 0, 18).set(RJ_Spine, -26).set(RJ_UpperArmR, -18, 0, 46).set(RJ_LowerArmR, 20);
-        fw3.set(RJ_UpperArmR, 48, 0, 34).set(RJ_LowerArmR, 60);
+        // the back hand reaches down to the side of the deck (the IK puts it there), so the chest goes down with it
+        fw1.pair(RJ_ThighL, RJ_ThighR, 88, 0, 18).set(RJ_Pelvis, -10, -6, 0).set(RJ_Spine, -28, 10, 0).set(RJ_Chest, -10, 8, 0).set(RJ_Neck, -6);
+        fw1.set(RJ_UpperArmR, 20, 0, 20).set(RJ_LowerArmR, 16);
+        fw2.pair(RJ_ThighL, RJ_ThighR, 90, 0, 18).set(RJ_Spine, -16, 6, 0).set(RJ_UpperArmR, -10, 0, 44).set(RJ_LowerArmR, 20);
+        fw3.set(RJ_UpperArmR, 30, 0, 34).set(RJ_LowerArmR, 70);
         keyed("fingerwhip", {{0.0f, pop}, {0.1f, fw1}, {0.25f, fw2}, {0.55f, fw3}, {0.82f, catchFront(fw3)}, {1.0f, land}});
         // bri flip: the scooter is kicked out in front and pulled up, the arms go up and out to the side as it
         // circles over the head; knees tucked out of its way, eyes on it, back down to catch
-        PoseDef br1 = tight(102, -132), br2 = tight(104, -134), br3 = tight(96, -126);
-        br1.set(RJ_Spine, -4, 0, -10).set(RJ_Chest, -2, 0, -6).set(RJ_Neck, 34).set(RJ_Head, 12).pair(RJ_UpperArmL, RJ_UpperArmR, 118, 0, 20).pair(RJ_LowerArmL, RJ_LowerArmR, 30);
-        br2.set(RJ_Spine, -2, 0, -12).set(RJ_Chest, 0, 0, -6).set(RJ_Neck, 40).set(RJ_Head, 14).pair(RJ_UpperArmL, RJ_UpperArmR, 138, 0, 24).pair(RJ_LowerArmL, RJ_LowerArmR, 22);
-        br3.pair(RJ_UpperArmL, RJ_UpperArmR, 90, 0, 18).pair(RJ_LowerArmL, RJ_LowerArmR, 44).set(RJ_Neck, 24);
+        // photo of an inward bri: the legs split in a stride (front knee up, back leg stretched out behind) to let
+        // the scooter round, torso leaning into it, both hands on the bar in front of the chest
+        PoseDef br1 = tight(96, -126), br2 = tight(96, -126), br3 = tight(92, -122);
+        br1.set(RJ_Spine, -14, 0, -6).set(RJ_Chest, -4, 0, -4).set(RJ_Neck, 10).set(RJ_Head, 4);
+        br1.set(RJ_ThighL, 76, 0, 8).set(RJ_ShinL, -86).set(RJ_ThighR, -18, 0, 10).set(RJ_ShinR, -64).set(RJ_FootR, -16);
+        br1.pair(RJ_UpperArmL, RJ_UpperArmR, 60, 0, 22).pair(RJ_LowerArmL, RJ_LowerArmR, 50);
+        br2.set(RJ_Spine, -18, 0, -8).set(RJ_Chest, -6, 0, -4).set(RJ_Neck, 6).set(RJ_Head, 2);
+        br2.set(RJ_ThighL, 82, 0, 8).set(RJ_ShinL, -90).set(RJ_ThighR, -30, 0, 10).set(RJ_ShinR, -56).set(RJ_FootR, -20);
+        br2.pair(RJ_UpperArmL, RJ_UpperArmR, 70, 0, 24).pair(RJ_LowerArmL, RJ_LowerArmR, 44);
+        br3.pair(RJ_UpperArmL, RJ_UpperArmR, 30, 0, 22).pair(RJ_LowerArmL, RJ_LowerArmR, 80).set(RJ_Neck, -10);
         keyed("bri", {{0.0f, pop}, {0.14f, br1}, {0.5f, br2}, {0.78f, catchFront(br3)}, {1.0f, land}});
         // inward: the same, swung forwards: arms push out in front, chest back
         PoseDef in1 = br1, in2 = br2;
-        in1.set(RJ_Spine, 2, 0, -8).pair(RJ_UpperArmL, RJ_UpperArmR, 100, 0, 16).pair(RJ_LowerArmL, RJ_LowerArmR, 20);
-        in2.set(RJ_Spine, 4, 0, -10).pair(RJ_UpperArmL, RJ_UpperArmR, 126, 0, 20);
+        in1.set(RJ_Spine, -8, 0, -6).pair(RJ_UpperArmL, RJ_UpperArmR, 70, 0, 18).pair(RJ_LowerArmL, RJ_LowerArmR, 36);
+        in2.set(RJ_Spine, -10, 0, -8).pair(RJ_UpperArmL, RJ_UpperArmR, 84, 0, 20).pair(RJ_LowerArmL, RJ_LowerArmR, 30);
         keyed("inward", {{0.0f, pop}, {0.14f, in1}, {0.5f, in2}, {0.78f, catchFront(br3)}, {1.0f, land}});
         // front scooter flip: the back hand lets go, the front hand throws the scooter forwards round the bar,
         // knees up, then the arms pull it back under the feet
-        PoseDef fs1 = tight(98, -128), fs2 = tight(98, -128), fs3 = tight(94, -124);
-        fs1.set(RJ_Spine, -4).pair(RJ_UpperArmL, RJ_UpperArmR, 88, 0, 14).pair(RJ_LowerArmL, RJ_LowerArmR, 20).set(RJ_UpperArmR, 60, 0, 40).set(RJ_LowerArmR, 30);
-        fs2.set(RJ_Spine, -8).set(RJ_Neck, 12).set(RJ_UpperArmL, 80, 0, -14).set(RJ_LowerArmL, 18).set(RJ_UpperArmR, 50, 0, 44).set(RJ_LowerArmR, 34);
-        fs3.pair(RJ_UpperArmL, RJ_UpperArmR, 50, 0, 16).pair(RJ_LowerArmL, RJ_LowerArmR, 60);
+        // photo: knees pulled right up to the chest, compact and upright, the front arm up holding the bar while the
+        // scooter turns round beside it, the free arm out for balance
+        PoseDef fs1 = tight(104, -134), fs2 = tight(106, -136), fs3 = tight(96, -126);
+        fs1.set(RJ_Spine, -2, 0, 0).set(RJ_Chest, 0).set(RJ_Neck, -2).set(RJ_UpperArmR, 40, 0, 50).set(RJ_LowerArmR, 30);
+        fs2.set(RJ_Spine, 0, 0, 0).set(RJ_Chest, 2).set(RJ_Neck, 0).set(RJ_UpperArmR, 34, 0, 56).set(RJ_LowerArmR, 26);
+        fs3.pair(RJ_UpperArmL, RJ_UpperArmR, 18, 0, 22).pair(RJ_LowerArmL, RJ_LowerArmR, 88);
         keyed("front_scoot", {{0.0f, pop}, {0.12f, fs1}, {0.5f, fs2}, {0.8f, catchFront(fs3)}, {1.0f, land}});
         // nothing front scoot: everything lets go, spread out, back together to catch
         PoseDef no1 = pop, no2 = B, no3 = tight(60, -90);
@@ -263,8 +280,8 @@ std::vector<ClipDef> clipDefs() {
         hold("grab", gr);
         // tuck no hander: bars clamped between the knees, arms thrown out wide and back
         PoseDef tnh = tuckPose();
-        tnh.hips(0, -0.06f, 0.0f).set(RJ_Spine, 4).set(RJ_Chest, 8).set(RJ_Neck, -2).set(RJ_Head, -8);
-        tnh.pair(RJ_ThighL, RJ_ThighR, 74, 0, -4).pair(RJ_ShinL, RJ_ShinR, -104);
+        tnh.hips(0, -0.1f, 0.0f).set(RJ_Pelvis, -4, -6, 0).set(RJ_Spine, 2).set(RJ_Chest, 6).set(RJ_Neck, -6).set(RJ_Head, -6);
+        tnh.pair(RJ_ThighL, RJ_ThighR, 100, 0, 4).pair(RJ_ShinL, RJ_ShinR, -136);  // knees squeeze the stem
         tnh.pair(RJ_UpperArmL, RJ_UpperArmR, -18, 0, 78).pair(RJ_LowerArmL, RJ_LowerArmR, 12);
         hold("tuck_no_hand", tnh);
         // suicide no hander: hands let go and sweep behind the back, chest out
@@ -295,7 +312,7 @@ std::vector<ClipDef> clipDefs() {
         hold("turndown", td);
         // toboggan: bars turned, the back hand reaches down and holds the deck
         PoseDef tb = tuckPose();
-        tb.set(RJ_Spine, -30, -12, 0).set(RJ_Chest, -10, -8, 0).set(RJ_Neck, 26).set(RJ_UpperArmR, 18, 0, 20).set(RJ_LowerArmR, 16);
+        tb.set(RJ_Pelvis, -8, -20, 6).set(RJ_Spine, -22, -14, 8).set(RJ_Chest, -8, -10, 4).set(RJ_Neck, 8).set(RJ_UpperArmR, -10, 0, 30).set(RJ_LowerArmR, 16);
         hold("toboggan", tb);
         // cannonball: knees to the chest, both hands down on the deck
         PoseDef cnb = tuckPose();

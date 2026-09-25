@@ -142,6 +142,10 @@ bool TrickSystem::loadDefinitions(const std::string& absPath) {
             readRange(j, "back_foot", tl.backFoot);
             readRange(j, "hands", tl.hands);
             readRange(j, "back_hand", tl.backHand);
+            readRange(j, "hand_deck", tl.handDeck);
+            tl.pivot = jget<float>(j, "pivot", tl.pivot);
+            tl.hover = jget<bool>(j, "hover", tl.hover);
+            tl.handDeckRear = jget<std::string>(j, "hand_deck_at", "front") == "rear";
             float rot[2] = {tl.rotStart, tl.rotEnd};
             readRange(j, "rotate", rot);
             tl.rotStart = rot[0];
@@ -401,13 +405,23 @@ void TrickSystem::updatePose(float dt) {
                 p.oneHand |= d.oneHand;
                 p.frontFootOff |= d.frontFootOff;
                 p.backFootOff |= d.backFootOff;
+                if (tl.handDeck[0] >= 0.0f) {
+                    p.handDeck = true;
+                    p.handDeckRear |= tl.handDeckRear;
+                }
             }
         } else {
             // hands and feet let go and catch again at their moments of the trick
             p.frontFootOff |= inRange(tl.frontFoot, t);
             p.backFootOff |= inRange(tl.backFoot, t);
             p.handsOff |= inRange(tl.hands, t);
+            p.handsHover |= tl.hover && inRange(tl.hands, t);
             p.oneHand |= inRange(tl.backHand, t);
+            if (inRange(tl.handDeck, t)) {
+                p.handDeck = true;
+                p.handDeckRear |= tl.handDeckRear;
+            }
+            p.pivot = std::max(p.pivot, tl.pivot);
         }
         if (!d.animation.empty()) {
             // trick clips play along the trick (kick, tuck, catch); grabs hold their pose

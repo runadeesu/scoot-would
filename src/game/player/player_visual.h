@@ -91,7 +91,7 @@ private:
     enum Part { Deck = 0, Grip, Brake, Fork, Bars, Grips, Clamp, TyreF, CoreF, TyreR, CoreR, PartCount };
     void buildScooterMeshes();
     void buildMannequin();
-    void updateScooterParts(const Transform& body, const Player& player, bool bailed);
+    void updateScooterParts(const Transform& body, const Player& player, bool bailed, float dt);
     void updateRider(const Transform& body, Player& player, float dt, bool bailed);
 
     RenderScene* rs_ = nullptr;
@@ -113,6 +113,7 @@ private:
     std::vector<std::pair<int, int>> mannequinBones_;
     float wheelSpin_ = 0.0f;
     float barSteer_ = 0.0f;
+    float airPull_ = 0.0f;  // scooter pulled up to the rider in the air (m)
     bool visible_ = true;
     bool riderVisible_ = true;
     bool goofy_ = false;

@@ -20,6 +20,9 @@ struct RiderRig {
     Quat deckRot;
     Vec3 stemA, stemB;      // fork crown -> bar centre
     Vec3 wheelF, wheelB;    // axles
+    // hands off a spinning bar hover over where the grips are when it is straight; the back hand can hold the deck
+    bool handsHover = false, handDeck = false;
+    Vec3 hoverL, hoverR, deckHand;
 };
 
 struct RiderAnimParams {
@@ -79,6 +82,7 @@ private:
     int pelvis_ = -1, spine_ = -1, chest_ = -1, neck_ = -1, head_ = -1;
     int armL_[3] = {-1, -1, -1}, armR_[3] = {-1, -1, -1}, legL_[3] = {-1, -1, -1}, legR_[3] = {-1, -1, -1};
     float feetW_ = 1.0f, handLW_ = 1.0f, handRW_ = 1.0f, backFootW_ = 1.0f;
+    float hoverW_ = 0.0f, deckHandW_ = 0.0f;
     float crouchS_ = 0.0f, lookS_ = 0.0f, leanS_ = 0.0f;
     float pushW_ = 0.0f, fpW_ = 0.0f, frontOffW_ = 0.0f, backOffW_ = 0.0f;
     float spinLead_ = 0.0f, flipLead_ = 0.0f;

@@ -24,6 +24,13 @@
   whip or barspin going; tricks link into each other; names the way riders say them (540 Flair, 360 Whip,
   Flair Quad Whip Bar, Buttercup, Truck Driver). SETTINGS > TRICKS lists every trick.
 - The head leads spins and goes back into backflips; the body tucks into flips. Goofy riders whip the other way.
+- Air and trick poses redone from photos of real riders (CC photos of airs, tailwhips, barspins, an inward bri
+  and a scooter flip): the torso stays upright and the scooter is pulled up to the chest in every air (elbows out,
+  knees bent under it, eyes down on the deck) and let back down just before the landing; whips turn the deck
+  just under the tucked feet; hands that let go of a spinning bar wait just over the grips; bri flips split the
+  legs in a stride; the scooter flip lets go with one hand and turns the scooter beside the body round the grip
+  still held; the fingerwhip hand reaches down to the deck; tuck no hander clamps the stem between the knees;
+  toboggan holds the back wheel with the nose pointed down.
 
 ### Scooter parts (from the reference photos)
 - Truss Boxed 5.0" deck: skeletal A-frame neck (upper / lower struts and braces into the integrated headtube),

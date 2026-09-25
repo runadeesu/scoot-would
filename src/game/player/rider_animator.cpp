@@ -270,8 +270,12 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     // IK weights: feet / hands leave the scooter during tricks, the back foot during a push
     bool bailed = st == PlayerState::Bailed;
     float feetTarget = (rig.feetOff || bailed) ? 0.0f : 1.0f;
-    float handLTarget = (rig.handsOff || bailed) ? 0.0f : 1.0f;
-    float handRTarget = (rig.handsOff || rig.oneHand || bailed) ? 0.0f : 1.0f;
+    // one hand: the back hand lets go (right for regular riders, left for goofy)
+    bool backRight = !p.goofy;
+    float handLTarget = (rig.handsOff || (rig.oneHand && !backRight) || bailed) ? 0.0f : 1.0f;
+    float handRTarget = (rig.handsOff || (rig.oneHand && backRight) || bailed) ? 0.0f : 1.0f;
+    hoverW_ = dampf(hoverW_, rig.handsHover && !bailed ? 1.0f : 0.0f, 16.0f, dt);
+    deckHandW_ = dampf(deckHandW_, rig.handDeck && !bailed ? 1.0f : 0.0f, 18.0f, dt);
     feetW_ = dampf(feetW_, feetTarget, 20.0f, dt);
     frontOffW_ = dampf(frontOffW_, rig.frontFootOff && !bailed ? 1.0f : 0.0f, 18.0f, dt);
     backOffW_ = dampf(backOffW_, rig.backFootOff && !bailed ? 1.0f : 0.0f, 18.0f, dt);
@@ -496,7 +500,9 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
         std::vector<Transform> ms;
         pose_.modelSpace(*skel_, ms);
         Vec3 shoulder = ms[size_t(ch[0])].position;
-        Vec3 pole = shoulder + Vec3(sideSign * 0.5f, -0.25f, 0.35f);
+        // elbows out to the side (photos: riders' elbows flare out, more so when the bars are pulled up to the chest)
+        float high = saturate((grip.y - (shoulder.y - 0.45f)) / 0.3f);
+        Vec3 pole = shoulder + Vec3(sideSign * lerpf(0.5f, 0.6f, high), -0.25f, lerpf(0.35f, 0.12f, high));
         int s = sideSign < 0.0f ? 0 : 1;
         Quat gripRot = Quat::angleAxis(-sideSign * 0.3f, Vec3(0, 0, 1)) * Quat::angleAxis(0.5f, Vec3(1, 0, 0));
         Vec3 wrist = grip + Vec3(0, 0.035f, 0.03f);
@@ -520,6 +526,24 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
     arm(armL_, rig.gripL, handLW_, -1.0f);
     arm(armR_, rig.gripR, handRW_, 1.0f);
     gripShort_ = shortW > 0.0f ? shortSum / shortW * -1.0f : Vec3(0.0f);
+    // free hands that stay close to the scooter: over the grips of a spinning bar (a little above and outside, palms
+    // down, ready to catch), or the back hand on the deck throwing it round. They follow the scooter, never pull it.
+    auto reach = [&](int* ch, const Vec3& wrist, float w, float sideSign) {
+        if (ch[0] < 0 || ch[1] < 0 || ch[2] < 0 || w <= 0.001f) return;
+        std::vector<Transform> ms;
+        pose_.modelSpace(*skel_, ms);
+        Vec3 pole = ms[size_t(ch[0])].position + Vec3(sideSign * 0.6f, -0.25f, 0.15f);
+        solveTwoBoneIK(*skel_, pose_, ch[0], ch[1], ch[2], wrist, pole, w);
+    };
+    if (hoverW_ > 0.001f) {
+        reach(armL_, rig.hoverL + Vec3(-0.05f, 0.09f, 0.04f), hoverW_ * (1.0f - handLW_), -1.0f);
+        reach(armR_, rig.hoverR + Vec3(0.05f, 0.09f, 0.04f), hoverW_ * (1.0f - handRW_), 1.0f);
+    }
+    if (deckHandW_ > 0.001f) {
+        bool backRight = !goofy;
+        float hw = deckHandW_ * (1.0f - (backRight ? handRW_ : handLW_));
+        reach(backRight ? armR_ : armL_, rig.deckHand + Vec3(0.0f, 0.05f, 0.0f), hw, backRight ? 1.0f : -1.0f);
+    }
 }
 
 }  // namespace sw

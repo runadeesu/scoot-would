@@ -1,5 +1,5 @@
 {
- "_comment": "scoot would trick definitions (trick set of Scooter Flow). input.type: flick | sequence | chain | grab. input.layer: trick (RT + right stick; classic: bare flick) | grab (LT + right stick; classic: RT + flick) | trick_alt (RB + RT + right stick; classic: bumper + flick) | grab_alt (RB + LT + right stick; classic: bumper + RT + flick). flow_dirs = right stick directions in the Scooter Flow layout, dirs = classic layout. scooter_rotation (one or a list): axis steer (whips), bars, deck_roll, deck_pitch, bar_pitch (whole scooter forward / back round the bar: front scooter flip), bar_roll (rolls round the bar with the bars turned: bri, inward), whole_pitch, whole_yaw, whole_roll; on grabs the rotation is held while the grab is. timeline (fractions of the trick): rotate = when the scooter turns, accel / decel = share of that spent speeding up after the kick / slowing into the catch, front_foot / back_foot / hands / back_hand = when they are off, lift / raise / side / forward = where the scooter is held meanwhile (m), bars_turn = bars turned against the deck (bri flips). Directions are for the regular stance; goofy is mirrored. airtime = air time needed, duration = rotation time (s), cancel_window = landing tolerance (s), chain = repeating or holding the input during the trick upgrades it. short = name inside a combination, family = named combinations (whip + bri + whip = Buttercup).",
+ "_comment": "scoot would trick definitions (trick set of Scooter Flow). input.type: flick | sequence | chain | grab. input.layer: trick (RT + right stick; classic: bare flick) | grab (LT + right stick; classic: RT + flick) | trick_alt (RB + RT + right stick; classic: bumper + flick) | grab_alt (RB + LT + right stick; classic: bumper + RT + flick). flow_dirs = right stick directions in the Scooter Flow layout, dirs = classic layout. scooter_rotation (one or a list): axis steer (whips), bars, deck_roll, deck_pitch, bar_pitch (whole scooter forward / back round the bar: front scooter flip), bar_roll (rolls round the bar with the bars turned: bri, inward), whole_pitch, whole_yaw, whole_roll; on grabs the rotation is held while the grab is. timeline (fractions of the trick): rotate = when the scooter turns, accel / decel = share of that spent speeding up after the kick / slowing into the catch, front_foot / back_foot / hands / back_hand = when they are off, lift / raise / side / forward = where the scooter is held meanwhile (m), bars_turn = bars turned against the deck (bri flips), hand_deck = when the back hand is on the deck (fingerwhip; hand_deck_at rear = on the back wheel, toboggan), pivot = how far down the stem a flip round the bar pivots (the arm holding the bar moves round it), hover = false lets the free hands fly off instead of staying over the grips. Directions are for the regular stance; goofy is mirrored. airtime = air time needed, duration = rotation time (s), cancel_window = landing tolerance (s), chain = repeating or holding the input during the trick upgrades it. short = name inside a combination, family = named combinations (whip + bri + whip = Buttercup).",
  "tricks": [
   {
    "id": "tailwhip",
@@ -662,7 +662,11 @@
      0.05,
      0.84
     ],
-    "forward": -0.05
+    "forward": -0.05,
+    "hand_deck": [
+     0.06,
+     0.34
+    ]
    }
   },
   {
@@ -750,7 +754,7 @@
     "accel": 0.15,
     "decel": 0.2,
     "forward": 0.18,
-    "lift": 0.06,
+    "lift": 0.08,
     "back_hand": [
      0.06,
      0.88
@@ -762,7 +766,8 @@
     "front_foot": [
      0.04,
      0.86
-    ]
+    ],
+    "side": 0.38
    }
   },
   {
@@ -1411,7 +1416,11 @@
    "animation": "tuck_no_hand",
    "hands_off": true,
    "score": 500,
-   "difficulty": 3
+   "difficulty": 3,
+   "timeline": {
+    "lift": 0.2,
+    "forward": -0.1
+   }
   },
   {
    "id": "turndown",
@@ -1471,14 +1480,22 @@
     },
     {
      "axis": "whole_pitch",
-     "degrees": 14,
+     "degrees": 32,
      "direction": 1
     }
    ],
    "animation": "toboggan",
    "one_hand": true,
    "score": 500,
-   "difficulty": 3
+   "difficulty": 3,
+   "timeline": {
+    "hand_deck": [
+     0.0,
+     1.0
+    ],
+    "hand_deck_at": "rear",
+    "lift": 0.1
+   }
   },
   {
    "id": "grab",
@@ -1551,7 +1568,8 @@
     "front_foot": [
      0.05,
      0.86
-    ]
+    ],
+    "hover": false
    }
   },
   {

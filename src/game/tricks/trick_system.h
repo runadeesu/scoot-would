@@ -45,6 +45,10 @@ struct TrickTimeline {
     float raise = 0.0f;    // hands lifted with it (m)
     float forward = 0.0f;  // thrown out in front (m)
     float barsTurn = 0.0f; // bars turned against the deck while it goes round (degrees; bri flips)
+    float handDeck[2] = {-1, -1};  // the back hand is on the deck (fingerwhip: it throws the deck round)
+    bool handDeckRear = false;     // ... at the back wheel (toboggan) instead of beside the front foot
+    bool hover = true;     // hands that let go of the bars stay over the grips (off: arms thrown out, nothing tricks)
+    float pivot = 0.0f;    // flips round the bar: pivot this far down the stem (0 = bar centre, 1 = front axle)
 };
 
 struct TrickDefinition {
@@ -107,6 +111,10 @@ struct ScooterPose {
     float barPitch = 0.0f;    // whole scooter flips forward / back round the bar (front scooter flip)
     float barRoll = 0.0f;     // whole scooter rolls round the forward line through the bar (bri flip, inward)
     bool feetOff = false, handsOff = false, oneHand = false, frontFootOff = false, backFootOff = false;
+    bool handsHover = false;  // hands let go of a spinning bar but stay just over the grips to catch it
+    bool handDeck = false;    // back hand on the deck
+    bool handDeckRear = false;  // at the back wheel
+    float pivot = 0.0f;       // see TrickTimeline::pivot
     Vec3 offset;              // scooter moved relative to the rider (x = front side, y = up, z = back)
     std::string riderPose;    // current grab / trick pose name
     float riderPoseWeight = 0.0f;

@@ -332,7 +332,7 @@ Vec3 PlayerVisual::headPosition() const {
     return riderWorld_.position + Vec3(0, 1.7f, 0);
 }
 
-void PlayerVisual::updateScooterParts(const Transform& body, const Player& player, bool bailed) {
+void PlayerVisual::updateScooterParts(const Transform& body, const Player& player, bool bailed, float dt) {
     const ScooterDims& d = kDims;
     Transform root = body;
     if (bailed) root = player.ragdoll.scooterTransform();
@@ -364,10 +364,19 @@ void PlayerVisual::updateScooterParts(const Transform& body, const Player& playe
         // of the chest, the deck swings past the side of the body and over the head), the hands stay on
         ScooterDims bd = d;
         bd.barHeight = barHeight_;
-        Vec3 bp = bd.barCenter();
+        // a front scooter flip turns round a point down the stem: the arm holding the bar goes round with it, so
+        // the deck circles in front of the rider instead of through the body behind the bar
+        Vec3 bp = lerp(bd.barCenter(), fa, pose.pivot);
         Quat q = Quat::angleAxis(pose.barRoll, Vec3(0, 0, -1)) * Quat::angleAxis(pose.barPitch, Vec3(1, 0, 0));
         whole = whole * Mat4::translation(bp) * Mat4::rotation(q) * Mat4::translation(-bp);
     }
+    // in the air riders pull the scooter up to them (photos of airs, whips and barspins: bars at the chest, knees
+    // bent, torso upright), and let it back down under the feet just before the landing
+    float pullTarget = 0.0f;
+    if (!bailed && player.state() == PlayerState::Air)
+        pullTarget = 0.2f * saturate(player.airTime() / 0.18f) * saturate((player.timeToLand() - 0.06f) / 0.22f);
+    airPull_ = dampf(airPull_, pullTarget, 14.0f, dt);
+    pose.offset.y += airPull_;
     // held out of the way while it goes round: lifted to the body, pushed out to the side, thrown forward
     if (pose.offset.lengthSq() > 1e-8f) whole = Mat4::translation(pose.offset) * whole;
     Mat4 rootM = root.matrix() * whole;
@@ -453,7 +462,8 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
     bars.barWidth = barWidth_;
     barCenterModel_ = bars.barCenter() - modelToBody.position;
     bool airTrick = player.state() == PlayerState::Air && !bailed;
-    Mat4 barsL = airTrick ? barsLocal_ : Mat4::identity(), deckL = airTrick ? deckLocal_ : Mat4::identity();
+    bool followParts = airTrick || airPull_ > 0.002f;  // the pulled up scooter settles for a moment after a landing
+    Mat4 barsL = followParts ? barsLocal_ : Mat4::identity(), deckL = followParts ? deckLocal_ : Mat4::identity();
     rig.gripL = barsL.transformPoint(bars.gripL()) - modelToBody.position;
     rig.gripR = barsL.transformPoint(bars.gripR()) - modelToBody.position;
     rig.footFront = deckL.transformPoint(d.frontFoot()) - modelToBody.position;
@@ -462,6 +472,8 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
         rig.feetOff = tp.feetOff;
         rig.handsOff = tp.handsOff;
         rig.oneHand = tp.oneHand;
+        rig.handsHover = tp.handsHover && !bailed;
+        rig.handDeck = tp.handDeck && !bailed;
         rig.frontFootOff = tp.frontFootOff;
         rig.backFootOff = tp.backFootOff;
     }
@@ -475,6 +487,13 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
         rig.stemB = barsL.transformPoint(bars.barCenter()) - off;
         rig.wheelF = barsL.transformPoint(d.frontAxle()) - off;
         rig.wheelB = deckL.transformPoint(d.rearAxle()) - off;
+        // bar tricks: where the grips are when the bar is straight (the hands wait there to catch it)
+        rig.hoverL = bars.gripL() - off;
+        rig.hoverR = bars.gripR() - off;
+        // fingerwhip: the back hand on the side of the deck, just behind the front foot; toboggan: on the back wheel
+        float side = goofy_ ? -1.0f : 1.0f;
+        rig.deckHand = tp.handDeckRear ? deckL.transformPoint(d.rearAxle() + Vec3(side * 0.02f, 0.07f, 0.0f)) - off
+                                       : deckL.transformPoint(d.frontFoot() + Vec3(side * 0.07f, -0.005f, 0.06f)) - off;
     }
     animator_->update(dt, ap, rig);
     animator_->modelSpace(jointsModel_);
@@ -606,7 +625,7 @@ void PlayerVisual::update(float dt, float alpha, Player& player) {
         float fs = player.scooter.forwardSpeed();
         wheelSpin_ += fs * dt / kDims.wheelRadius;
     }
-    updateScooterParts(body, player, bailed);
+    updateScooterParts(body, player, bailed, dt);
     updateRider(body, player, dt, bailed);
 }
 
