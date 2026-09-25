@@ -1418,6 +1418,89 @@ void buildWardrobe(const HumanModel& H, const Landmarks& L, Wardrobe& W, const s
     };
     auto side = [](const Vec3& p) { return p.x < 0.0f ? 0 : 1; };
 
+    // ---- pants (first: tops are layered over them) --------------------------------------------
+    std::vector<float> pantsOff(H.v.size(), -1.0f);
+    for (int variant = 0; variant < 2; ++variant) {
+        float waistY = P.y + 0.035f;
+        float cutY = variant == 0 ? ank[0].y + 0.05f : knee[0].y + 0.075f;
+        std::vector<char> m(H.v.size(), 0);
+        for (size_t i = 0; i < H.v.size(); ++i) {
+            if (!used[i]) continue;
+            const Vec3& p = H.v[i];
+            if (p.y > waistY || p.y < cutY) continue;
+            if (!domIs(H, int(i), {"pelvis", "thigh", "shin", "spine"})) continue;
+            m[i] = 1;
+        }
+        Garment g = garmentFromMask(H, m);
+        std::vector<float> legT(g.pos.size(), 0.0f);
+        std::vector<Vec3> legDir(g.pos.size(), Vec3(0));
+        for (size_t i = 0; i < g.pos.size(); ++i) {
+            Vec3 p = bodyP(H, g, i), n = bodyN(H, g, i);
+            int v = g.body[i];
+            if (domIs(H, v, {"thigh", "shin"})) {
+                int sd = side(p);
+                Vec3 axis;
+                float t = limbParam(p, hip[sd], knee[sd], ank[sd], &axis);
+                Vec3 r = p - axis;
+                r.y = 0.0f;
+                float R = std::max(r.length(), 1e-4f);
+                Vec3 dir = r / R;
+                // baggy street pants: wide straight legs, relaxed at the knee, stacking at the shoe
+                float target = t < 1.0f ? lerpf(0.09f, 0.083f, t) : lerpf(0.083f, 0.08f, t - 1.0f);
+                if (variant == 1) target = lerpf(0.088f, 0.085f, t);
+                float inner = dot(dir, Vec3(sd == 0 ? 1.0f : -1.0f, 0, 0));
+                float crotch = smoothstep(0.2f, 0.7f, inner) * (1.0f - smoothstep(0.15f, 0.7f, t));
+                float rr = std::max(R + 0.01f, lerpf(target, R + 0.013f, crotch));
+                // the wide leg only starts below the hip joint (the waist hugs the hips)
+                rr = lerpf(R + 0.011f, rr, smoothstep(hip[sd].y - 0.02f, hip[sd].y - 0.14f, p.y));
+                g.pos[i] = Vec3(axis.x + dir.x * rr, p.y, axis.z + dir.z * rr);
+                legT[i] = t;
+                legDir[i] = dir;
+            } else {
+                g.pos[i] = p + n * 0.011f;
+            }
+        }
+        smoothGarment(H, g, 20, 0.5f, 0.007f, true);
+        // folds: soft horizontal ripples, stacking towards the hem, a few creases behind the knee
+        for (size_t i = 0; i < g.pos.size(); ++i) {
+            if (legT[i] <= 0.05f) continue;
+            Vec3 p = bodyP(H, g, i);
+            float t = legT[i];
+            float stack = variant == 0 ? smoothstep(1.35f, 2.0f, t) : 0.0f;
+            float ripple = std::sin(t * 23.0f + fbm3(p * 20.0f) * 6.0f + std::atan2(legDir[i].x, legDir[i].z) * 2.0f);
+            float amp = 0.0022f + 0.005f * stack + 0.002f * (1.0f - smoothstep(0.1f, 0.35f, std::fabs(t - 1.0f)));
+            g.pos[i] += legDir[i] * (ripple * amp);
+        }
+        smoothWeights(g, 6);
+        // the waist must not swing with the thighs: fade thigh influence out above the hip joints
+        for (size_t i = 0; i < g.w.size(); ++i) {
+            float y = bodyP(H, g, i).y;
+            float keep = smoothstep(hip[0].y + 0.03f, hip[0].y - 0.09f, y);
+            float moved = 0.0f;
+            for (auto& [j, w] : g.w[i]) {
+                const std::string& n = H.joints[size_t(j)].name;
+                if (n.rfind("thigh", 0) == 0 || n.rfind("shin", 0) == 0) {
+                    moved += w * (1.0f - keep);
+                    w *= keep;
+                }
+            }
+            if (moved > 0.0f) g.w[i].push_back({H.J("pelvis"), moved});
+        }
+        {
+            std::map<std::string, int> odd;
+            for (size_t i = 0; i < g.w.size(); ++i)
+                for (auto& [j, w] : g.w[i]) {
+                    const std::string& n = H.joints[size_t(j)].name;
+                    if (w > 0.01f && n != "pelvis" && n != "spine" && n.rfind("thigh", 0) != 0 && n.rfind("shin", 0) != 0) odd[n]++;
+                }
+            for (auto& [n, c] : odd) std::printf("  pants%d: %d verts weighted to %s\n", variant, c, n.c_str());
+        }
+        for (size_t i = 0; i < g.pos.size(); ++i)
+            if (g.body[i] >= 0) pantsOff[size_t(g.body[i])] = std::max(pantsOff[size_t(g.body[i])], dot(g.pos[i] - bodyP(H, g, i), bodyN(H, g, i)));
+        addHem(H, g, 0.011f);
+        W.add(variant == 0 ? "pants_0" : "pants_1", mat("pants"), garmentPart(g));
+    }
+
     // ---- tops ------------------------------------------------------------------------------
     struct TopSpec {
         const char* mesh;
@@ -1497,6 +1580,13 @@ void buildWardrobe(const HumanModel& H, const Landmarks& L, Wardrobe& W, const s
             float f = fbm3(p * 38.0f) - 0.5f;
             g.pos[i] += n * (f * 0.005f);
         }
+        // layering: over the pants wherever they overlap (never poke through at the waist / hips)
+        for (size_t i = 0; i < g.pos.size(); ++i) {
+            if (g.body[i] < 0 || pantsOff[size_t(g.body[i])] < 0.0f) continue;
+            Vec3 n = bodyN(H, g, i);
+            float d = dot(g.pos[i] - bodyP(H, g, i), n), need = pantsOff[size_t(g.body[i])] + 0.007f;
+            if (d < need) g.pos[i] += n * (need - d);
+        }
         smoothWeights(g, 3);
         filterWeights(H, g, [](const std::string& n) { return n.rfind("thigh", 0) != 0 && n.rfind("shin", 0) != 0 && n.rfind("foot", 0) != 0; }, "pelvis");
         addHem(H, g, T.cuffT < 5.0f ? 0.009f : 0.005f);
@@ -1539,86 +1629,6 @@ void buildWardrobe(const HumanModel& H, const Landmarks& L, Wardrobe& W, const s
             addHem(H, pk, 0.004f);
             W.add(T.mesh, T.material, garmentPart(pk));
         }
-    }
-
-    // ---- pants -----------------------------------------------------------------------------
-    for (int variant = 0; variant < 2; ++variant) {
-        float waistY = P.y + 0.035f;
-        float cutY = variant == 0 ? ank[0].y + 0.05f : knee[0].y + 0.075f;
-        std::vector<char> m(H.v.size(), 0);
-        for (size_t i = 0; i < H.v.size(); ++i) {
-            if (!used[i]) continue;
-            const Vec3& p = H.v[i];
-            if (p.y > waistY || p.y < cutY) continue;
-            if (!domIs(H, int(i), {"pelvis", "thigh", "shin", "spine"})) continue;
-            m[i] = 1;
-        }
-        Garment g = garmentFromMask(H, m);
-        std::vector<float> legT(g.pos.size(), 0.0f);
-        std::vector<Vec3> legDir(g.pos.size(), Vec3(0));
-        for (size_t i = 0; i < g.pos.size(); ++i) {
-            Vec3 p = bodyP(H, g, i), n = bodyN(H, g, i);
-            int v = g.body[i];
-            if (domIs(H, v, {"thigh", "shin"})) {
-                int sd = side(p);
-                Vec3 axis;
-                float t = limbParam(p, hip[sd], knee[sd], ank[sd], &axis);
-                Vec3 r = p - axis;
-                r.y = 0.0f;
-                float R = std::max(r.length(), 1e-4f);
-                Vec3 dir = r / R;
-                // baggy street pants: wide straight legs, relaxed at the knee, stacking at the shoe
-                float target = t < 1.0f ? lerpf(0.09f, 0.083f, t) : lerpf(0.083f, 0.08f, t - 1.0f);
-                if (variant == 1) target = lerpf(0.088f, 0.085f, t);
-                float inner = dot(dir, Vec3(sd == 0 ? 1.0f : -1.0f, 0, 0));
-                float crotch = smoothstep(0.2f, 0.7f, inner) * (1.0f - smoothstep(0.15f, 0.7f, t));
-                float rr = std::max(R + 0.01f, lerpf(target, R + 0.013f, crotch));
-                // the wide leg only starts below the hip joint (the waist hugs the hips)
-                rr = lerpf(R + 0.011f, rr, smoothstep(hip[sd].y - 0.02f, hip[sd].y - 0.14f, p.y));
-                g.pos[i] = Vec3(axis.x + dir.x * rr, p.y, axis.z + dir.z * rr);
-                legT[i] = t;
-                legDir[i] = dir;
-            } else {
-                g.pos[i] = p + n * 0.011f;
-            }
-        }
-        smoothGarment(H, g, 20, 0.5f, 0.007f, true);
-        // folds: soft horizontal ripples, stacking towards the hem, a few creases behind the knee
-        for (size_t i = 0; i < g.pos.size(); ++i) {
-            if (legT[i] <= 0.05f) continue;
-            Vec3 p = bodyP(H, g, i);
-            float t = legT[i];
-            float stack = variant == 0 ? smoothstep(1.35f, 2.0f, t) : 0.0f;
-            float ripple = std::sin(t * 23.0f + fbm3(p * 20.0f) * 6.0f + std::atan2(legDir[i].x, legDir[i].z) * 2.0f);
-            float amp = 0.0022f + 0.005f * stack + 0.002f * (1.0f - smoothstep(0.1f, 0.35f, std::fabs(t - 1.0f)));
-            g.pos[i] += legDir[i] * (ripple * amp);
-        }
-        smoothWeights(g, 6);
-        // the waist must not swing with the thighs: fade thigh influence out above the hip joints
-        for (size_t i = 0; i < g.w.size(); ++i) {
-            float y = bodyP(H, g, i).y;
-            float keep = smoothstep(hip[0].y + 0.03f, hip[0].y - 0.09f, y);
-            float moved = 0.0f;
-            for (auto& [j, w] : g.w[i]) {
-                const std::string& n = H.joints[size_t(j)].name;
-                if (n.rfind("thigh", 0) == 0 || n.rfind("shin", 0) == 0) {
-                    moved += w * (1.0f - keep);
-                    w *= keep;
-                }
-            }
-            if (moved > 0.0f) g.w[i].push_back({H.J("pelvis"), moved});
-        }
-        {
-            std::map<std::string, int> odd;
-            for (size_t i = 0; i < g.w.size(); ++i)
-                for (auto& [j, w] : g.w[i]) {
-                    const std::string& n = H.joints[size_t(j)].name;
-                    if (w > 0.01f && n != "pelvis" && n != "spine" && n.rfind("thigh", 0) != 0 && n.rfind("shin", 0) != 0) odd[n]++;
-                }
-            for (auto& [n, c] : odd) std::printf("  pants%d: %d verts weighted to %s\n", variant, c, n.c_str());
-        }
-        addHem(H, g, 0.011f);
-        W.add(variant == 0 ? "pants_0" : "pants_1", mat("pants"), garmentPart(g));
     }
 
     // ---- shoes -----------------------------------------------------------------------------
