@@ -233,8 +233,9 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
     Quat steerRot = Quat::fromTo(Vec3(0, 1, 0), S);
     Mat4 steerM = Mat4::translation(fa) * Mat4::rotation(steerRot);  // local Y = steer axis, origin front axle
 
-    float deckW = opt.deck == 1 ? 0.135f : opt.deck == 2 ? 0.115f : 0.122f;
-    float noseR = opt.deck == 2 ? 0.045f : 0.03f;
+    float deckW = opt.deck == 1 ? 0.135f : opt.deck == 2 ? 0.115f : opt.deck == 3 ? 0.127f : 0.122f;
+    float noseR = opt.deck == 2 ? 0.045f : opt.deck == 3 ? 0.012f : 0.03f;
+    const bool truss = opt.deck == 3;
     float yTop = d.deckTop, thick = 0.036f, yBot = yTop - thick;
     float zF = -0.215f, zB = 0.205f;
     float hwDrop0 = 0.0165f, hwDrop1 = 0.0225f;  // dropout inner / outer half spacing
@@ -246,16 +247,43 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
         beveledSlab(b, roundedRect(-deckW * 0.5f, deckW * 0.5f, zF, zB, noseR, 0.022f, 6), yTop, yBot, 0.0035f, 0.003f, 0.02f, 0.0065f, 0.0012f);
         // centre rib inside the hollow underside
         b.box(Vec3(0, yBot + 0.012f, (zF + zB) * 0.5f), Vec3(0.004f, 0.02f, (zB - zF) - 0.05f));
-        // neck: boxed tube rising from the deck nose into the headtube
-        {
+        if (truss) {
+            // truss neck (skeletal A-frame, like current boxed park decks): on each side an upper strut from the deck
+            // top to the top of the headtube, a lower strut from the nose to its bottom and a diagonal between
+            // them leave triangular openings; cross members tie the two sides together
+            std::vector<Vec2> strut(2, Vec2(0.0065f, 0.0105f)), brace(2, Vec2(0.005f, 0.0075f));
+            for (float s : {-1.0f, 1.0f}) {
+                Vec3 xs = X * s;
+                Vec3 A = Vec3(0, yTop - 0.006f, zF + 0.06f) + xs * 0.027f;   // on the deck top, set back from the nose
+                Vec3 Bn = Vec3(0, yBot + 0.006f, zF + 0.004f) + xs * 0.027f;  // bottom of the nose
+                Vec3 H1 = at(0.112f) + xs * 0.017f, H2 = at(0.19f) + xs * 0.017f, Hm = at(0.15f) + xs * 0.019f;
+                sweep(b, {A, lerp(A, H2, 0.5f) + Vec3(0, 0.004f, 0), H2}, {strut[0], strut[0], strut[1]}, 3.0f, X, 12, true, true);
+                sweep(b, {Bn, lerp(Bn, H1, 0.5f) - Vec3(0, 0.004f, 0), H1}, {strut[0], strut[0], strut[1]}, 3.0f, X, 12, true, true);
+                sweep(b, {A + Vec3(0, -0.004f, -0.006f), Hm}, brace, 3.0f, X, 10, true, true);
+                sweep(b, {Bn + Vec3(0, 0.006f, 0.004f), A + Vec3(0, -0.008f, 0)}, brace, 3.0f, X, 10, true, true);
+            }
+            b.box(Vec3(0, yTop - 0.009f, zF + 0.06f), Vec3(0.062f, 0.012f, 0.014f));
+            b.box(Vec3(0, yBot + 0.008f, zF + 0.006f), Vec3(0.062f, 0.014f, 0.014f));
+            b.setTransform(steerM);
+            b.box(Vec3(0, 0.152f, 0.021f), Vec3(0.03f, 0.05f, 0.008f));  // web on the back of the headtube
+            b.resetTransform();
+        } else {
+            // neck: boxed tube rising from the deck nose into the headtube
             std::vector<Vec3> path = {Vec3(0, yTop - 0.018f, zF + 0.03f), Vec3(0, yTop - 0.014f, zF - 0.004f), Vec3(0, yTop + 0.012f, zF - 0.028f),
                                       at(0.118f) + S * 0.0f};
             std::vector<Vec2> half = {{0.034f, 0.017f}, {0.032f, 0.018f}, {0.028f, 0.02f}, {0.023f, 0.021f}};
             sweep(b, path, half, 3.2f, X, 20, false, false);
+            // gusset under the neck
+            plateZY(b, {{zF + 0.05f, yBot + 0.002f}, {zF - 0.006f, yBot + 0.002f}, {at(0.1f).z - 0.004f, at(0.1f).y}, {zF + 0.01f, yTop - 0.01f}}, -0.0035f,
+                    0.0035f);
         }
-        // gusset under the neck
-        plateZY(b, {{zF + 0.05f, yBot + 0.002f}, {zF - 0.006f, yBot + 0.002f}, {at(0.1f).z - 0.004f, at(0.1f).y}, {zF + 0.01f, yTop - 0.01f}}, -0.0035f,
-                0.0035f);
+        // boxed deck: the hollow box section shows at the open tail end
+        b.setMaterial(1);
+        {
+            float ix = deckW * 0.5f - 0.005f, iy0 = yBot + 0.004f, iy1 = yTop - 0.006f, z = zB + 0.0004f;
+            b.polygon({Vec3(-ix, iy0, z), Vec3(ix, iy0, z), Vec3(ix, iy1, z), Vec3(-ix, iy1, z)}, Vec3(0, 0, 1));
+        }
+        b.setMaterial(0);
         // headtube
         b.setTransform(steerM);
         b.lathe({{0.0245f, 0.106f}, {0.0245f, 0.2f}}, 28, true);
@@ -286,22 +314,26 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
     {
         MeshBuilder b("scooter_grip");
         b.setUvScale(1.0f);
-        auto o = roundedRect(-deckW * 0.5f + 0.004f, deckW * 0.5f - 0.004f, zF + 0.004f, 0.162f, std::max(noseR - 0.004f, 0.004f), 0.003f, 6);
-        std::vector<Vec3> pts;
-        for (auto it = o.rbegin(); it != o.rend(); ++it) pts.push_back(Vec3(it->x, yTop + 0.0007f, it->y));
+        // cut like shop-applied grip: the front comes to a point towards the neck and leaves the polished nose
+        // corners bare, square at the tail where the brake starts
+        float gx = deckW * 0.5f - 0.004f, zPoint = zF + 0.012f, zSide = zF + (truss ? 0.075f : 0.06f), zEnd = 0.162f;
+        std::vector<Vec3> pts = {Vec3(0, yTop + 0.0007f, zPoint), Vec3(gx, yTop + 0.0007f, zSide), Vec3(gx, yTop + 0.0007f, zEnd - 0.003f),
+                                 Vec3(gx - 0.003f, yTop + 0.0007f, zEnd), Vec3(-gx + 0.003f, yTop + 0.0007f, zEnd), Vec3(-gx, yTop + 0.0007f, zEnd - 0.003f),
+                                 Vec3(-gx, yTop + 0.0007f, zSide)};
+        std::reverse(pts.begin(), pts.end());
         b.polygon(pts, Vec3(0, 1, 0));
-        // logo cut out of the griptape near the tail (hexagon + triangle outlines): the deck shows through
+        // hex mark near the front on the right (hexagon + triangle outlines cut out: the deck shows through)
         b.setMaterial(1);
-        const float lz = 0.108f, ly = yTop + 0.0009f;
+        const float lz = zF + 0.13f, ly = yTop + 0.0009f, lx = deckW * 0.2f;
         auto ringPoly = [&](int sides, float rOut, float rIn, float rot) {
             for (int i = 0; i < sides; ++i) {
                 float a0 = rot + float(i) / float(sides) * kTwoPi, a1 = rot + float(i + 1) / float(sides) * kTwoPi;
-                Vec3 o0(std::cos(a0) * rOut, ly, lz + std::sin(a0) * rOut), o1(std::cos(a1) * rOut, ly, lz + std::sin(a1) * rOut);
-                Vec3 i0(std::cos(a0) * rIn, ly, lz + std::sin(a0) * rIn), i1(std::cos(a1) * rIn, ly, lz + std::sin(a1) * rIn);
+                Vec3 o0(lx + std::cos(a0) * rOut, ly, lz + std::sin(a0) * rOut), o1(lx + std::cos(a1) * rOut, ly, lz + std::sin(a1) * rOut);
+                Vec3 i0(lx + std::cos(a0) * rIn, ly, lz + std::sin(a0) * rIn), i1(lx + std::cos(a1) * rIn, ly, lz + std::sin(a1) * rIn);
                 b.polygon({o0, o1, i1, i0}, Vec3(0, 1, 0));
             }
         };
-        float logoR = std::min(0.031f, deckW * 0.26f);
+        float logoR = std::min(0.022f, deckW * 0.18f);
         ringPoly(6, logoR, logoR * 0.8f, 0.0f);
         ringPoly(3, logoR * 0.5f, logoR * 0.32f, kHalfPi);  // triangle pointing to the tail
         out.grip = b.build();
@@ -372,12 +404,33 @@ ScooterMeshSet buildScooterModel(const ScooterDims& d, const ScooterModelOptions
     {
         MeshBuilder b("scooter_bars");
         b.setMaterial(0);
-        b.tube({at(opt.clamp == 1 ? 0.25f : 0.2235f), top}, 0.01745f, 20, true);
         std::vector<Vec3> cross;
         for (int i = 0; i <= 12; ++i) cross.push_back(crossPt(-barW * 0.5f + barW * float(i) / 12.0f));
-        b.tube(cross, 0.0159f, 20, true);
-        b.sphere(top, 0.0192f, 10, 16);  // weld / bend blend at the T
-        for (float s : {-1.0f, 1.0f}) b.tube({crossPt(s * 0.105f) + Vec3(0, -0.004f, 0), top - S * 0.105f}, 0.0074f, 10, true);
+        if (opt.bars == 3) {
+            // Y-bar: the downtube splits into two arms that sweep out and up into the crossbar
+            Vec3 split = at(sTop - 0.3f);
+            b.tube({at(opt.clamp == 1 ? 0.25f : 0.2235f), split}, 0.01745f, 20, true);
+            b.sphere(split, 0.0186f, 10, 16);
+            for (float s : {-1.0f, 1.0f}) {
+                Vec3 end = crossPt(s * 0.16f);
+                std::vector<Vec3> arm;
+                for (int i = 0; i <= 8; ++i) {
+                    float t = float(i) / 8.0f;
+                    // leaves the split along the downtube, bends out, meets the crossbar from below
+                    Vec3 p = lerp(split, end, t);
+                    p += X * (s * -0.02f * std::sin(t * kPi)) + S * (0.03f * std::sin(t * kPi));
+                    arm.push_back(p);
+                }
+                b.tube(arm, 0.0145f, 16, false);
+                b.sphere(end, 0.0162f, 8, 12);
+            }
+            b.tube(cross, 0.0159f, 20, true);
+        } else {
+            b.tube({at(opt.clamp == 1 ? 0.25f : 0.2235f), top}, 0.01745f, 20, true);
+            b.tube(cross, 0.0159f, 20, true);
+            b.sphere(top, 0.0192f, 10, 16);  // weld / bend blend at the T
+            for (float s : {-1.0f, 1.0f}) b.tube({crossPt(s * 0.105f) + Vec3(0, -0.004f, 0), top - S * 0.105f}, 0.0074f, 10, true);
+        }
         // bar end plugs
         b.setMaterial(1);
         for (float s : {-1.0f, 1.0f}) {

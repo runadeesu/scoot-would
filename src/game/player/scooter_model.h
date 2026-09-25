@@ -9,8 +9,8 @@
 namespace sw {
 
 struct ScooterModelOptions {
-    int deck = 0;    // 0 street 4.8", 1 wide 5.3", 2 park 4.5" (narrow, rounder nose)
-    int bars = 0;    // 0 standard 25" x 22", 1 tall 27" x 22", 2 wide 25" x 24"
+    int deck = 0;    // 0 street 4.8", 1 wide 5.3", 2 park 4.5" (narrow, rounder nose), 3 truss neck 5.0" boxed
+    int bars = 0;    // 0 standard 25" x 22", 1 tall 27" x 22", 2 wide 25" x 24", 3 Y-bar 25" x 22"
     int wheels = 0;  // 0 six spoke hollow core, 1 twelve spoke, 2 solid core
     int clamp = 0;   // 0 IHC double clamp (4 bolts, slit bar), 1 SCS (one piece over the headset, 4 bolts)
 };

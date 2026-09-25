@@ -526,21 +526,21 @@ struct ShopCategory {
     PartThumbnails::Kind kind;
     int variants;
     const std::vector<NamedColor>& (*palette)();
-    const char* names[3];
-    int brand[3];
-    const char* specs[3];
+    const char* names[4];
+    int brand[4];
+    const char* specs[4];
 };
 
 // fictional brands (their banners hang in the shop)
 const char* kBrands[3] = {"FLOWLAB", "KDX PRO", "AXLE CO."};
 
 const ShopCategory kShopCats[6] = {
-    {"DECK", PartThumbnails::Deck, 3, metalPalette, {"Street 4.8\"", "Wide 5.3\"", "Park 4.5\""}, {0, 1, 2},
+    {"DECK", PartThumbnails::Deck, 4, metalPalette, {"Street 4.8\"", "Wide 5.3\"", "Park 4.5\"", "Truss Boxed 5.0\""}, {0, 1, 2, 1},
      {"4.8\" x 20.5\"  /  83\u00b0 integrated headtube  /  6061-T6", "5.3\" x 20.5\"  /  83\u00b0 integrated headtube  /  flat nose",
-      "4.5\" x 20.5\"  /  83\u00b0 integrated headtube  /  round nose"}},
-    {"BARS", PartThumbnails::Bars, 3, metalPalette, {"Standard 25\"", "Tall 27\"", "Wide 24\""}, {2, 0, 1},
+      "4.5\" x 20.5\"  /  83\u00b0 integrated headtube  /  round nose", "5.0\" x 20.5\"  /  skeletal truss neck  /  boxed 6061-T6"}},
+    {"BARS", PartThumbnails::Bars, 4, metalPalette, {"Standard 25\"", "Tall 27\"", "Wide 24\"", "Y-Bar 25\""}, {2, 0, 1, 2},
      {"25\" x 22\"  /  34.9 mm oversized  /  4130 chromoly", "27\" x 22\"  /  34.9 mm oversized  /  4130 chromoly",
-      "25\" x 24\"  /  34.9 mm oversized  /  4130 chromoly"}},
+      "25\" x 24\"  /  34.9 mm oversized  /  4130 chromoly", "25\" x 22\"  /  Y split, no gussets  /  4130 chromoly"}},
     {"CLAMP", PartThumbnails::Clamp, 2, metalPalette, {"IHC Double Clamp", "SCS Clamp", ""}, {2, 1, 2},
      {"double clamp  /  4 bolts  /  IHC / HIC  /  7075", "one piece over the headset  /  4 bolts  /  SCS", ""}},
     {"WHEELS", PartThumbnails::Wheel, 3, metalPalette, {"6 Spoke", "12 Spoke", "Solid Core"}, {1, 0, 2},

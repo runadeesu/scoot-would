@@ -61,13 +61,14 @@ void PartThumbnails::clear() {
 }
 
 PartThumbnails::Shade PartThumbnails::render(Kind kind, int variant) const {
-    static ScooterMeshSet sets[3];
-    static bool built[3] = {false, false, false};
-    int v = std::clamp(variant, 0, 2);
+    static ScooterMeshSet sets[4];
+    static bool built[4] = {false, false, false, false};
+    int v = std::clamp(variant, 0, 3);
     const ScooterDims dims;
     if (!built[v]) {
         ScooterModelOptions o;
-        o.deck = o.bars = o.wheels = v;
+        o.deck = o.bars = v;
+        o.wheels = std::min(v, 2);
         o.clamp = std::min(v, 1);
         sets[v] = buildScooterModel(dims, o);
         built[v] = true;

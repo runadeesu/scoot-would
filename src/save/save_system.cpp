@@ -49,8 +49,8 @@ Customization customizationFromJson(const Json& j) {
     c.pantsColor = jvec3(j, "pantsColor", c.pantsColor);
     c.shoesColor = jvec3(j, "shoesColor", c.shoesColor);
     c.helmetColor = jvec3(j, "helmetColor", c.helmetColor);
-    c.deck = std::clamp(jget<int>(j, "deck", c.deck), 0, 2);
-    c.bars = std::clamp(jget<int>(j, "bars", c.bars), 0, 2);
+    c.deck = std::clamp(jget<int>(j, "deck", c.deck), 0, 3);
+    c.bars = std::clamp(jget<int>(j, "bars", c.bars), 0, 3);
     c.wheels = std::clamp(jget<int>(j, "wheels", c.wheels), 0, 2);
     c.clamp = std::clamp(jget<int>(j, "clamp", c.clamp), 0, 1);
     c.deckColor = jvec3(j, "deckColor", c.deckColor);

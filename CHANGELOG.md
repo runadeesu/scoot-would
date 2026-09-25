@@ -25,6 +25,12 @@
   Flair Quad Whip Bar, Buttercup, Truck Driver). SETTINGS > TRICKS lists every trick.
 - The head leads spins and goes back into backflips; the body tucks into flips. Goofy riders whip the other way.
 
+### Scooter parts (from the reference photos)
+- Truss Boxed 5.0" deck: skeletal A-frame neck (upper / lower struts and braces into the integrated headtube),
+  boxed deck with the hollow section showing at the tail.
+- Griptape cut to a point towards the neck, leaving the polished nose corners bare; hex mark near the front.
+- Y-Bar 25": the downtube splits into two arms that sweep into the crossbar.
+
 ### Camera
 - First person view (Y / Tab cycles: third person, close, far, first person; also SETTINGS > GAMEPLAY >
   Camera, remembered): a wide POV lens at the rider's eyes, forearms and hands on the grips at the bottom of
