@@ -64,9 +64,12 @@ int main(int argc, char** argv) {
         else if (a == "--bind-pose") opts.bindPose = true;
         else if (a == "--stance") opts.stance = next() == "goofy" ? 1 : 0;
         else if (a == "--help" || a == "-h") {
-            SDL_Log("scoot would [--map scene.json] [--spawn label] [--challenge id] [--play] [--menu screen] [--editor]\n"
+            SDL_Log("scoot would [--map scene.json] [--spawn label] [--challenge id] [--play] [--editor]\n"
+                    "            [--menu main|play|map|rider|scooter[:category]|settings[:tab]|challenges]\n"
                     "            [--windowed|--fullscreen] [--size WxH] [--novsync] [--gpu direct3d12|vulkan] [--gpu-debug]\n"
-                    "            [--env preset] [--autotest test.json] [--screenshot file.png frame] [--camera x,y,z,tx,ty,tz]");
+                    "            [--lang en|ja] [--stance regular|goofy] [--pad xbox|ps|switch] [--no-rider]\n"
+                    "            [--env preset] [--autotest test.json] [--screenshot file.png frame] [--camera x,y,z,tx,ty,tz]\n"
+                    "            [--debugview n]");
             return 0;
         }
     }
