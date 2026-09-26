@@ -86,6 +86,11 @@ public:
     Quat spawnRotation() const { return spawnRot_; }
     void setSpawn(const Vec3& p, const Quat& r) { spawnPos_ = p; spawnRot_ = r; }
     float timeToLand() const { return timeToLand_; }
+    // flair in progress: 0..1 over the motion (-1 = none); direction of its half turn (+1 = to the right)
+    float flairProgress() const { return flairActive_ ? saturate(flairT_ / std::max(flairDur_, 1e-3f)) : -1.0f; }
+    float flairDirection() const { return flairDir_; }
+    // the air started from the lip of a ramp wall (quarter / bowl): the rider leaves it sideways-on
+    bool rampAir() const { return rampAir_; }
     Vec3 predictedLandingNormal() const { return landNormal_; }
     int totalTricksLanded() const { return tricksLanded_; }
     int bails() const { return bails_; }

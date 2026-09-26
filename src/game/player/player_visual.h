@@ -113,7 +113,10 @@ private:
     std::vector<std::pair<int, int>> mannequinBones_;
     float wheelSpin_ = 0.0f;
     float barSteer_ = 0.0f;
-    float airPull_ = 0.0f;  // scooter pulled up to the rider in the air (m)
+    float airPull_ = 0.0f, airPullV_ = 0.0f;  // scooter pulled up to the rider in the air (m), and its rate
+    Vec3 prevVel_;                              // for the force the rider feels through the feet
+    Vec3 feltForce_{0, 9.81f, 0};
+    bool havePrevVel_ = false;
     bool visible_ = true;
     bool riderVisible_ = true;
     bool goofy_ = false;

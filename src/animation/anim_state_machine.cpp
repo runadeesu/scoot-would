@@ -58,12 +58,15 @@ void AnimStateMachine::evaluate(Pose& out) const {
         if (it == states_.end() || !it->second.clip) continue;
         tmp.setBind(*skel_);
         it->second.clip->sample(t.time, tmp);
-        total += t.weight;
+        // crossfades ease in and out (a linear fade starts and stops the motion abruptly)
+        float w = t.weight * t.weight * (3.0f - 2.0f * t.weight);
+        if (w <= 1e-4f) continue;
+        total += w;
         if (first) {
             out = tmp;
             first = false;
         } else {
-            blendPoses(out, tmp, t.weight / total);
+            blendPoses(out, tmp, w / total);
         }
     }
 }

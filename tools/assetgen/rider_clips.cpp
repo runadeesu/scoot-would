@@ -96,6 +96,63 @@ std::vector<ClipDef> clipDefs() {
         b.add(RJ_Spine, -2).add(RJ_Head, 2);
         c.push_back({"air", {{0.0f, a}, {0.6f, b}, {1.2f, a}}});
     }
+    // bunny hop, played along a plain air (0 = the pop, 1 = the landing). Photos of hops on flat: out of the
+    // compression the legs straighten and the arms pull the bars up (nose up); then the knees come up under the chest
+    // and the tail follows; the legs reach down again for the landing and bend to take it. The upper body stays loose:
+    // arms bent and out, head over the bars, eyes on the ground ahead.
+    {
+        PoseDef pop = B;
+        pop.hips(0.004f, -0.09f, 0.03f).set(RJ_Pelvis, -6, -20, 0).set(RJ_Spine, -12, 8, 0).set(RJ_Chest, -4, 5, 0).set(RJ_Neck, 6, 2, 0).set(RJ_Head, 0);
+        pop.set(RJ_ThighL, 44, -4, -2).set(RJ_ShinL, -66).set(RJ_FootL, 14).set(RJ_ThighR, 48, 8, -8).set(RJ_ShinR, -72).set(RJ_FootR, 16, 12, 0);
+        pop.pair(RJ_UpperArmL, RJ_UpperArmR, 20, 0, 20).pair(RJ_LowerArmL, RJ_LowerArmR, 80);
+        PoseDef lift = pop;
+        lift.hips(0.004f, -0.11f, 0.035f).set(RJ_Spine, -16, 7, 0).set(RJ_Chest, -6, 4, 0).set(RJ_Neck, 8, 2, 0).set(RJ_ThighL, 62, -2, 2).set(RJ_ShinL, -92)
+            .set(RJ_ThighR, 66, 6, -4).set(RJ_ShinR, -98).pair(RJ_UpperArmL, RJ_UpperArmR, 18, 0, 22).pair(RJ_LowerArmL, RJ_LowerArmR, 92);
+        // tuck (photo of a hop from the side): leaning well forward over the bars, head over them, knees up to the
+        // chest either side of the stem, the bars at the belly
+        PoseDef tuck = B;
+        tuck.hips(0.0f, -0.16f, 0.05f).set(RJ_Pelvis, -8, -14, 0).set(RJ_Spine, -20, 5, 0).set(RJ_Chest, -8, 3, 0).set(RJ_Neck, 6, 2, 0).set(RJ_Head, -2);
+        tuck.pair(RJ_ThighL, RJ_ThighR, 88, 0, 10).pair(RJ_ShinL, RJ_ShinR, -122).pair(RJ_FootL, RJ_FootR, 22);
+        tuck.pair(RJ_UpperArmL, RJ_UpperArmR, 16, 0, 24).pair(RJ_LowerArmL, RJ_LowerArmR, 98);
+        PoseDef spot = tuck;
+        spot.set(RJ_Spine, -18, 4, 0).set(RJ_Neck, 2, 2, 0).set(RJ_Head, -6).pair(RJ_ThighL, RJ_ThighR, 84, 0, 9).pair(RJ_ShinL, RJ_ShinR, -116);
+        PoseDef reach = B;
+        reach.hips(0.004f, -0.12f, 0.035f).set(RJ_Spine, -16, 8, 0).set(RJ_Chest, -6, 6, 0).set(RJ_Neck, 4, 2, 0).set(RJ_Head, -2);
+        reach.set(RJ_ThighL, 56, -4, -2).set(RJ_ShinL, -88).set(RJ_ThighR, 60, 8, -8).set(RJ_ShinR, -94);
+        reach.pair(RJ_UpperArmL, RJ_UpperArmR, 26, 0, 18).pair(RJ_LowerArmL, RJ_LowerArmR, 70);
+        PoseDef ready = B;
+        ready.hips(0.012f, -0.14f, 0.045f).add(RJ_Spine, -4);
+        c.push_back({"hop", {{0.0f, pop}, {0.16f, lift}, {0.42f, tuck}, {0.68f, spot}, {0.88f, reach}, {1.0f, ready}}});
+    }
+    // flair, played along the motion (0 = leaving the coping, 1 = back on the wall). How riders teach it: pop out -
+    // the body straight and arched back off the lip, head thrown back; look back - head back towards the ramp, the
+    // knees start to come in; curl in and dip the shoulder - a tight tuck, bars pulled into the chest, the shoulder on
+    // the turning side drops (added at run time with the turn direction); spot the landing - still tucked, the eyes
+    // find the wall; then the legs reach for it.
+    {
+        PoseDef out = B;
+        out.hips(0.0f, -0.05f, -0.05f).set(RJ_Pelvis, 8, -10, 0).set(RJ_Spine, 14, 4, 0).set(RJ_Chest, 8, 2, 0).set(RJ_Neck, 30).set(RJ_Head, 14);
+        out.set(RJ_ThighL, 20, -4, -2).set(RJ_ShinL, -34).set(RJ_FootL, 8).set(RJ_ThighR, 24, 8, -8).set(RJ_ShinR, -40).set(RJ_FootR, 10, 10, 0);
+        out.pair(RJ_UpperArmL, RJ_UpperArmR, 34, 0, 14).pair(RJ_LowerArmL, RJ_LowerArmR, 20);
+        PoseDef back = out;
+        back.hips(0.0f, -0.1f, -0.02f).set(RJ_Pelvis, 4, -8, 0).set(RJ_Spine, 10, 2, 0).set(RJ_Chest, 6).set(RJ_Neck, 42).set(RJ_Head, 18);
+        back.pair(RJ_ThighL, RJ_ThighR, 74, 0, 12).pair(RJ_ShinL, RJ_ShinR, -108).pair(RJ_FootL, RJ_FootR, 18);
+        back.pair(RJ_UpperArmL, RJ_UpperArmR, 18, 0, 24).pair(RJ_LowerArmL, RJ_LowerArmR, 84);
+        PoseDef curl = B;
+        curl.hips(0.0f, -0.16f, 0.04f).set(RJ_Pelvis, -10, -6, 0).set(RJ_Spine, -22).set(RJ_Chest, -10).set(RJ_Neck, -2).set(RJ_Head, -4);
+        curl.pair(RJ_ThighL, RJ_ThighR, 104, 0, 14).pair(RJ_ShinL, RJ_ShinR, -132).pair(RJ_FootL, RJ_FootR, 26);
+        curl.pair(RJ_UpperArmL, RJ_UpperArmR, 12, 0, 30).pair(RJ_LowerArmL, RJ_LowerArmR, 108);
+        PoseDef spot = curl;
+        spot.hips(0.0f, -0.14f, 0.03f).set(RJ_Spine, -16).set(RJ_Chest, -6).set(RJ_Neck, -18).set(RJ_Head, -8);
+        spot.pair(RJ_ThighL, RJ_ThighR, 96, 0, 12).pair(RJ_ShinL, RJ_ShinR, -124).pair(RJ_UpperArmL, RJ_UpperArmR, 18, 0, 26).pair(RJ_LowerArmL, RJ_LowerArmR, 96);
+        PoseDef ext = B;
+        ext.hips(0.004f, -0.12f, 0.03f).set(RJ_Spine, -14, 6, 0).set(RJ_Chest, -6, 4, 0).set(RJ_Neck, -10).set(RJ_Head, -4);
+        ext.set(RJ_ThighL, 62, -4, -2).set(RJ_ShinL, -94).set(RJ_ThighR, 66, 8, -8).set(RJ_ShinR, -100);
+        ext.pair(RJ_UpperArmL, RJ_UpperArmR, 26, 0, 20).pair(RJ_LowerArmL, RJ_LowerArmR, 64);
+        PoseDef land = B;
+        land.hips(0.012f, -0.15f, 0.05f).add(RJ_Spine, -6).add(RJ_Neck, -4);
+        c.push_back({"flair", {{0.0f, out}, {0.18f, back}, {0.38f, curl}, {0.66f, spot}, {0.87f, ext}, {1.0f, land}}});
+    }
     // landings: absorb and recover
     {
         PoseDef d = B;
@@ -328,7 +385,64 @@ std::vector<ClipDef> clipDefs() {
         b.pair(RJ_UpperArmL, RJ_UpperArmR, 50, 0, 110).pair(RJ_LowerArmL, RJ_LowerArmR, 60).set(RJ_ThighL, 50).set(RJ_ThighR, 10);
         c.push_back({"bail", {{0.0f, a}, {0.35f, b}, {0.7f, a}}});
     }
+    // smooth motion: keys are joined by cubic curves (tangents from the neighbouring keys, flat at the ends of
+    // one-shot clips, wrapped for loops) and baked densely, so the runtime's linear sampling moves through a key
+    // without the sudden change of speed a straight line from key to key gives
+    for (ClipDef& cd : c) smoothClip(cd);
     return c;
+}
+
+namespace {
+bool samePose(const PoseDef& a, const PoseDef& b) {
+    for (int j = 0; j < RJ_Count; ++j)
+        if ((a.e[j] - b.e[j]).lengthSq() > 1e-6f) return false;
+    return (a.pelvis - b.pelvis).lengthSq() < 1e-10f;
+}
+}  // namespace
+
+void smoothClip(ClipDef& cd) {
+    auto& k = cd.keys;
+    size_t n = k.size();
+    if (n < 3) return;
+    bool loop = samePose(k.front().second, k.back().second);
+    float t0 = k.front().first, t1 = k.back().first, len = t1 - t0;
+    if (len <= 0.0f) return;
+    // tangent (per unit time) at key i: average of the slopes either side; ends flat unless looping
+    auto slope = [&](size_t a, size_t b, auto get) { return (get(k[b].second) - get(k[a].second)) / std::max(k[b].first - k[a].first, 1e-4f); };
+    auto tangent = [&](size_t i, auto get) {
+        using V = decltype(get(k[0].second));
+        if (i == 0 || i == n - 1) {
+            if (!loop) return V(0.0f);
+            // wrap: the last key is the first, the neighbours are key 1 and key n-2
+            V s1 = slope(0, 1, get), s0 = slope(n - 2, n - 1, get);
+            return (s0 + s1) * 0.5f;
+        }
+        return (slope(i - 1, i, get) + slope(i, i + 1, get)) * 0.5f;
+    };
+    auto hermite = [](float u, auto p0, auto m0, auto p1, auto m1, float h) {
+        float u2 = u * u, u3 = u2 * u;
+        return p0 * (2 * u3 - 3 * u2 + 1) + m0 * ((u3 - 2 * u2 + u) * h) + p1 * (-2 * u3 + 3 * u2) + m1 * ((u3 - u2) * h);
+    };
+    // about 30 samples a second for timed clips, 40 over a normalised (0..1) trick
+    int samples = std::max(12, int(std::ceil(len <= 1.0f ? 40.0f * len : 30.0f * len)));
+    std::vector<std::pair<float, PoseDef>> out;
+    size_t seg = 0;
+    for (int s = 0; s <= samples; ++s) {
+        float t = t0 + len * float(s) / float(samples);
+        while (seg + 2 < n && t > k[seg + 1].first) ++seg;
+        const auto& A = k[seg];
+        const auto& Bk = k[seg + 1];
+        float h = std::max(Bk.first - A.first, 1e-4f), u = clampf((t - A.first) / h, 0.0f, 1.0f);
+        PoseDef p = A.second;
+        for (int j = 0; j < RJ_Count; ++j) {
+            auto get = [j](const PoseDef& q) { return q.e[j]; };
+            p.e[j] = hermite(u, A.second.e[j], tangent(seg, get), Bk.second.e[j], tangent(seg + 1, get), h);
+        }
+        auto getP = [](const PoseDef& q) { return q.pelvis; };
+        p.pelvis = hermite(u, A.second.pelvis, tangent(seg, getP), Bk.second.pelvis, tangent(seg + 1, getP), h);
+        out.push_back({t, p});
+    }
+    k = std::move(out);
 }
 
 Quat eulerDeg(const Vec3& e) { return Quat::euler(e.x * kDeg2Rad, e.y * kDeg2Rad, e.z * kDeg2Rad); }

@@ -4,6 +4,7 @@
 #include "animation/anim_state_machine.h"
 #include "animation/animation.h"
 
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -49,6 +50,30 @@ struct RiderAnimParams {
     bool goofy = false;      // right foot forward: clips (authored regular) are mirrored
     bool footDown = false;   // stopped: the back foot comes off the deck and stands on the ground
     bool firstPerson = false;  // first person camera: taller stance, head behind the bars (they sit in view)
+    float airProgress = 0.0f;  // plain airs: 0 at the pop .. 1 at the predicted landing (the hop timeline)
+    float flair = -1.0f;       // flair in progress 0..1 (-1 = none), flairDir +1 = half turn to the right
+    float flairDir = 1.0f;
+    // the rider keeps the torso upright while the scooter pitches under the feet in the air: world up in rider
+    // model space and how much of that to do (0 for flips, where the body goes round with the scooter)
+    Vec3 worldUp{0, 1, 0};
+    float stabilize = 0.0f;
+    // what the body feels through the feet (acceleration minus gravity, rider model space) while the wheels are
+    // down: landings and transitions compress the legs, pushes and braking sway the hips
+    Vec3 force{0, 9.81f, 0};
+    bool grounded = true;
+};
+
+// critically damped spring (smooth start and stop, no overshoot): the rider's weights and blends move with it
+// instead of snapping at the start like an exponential chase
+struct SmoothValue {
+    float x = 0.0f, v = 0.0f;
+    float update(float target, float omega, float dt) {
+        float y = x - target, e = std::exp(-omega * dt);
+        float nx = (y + (v + omega * y) * dt) * e, nv = (v - omega * (v + omega * y) * dt) * e;
+        x = nx + target;
+        v = nv;
+        return x;
+    }
 };
 
 class RiderAnimator {
@@ -83,9 +108,12 @@ private:
     int armL_[3] = {-1, -1, -1}, armR_[3] = {-1, -1, -1}, legL_[3] = {-1, -1, -1}, legR_[3] = {-1, -1, -1};
     float feetW_ = 1.0f, handLW_ = 1.0f, handRW_ = 1.0f, backFootW_ = 1.0f;
     float hoverW_ = 0.0f, deckHandW_ = 0.0f;
-    float crouchS_ = 0.0f, lookS_ = 0.0f, leanS_ = 0.0f;
+    SmoothValue crouchS_, lookS_, leanS_, trickWS_, hopW_, flairW_, stabW_, spinLeadS_, flipLeadS_;
+    // body mass on the legs: an under damped spring for the hips (height and fore / aft) driven by the force through
+    // the feet
+    Vec2 bodyOff_, bodyVel_;
+    float aliveT_ = 0.0f;
     float pushW_ = 0.0f, fpW_ = 0.0f, frontOffW_ = 0.0f, backOffW_ = 0.0f;
-    float spinLead_ = 0.0f, flipLead_ = 0.0f;
     Vec3 pushFoot_;     // pushing foot sole target (rider model space, regular stance)
     float pushToe_ = 0.0f;  // heel lift at the end of the drive
     float footDownW_ = 0.0f, groundFoot_ = 0.0f;  // 0 = back foot on the tail, 1 = standing on the ground next to the deck
@@ -106,7 +134,7 @@ private:
     Vec2 eyeLook_, eyeTarget_;
     uint32_t rng_ = 12345u;
     std::string lastTrickPose_;
-    float trickW_ = 0.0f;
+    float lastFlair_ = 0.0f, lastFlairDir_ = 1.0f;
     Vec3 gripShort_;
 };
 

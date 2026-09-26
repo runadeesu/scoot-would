@@ -219,12 +219,24 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
     sm_.play(want, fade);
     sm_.update(dt);
     sm_.evaluate(pose_);
+    bool air = st == PlayerState::Air;
+    bool flair = p.flair >= 0.0f;
+    auto smooth01 = [](float x) { x = saturate(x); return x * x * (3.0f - 2.0f * x); };
 
-    // crouch layer (blend towards the crouch clip)
-    crouchS_ = dampf(crouchS_, p.crouch, 18.0f, dt);
-    float landComp = p.landAge < 0.35f ? std::sin(p.landAge / 0.35f * kPi) * saturate(p.landImpact / 8.0f) * 0.8f : 0.0f;
-    float crouchW = std::max(crouchS_, landComp);
-    if (st == PlayerState::Air) crouchW = std::max(crouchW, 0.35f + 0.5f * saturate(std::fabs(p.flipRate) / 6.0f));  // tuck into flips
+    // plain airs play the hop along the air time: the legs straighten out of the pop with the bars pulled up, the knees
+    // come up under the chest as the tail follows, then reach down for the landing
+    hopW_.update(air && !flair ? 1.0f : 0.0f, 16.0f, dt);
+    if (hopW_.x > 0.01f && sm_.has("hop")) {
+        sm_.sampleState("hop", saturate(p.airProgress), overlay_);
+        blendPoses(pose_, overlay_, saturate(hopW_.x));
+    }
+
+    // crouch layer (blend towards the crouch clip); a landing adds the rider's own absorbing on top of the body
+    // spring below
+    crouchS_.update(p.crouch, 14.0f, dt);
+    float landComp = p.landAge < 0.45f ? std::sin(p.landAge / 0.45f * kPi) * saturate(p.landImpact / 8.0f) * 0.55f : 0.0f;
+    float crouchW = std::max(saturate(crouchS_.x), landComp);
+    if (air && !flair) crouchW = std::max(crouchW, 0.55f * saturate((std::fabs(p.flipRate) - 1.0f) / 5.0f));  // tuck into flips
     if (crouchW > 0.01f && sm_.has("crouch")) {
         sm_.sampleState("crouch", 0.0f, overlay_);
         blendPoses(pose_, overlay_, crouchW);
@@ -234,38 +246,113 @@ void RiderAnimator::update(float dt, const RiderAnimParams& p, const RiderRig& r
 
     // trick pose overlay (grabs, whips, bar tricks)
     if (!p.trickPose.empty()) lastTrickPose_ = p.trickPose;
-    trickW_ = dampf(trickW_, p.trickWeight, 16.0f, dt);
-    if (trickW_ > 0.01f && sm_.has(lastTrickPose_)) {
+    float trickW = saturate(trickWS_.update(p.trickWeight, 15.0f, dt));
+    if (trickW > 0.01f && sm_.has(lastTrickPose_)) {
         sm_.sampleState(lastTrickPose_, saturate(p.trickTime), overlay_);
-        blendPoses(pose_, overlay_, trickW_);
+        blendPoses(pose_, overlay_, trickW);
+    }
+    // flair: pop out, look back, curl in, spot the landing (holds its last moment while it blends out on the wall)
+    if (flair) {
+        lastFlair_ = p.flair;
+        lastFlairDir_ = p.flairDir;
+    }
+    float flairW = saturate(flairW_.update(flair ? 1.0f : 0.0f, 16.0f, dt));
+    if (flairW > 0.01f && sm_.has("flair")) {
+        sm_.sampleState("flair", lastFlair_, overlay_);
+        blendPoses(pose_, overlay_, flairW);
     }
 
     // goofy riders: the regular stance clips are mirrored (right foot forward, left foot pushes)
     if (p.goofy) mirrorPose(pose_);
+    auto turn = [&](int j, const Quat& q) {
+        if (j >= 0) pose_.local[size_t(j)].rotation = (q * pose_.local[size_t(j)].rotation).normalized();
+    };
+
+    // flair half turn: the shoulder on the turning side drops as the rider curls in, the head turns with the
+    // turn to spot the landing over that shoulder (the turn is in the world, so it does not mirror with the stance)
+    if (flairW > 0.01f) {
+        float u = lastFlair_;
+        float dip = smooth01((u - 0.25f) / 0.2f) * (1.0f - smooth01((u - 0.78f) / 0.17f)) * flairW;
+        float spot = smooth01((u - 0.35f) / 0.25f) * (1.0f - smooth01((u - 0.88f) / 0.12f)) * flairW;
+        float s = lastFlairDir_;  // +1: turning to the right
+        turn(spine_, Quat::angleAxis(-s * 0.26f * dip, Vec3(0, 0, -1)) * Quat::angleAxis(-s * 0.14f * dip, Vec3(0, 1, 0)));
+        turn(chest_, Quat::angleAxis(-s * 0.2f * dip, Vec3(0, 0, -1)) * Quat::angleAxis(-s * 0.12f * dip, Vec3(0, 1, 0)));
+        turn(neck_, Quat::angleAxis(-s * 0.4f * spot, Vec3(0, 1, 0)));
+        turn(head_, Quat::angleAxis(-s * 0.3f * spot, Vec3(0, 1, 0)));
+    }
 
     // body tricks: the head and shoulders lead a spin (riders spot the landing over the shoulder), the head
     // goes back into a backflip and down into a front flip
-    bool air = st == PlayerState::Air;
-    spinLead_ = dampf(spinLead_, air ? clampf(p.spinRate * 0.09f, -0.7f, 0.7f) : 0.0f, 8.0f, dt);
-    flipLead_ = dampf(flipLead_, air ? clampf(p.flipRate * 0.06f, -0.4f, 0.4f) : 0.0f, 8.0f, dt);
-    if (std::fabs(spinLead_) > 1e-3f || std::fabs(flipLead_) > 1e-3f) {
-        if (chest_ >= 0) pose_.local[size_t(chest_)].rotation = (Quat::angleAxis(spinLead_ * 0.35f, Vec3(0, 1, 0)) * pose_.local[size_t(chest_)].rotation).normalized();
-        if (neck_ >= 0)
-            pose_.local[size_t(neck_)].rotation =
-                (Quat::angleAxis(spinLead_ * 0.5f, Vec3(0, 1, 0)) * Quat::angleAxis(flipLead_, Vec3(1, 0, 0)) * pose_.local[size_t(neck_)].rotation).normalized();
-        if (head_ >= 0) pose_.local[size_t(head_)].rotation = (Quat::angleAxis(spinLead_ * 0.4f, Vec3(0, 1, 0)) * pose_.local[size_t(head_)].rotation).normalized();
+    float spinLead = spinLeadS_.update(air ? clampf(p.spinRate * 0.09f, -0.7f, 0.7f) : 0.0f, 9.0f, dt);
+    float flipLead = flipLeadS_.update(air && !flair ? clampf(p.flipRate * 0.06f, -0.4f, 0.4f) : 0.0f, 9.0f, dt);
+    if (std::fabs(spinLead) > 1e-3f || std::fabs(flipLead) > 1e-3f) {
+        turn(chest_, Quat::angleAxis(spinLead * 0.35f, Vec3(0, 1, 0)));
+        turn(neck_, Quat::angleAxis(spinLead * 0.5f, Vec3(0, 1, 0)) * Quat::angleAxis(flipLead, Vec3(1, 0, 0)));
+        turn(head_, Quat::angleAxis(spinLead * 0.4f, Vec3(0, 1, 0)));
     }
 
     // carving: upper body leans into the turn, spine twists slightly with steering
-    leanS_ = dampf(leanS_, p.lean, 8.0f, dt);
-    if (spine_ >= 0) {
-        Quat& r = pose_.local[size_t(spine_)].rotation;
-        r = (Quat::angleAxis(-leanS_ * 0.2f, Vec3(0, 0, -1)) * Quat::angleAxis(-p.steer * 0.12f, Vec3(0, 1, 0)) * r).normalized();
-    }
+    float lean = leanS_.update(p.lean, 8.0f, dt);
+    turn(spine_, Quat::angleAxis(-lean * 0.2f, Vec3(0, 0, -1)) * Quat::angleAxis(-p.steer * 0.12f, Vec3(0, 1, 0)));
     // head follows the look direction a little
-    lookS_ = dampf(lookS_, clampf(p.lookYaw, -0.8f, 0.8f), 5.0f, dt);
-    if (neck_ >= 0) pose_.local[size_t(neck_)].rotation = (Quat::angleAxis(lookS_ * 0.35f, Vec3(0, 1, 0)) * pose_.local[size_t(neck_)].rotation).normalized();
-    if (head_ >= 0) pose_.local[size_t(head_)].rotation = (Quat::angleAxis(lookS_ * 0.45f, Vec3(0, 1, 0)) * pose_.local[size_t(head_)].rotation).normalized();
+    float look = lookS_.update(clampf(p.lookYaw, -0.8f, 0.8f), 5.0f, dt);
+    turn(neck_, Quat::angleAxis(look * 0.35f, Vec3(0, 1, 0)));
+    turn(head_, Quat::angleAxis(look * 0.45f, Vec3(0, 1, 0)));
+
+    // body mass on the legs: the hips ride on the legs like a mass on a soft spring. What the feet push up with
+    // beyond the rider's weight (a landing, the bottom of a transition) sinks them, the legs push back and they
+    // settle with a little bounce; speeding up leaves them behind for a moment, braking throws them forward.
+    {
+        bool onFeet = p.grounded && !air && st != PlayerState::Bailed;
+        float up = onFeet ? clampf(p.force.y - 9.81f, -9.0f, 160.0f) : 0.0f;
+        float fwd = onFeet ? clampf(-p.force.z, -20.0f, 20.0f) : 0.0f;
+        const float w = 9.5f, zeta = 0.5f;
+        int steps = std::max(1, int(std::ceil(dt / 0.006f)));
+        float h = dt / float(steps);
+        for (int i = 0; i < steps; ++i) {
+            Vec2 acc(-w * w * bodyOff_.x - 2.0f * zeta * w * bodyVel_.x + fwd * 0.5f, -w * w * bodyOff_.y - 2.0f * zeta * w * bodyVel_.y - up * 0.2f);
+            bodyVel_ += acc * h;
+            bodyOff_ += bodyVel_ * h;
+        }
+        if (bodyOff_.y < -0.15f) {
+            bodyOff_.y = -0.15f;
+            bodyVel_.y = std::max(bodyVel_.y, 0.0f);
+        }
+        bodyOff_.y = std::min(bodyOff_.y, 0.05f);
+        bodyOff_.x = clampf(bodyOff_.x, -0.08f, 0.08f);
+        if (pelvis_ >= 0) pose_.local[size_t(pelvis_)].position += Vec3(0.0f, bodyOff_.y, bodyOff_.x * 0.6f);
+        // sinking bends the back forward and the head comes up to keep the eyes ahead; left behind = chest back
+        float bend = bodyOff_.y * 1.6f - bodyOff_.x * 1.8f;
+        turn(spine_, Quat::angleAxis(bend * 0.6f, Vec3(1, 0, 0)));
+        turn(chest_, Quat::angleAxis(bend * 0.4f, Vec3(1, 0, 0)));
+        turn(neck_, Quat::angleAxis(-bend * 0.55f, Vec3(1, 0, 0)));
+    }
+
+    // never quite still: slow, small drifts of the head, chest and hips (a held pose reads as a mannequin)
+    if (st != PlayerState::Bailed) {
+        aliveT_ += dt;
+        float t = aliveT_;
+        float a = std::sin(t * 0.83f) + 0.6f * std::sin(t * 1.91f + 1.3f), b = std::sin(t * 1.17f + 0.7f) + 0.5f * std::sin(t * 2.63f + 2.1f);
+        float c = std::sin(t * 0.61f + 2.4f) + 0.4f * std::sin(t * 1.53f);
+        turn(head_, Quat::angleAxis(0.035f * a, Vec3(0, 1, 0)) * Quat::angleAxis(0.02f * b, Vec3(1, 0, 0)));
+        turn(chest_, Quat::angleAxis(0.012f * c, Vec3(1, 0, 0)) * Quat::angleAxis(0.01f * a, Vec3(0, 0, 1)));
+        turn(spine_, Quat::angleAxis(0.012f * b, Vec3(0, 1, 0)));
+        if (pelvis_ >= 0) pose_.local[size_t(pelvis_)].position.y += 0.004f * c;
+    }
+
+    // in the air the rider keeps the torso upright while the scooter pitches and rolls under the feet (the legs and
+    // arms take up the angle): the hips turn back towards world up about the feet
+    float stab = saturate(stabW_.update(p.stabilize, 9.0f, dt));
+    if (stab > 0.01f && pelvis_ >= 0) {
+        Vec3 u = p.worldUp.normalized();
+        float pitch = clampf(std::atan2(u.z, u.y) * 0.7f, -0.45f, 0.45f) * stab;
+        float roll = clampf(std::atan2(-u.x, u.y) * 0.5f, -0.25f, 0.25f) * stab;
+        Quat R = Quat::angleAxis(roll, Vec3(0, 0, 1)) * Quat::angleAxis(pitch, Vec3(1, 0, 0));
+        Transform& pl = pose_.local[size_t(pelvis_)];
+        Vec3 pivot(0.0f, 0.0f, 0.0f);
+        pl.position = pivot + R * (pl.position - pivot);
+        pl.rotation = (R * pl.rotation).normalized();
+    }
 
     // IK weights: feet / hands leave the scooter during tricks, the back foot during a push
     bool bailed = st == PlayerState::Bailed;
@@ -502,7 +589,9 @@ void RiderAnimator::applyIK(const RiderRig& rig, float, bool goofy) {
         Vec3 shoulder = ms[size_t(ch[0])].position;
         // elbows out to the side (photos: riders' elbows flare out, more so when the bars are pulled up to the chest)
         float high = saturate((grip.y - (shoulder.y - 0.45f)) / 0.3f);
-        Vec3 pole = shoulder + Vec3(sideSign * lerpf(0.5f, 0.7f, high), lerpf(-0.25f, -0.16f, high), lerpf(0.35f, 0.1f, high));
+        // relaxed arms on low bars: elbows soft and out to the side, only a little behind the body (hands on hips
+        // otherwise)
+        Vec3 pole = shoulder + Vec3(sideSign * lerpf(0.62f, 0.7f, high), lerpf(-0.3f, -0.16f, high), lerpf(0.16f, 0.1f, high));
         int s = sideSign < 0.0f ? 0 : 1;
         Quat gripRot = Quat::angleAxis(-sideSign * 0.3f, Vec3(0, 0, 1)) * Quat::angleAxis(0.5f, Vec3(1, 0, 0));
         Vec3 wrist = grip + Vec3(0, 0.035f, 0.03f);

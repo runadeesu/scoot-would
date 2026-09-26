@@ -44,6 +44,7 @@ struct ClipDef {
 PoseDef ridePose();
 PoseDef tuckPose();
 std::vector<ClipDef> clipDefs();
+void smoothClip(ClipDef& cd);  // cubic in-betweens baked into the keys
 Quat eulerDeg(const Vec3& e);
 
 }  // namespace sw::tools

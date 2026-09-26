@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+### Rider motion
+- The rider moves looser and smoother:
+  - Animation keys are joined by cubic curves and state crossfades ease in and out, so there are no sudden changes
+    of speed at a key.
+  - Blend weights (crouch, tricks, lean, head) follow critically damped springs instead of snapping at the start.
+  - The hips ride on the legs like a mass on a soft spring. Landings and the bottom of transitions sink them, the
+    legs push back with a little bounce, and speeding up or braking sways them.
+  - Small slow drifts of the head, chest and hips mean the rider is never frozen.
+  - In plain airs the torso stays upright while the scooter pitches and rolls under the feet (it used to be bolted
+    to the deck angle).
+  - Elbows sit softer and more to the side.
+- Bunny hop, from reference photos:
+  1. Out of the compression the legs straighten and the arms lift the bars.
+  2. The rider leans forward over the bars with the knees up to the chest as the tail follows.
+  3. The legs reach down and absorb the landing.
+- Flair, from reference photos (the steps riders are taught):
+  1. Pop out: stretched and arched back off the lip, head back.
+  2. Look back: the knees start coming in.
+  3. Curl in and dip the shoulder on the turning side.
+  4. Spot the landing over that shoulder.
+  5. Reach for the wall.
+- Both are authored for the regular stance and mirrored for goofy. The flair's shoulder dip and head turn follow the
+  direction of its half turn in the world.
+
 ### Trailer
 - Trailer mode: `--trailer script.json --record out.mp4` plays scripted shots (autotest inputs, cinematic
   track / fixed / dolly / orbit cameras, slow motion, JA + EN title cards, letterbox, fades) and records every

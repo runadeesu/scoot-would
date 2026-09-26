@@ -372,10 +372,26 @@ void PlayerVisual::updateScooterParts(const Transform& body, const Player& playe
     }
     // in the air riders pull the scooter up to them (photos of airs, whips and barspins: bars at the chest, knees
     // bent, torso upright), and let it back down under the feet just before the landing
+    // Timeline of a hop: straight legs out of the pop (the arms lift the bars), the knees come up and the scooter with
+    // them, the legs reach down to land. A flair keeps the scooter at the feet while the body is stretched out off the
+    // lip and pulls it in for the curl.
+    auto smooth01 = [](float x) { x = saturate(x); return x * x * (3.0f - 2.0f * x); };
     float pullTarget = 0.0f;
-    if (!bailed && player.state() == PlayerState::Air)
-        pullTarget = 0.26f * saturate(player.airTime() / 0.18f) * saturate((player.timeToLand() - 0.06f) / 0.22f);
-    airPull_ = dampf(airPull_, pullTarget, 14.0f, dt);
+    if (!bailed && player.state() == PlayerState::Air) {
+        float fp = player.flairProgress();
+        if (fp >= 0.0f)
+            pullTarget = 0.3f * smooth01((fp - 0.14f) / 0.24f) * (1.0f - smooth01((fp - 0.76f) / 0.2f));
+        else
+            pullTarget = 0.2f * smooth01((player.airTime() - 0.05f) / 0.24f) * smooth01((player.timeToLand() - 0.04f) / 0.26f);
+    }
+    // a critically damped follow: the scooter comes up and goes back down smoothly
+    {
+        const float w = 16.0f;
+        float y = airPull_ - pullTarget, e = std::exp(-w * dt);
+        float ny = (y + (airPullV_ + w * y) * dt) * e, nv = (airPullV_ - w * (airPullV_ + w * y) * dt) * e;
+        airPull_ = std::max(0.0f, ny + pullTarget);
+        airPullV_ = nv;
+    }
     pose.offset.y += airPull_;
     // held out of the way while it goes round: lifted to the body, pushed out to the side, thrown forward
     if (pose.offset.lengthSq() > 1e-8f) whole = Mat4::translation(pose.offset) * whole;
@@ -456,6 +472,33 @@ void PlayerVisual::updateRider(const Transform& body, Player& player, float dt, 
     ap.goofy = goofy_;
     ap.footDown = !bailed && player.stoppedTime() > 0.45f && !ap.pushing;
     ap.firstPerson = firstPerson_ && !bailed;
+    bool inAir = player.state() == PlayerState::Air && !bailed;
+    if (inAir) {
+        float t = player.airTime(), ttl = std::max(player.timeToLand(), 0.0f);
+        ap.airProgress = t / std::max(t + ttl, 0.05f);
+    }
+    ap.flair = bailed ? -1.0f : player.flairProgress();
+    ap.flairDir = player.flairDirection();
+    // torso upright in plain airs (not while the body itself goes round: flips, flairs; not out of a ramp wall)
+    ap.worldUp = riderWorld_.rotation.conjugate() * Vec3(0, 1, 0);
+    if (inAir && ap.flair < 0.0f && !player.rampAir()) {
+        float flip = std::fabs(player.tricks.flipDegrees());
+        ap.stabilize = saturate((ap.worldUp.y - 0.6f) / 0.25f) * (1.0f - saturate((flip - 20.0f) / 30.0f));
+    }
+    // force through the feet: acceleration minus gravity, in the rider's frame
+    {
+        Vec3 v = player.velocity();
+        if (havePrevVel_ && dt > 1e-5f) {
+            Vec3 f = (v - prevVel_) / dt + Vec3(0, 9.81f, 0);
+            feltForce_ = f;
+        }
+        prevVel_ = v;
+        havePrevVel_ = !bailed;
+        ap.force = riderWorld_.rotation.conjugate() * feltForce_;
+        PlayerState ps = player.state();
+        ap.grounded = !bailed && (ps == PlayerState::Riding || ps == PlayerState::Manual || ps == PlayerState::Grinding) &&
+                      (ps == PlayerState::Grinding || player.scooter.grounded());
+    }
     RiderRig rig;
     ScooterDims bars = d;  // hands on the grips of the fitted bars
     bars.barHeight = barHeight_;
